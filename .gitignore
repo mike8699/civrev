@@ -175,4 +175,56 @@ cython_debug/
 
 # CivRev-specific files
 *.zip
-/iso/
+*.wav
+*.dds
+*.gr2
+*.xml
+*.nxb
+*.csv
+*.mp3
+*.png
+*.PNG
+*.vpo
+*.cg
+*.fpo
+*.cache
+*.nsb
+*.wcompxml
+*.nif
+*.physrul
+*.gfx
+*.swf
+*.kf
+*.kfm
+*.bmp
+*.gsd
+*.str
+*.fnt
+attachment shared textures.txt
+city shared textures.txt
+global shared textures.txt
+unit shared textures.txt
+dupetest.txt
+placeholder.txt
+readme.txt
+473333162.pdf
+text.ini
+civnames_*.txt
+citynames_*.txt
+landmarknames_*.txt
+famousnames_*.txt
+rulernames_*.txt
+technames_*.txt
+unitnames_*.txt
+wondernames_*.txt
+ps3shaders.txt
+*.FPK
+*.bik
+*.PUP
+*.SFB
+*.SFO
+*.DAT
+*.BIN
+*.edat
+*.pkg
+*.iso
