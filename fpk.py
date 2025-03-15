@@ -1,7 +1,12 @@
+import logging
 import struct
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+
+logging.basicConfig(level=logging.INFO)
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -25,9 +30,9 @@ class FPK:
 
             for _ in range(item_count):
                 item_name_len: int = struct.unpack("<I", f.read(4))[0]
-                print(f"Item name length: {hex(item_name_len)}")
+                logger.debug(f"Item name length: {hex(item_name_len)}")
                 item_name = f.read(item_name_len).decode()
-                print(f"Item name: {item_name}")
+                logger.debug(f"Item name: {item_name}")
 
                 zeroes_encountered = 0
                 while zeroes_encountered < 4:
@@ -37,9 +42,8 @@ class FPK:
                         zeroes_encountered = 0
 
                 file_size, file_offset = struct.unpack("<II", f.read(8))
-                print(f"File size: {hex(file_size)}")
-                print(f"File offset: {hex(file_offset)}")
-                print()
+                logger.debug(f"File size: {hex(file_size)}")
+                logger.debug(f"File offset: {hex(file_offset)}")
 
                 self.file_entries.append(FileEntry(item_name, file_offset, file_size))
 
@@ -57,22 +61,22 @@ def main():
     src_file = Path(sys.argv[1])
 
     if not src_file.exists():
-        print(f"File {src_file} does not exist.", file=sys.stderr)
+        logger.info(f"File {src_file} does not exist.")
         return
 
     elif src_file.is_file():
         dest = Path.cwd() / src_file.stem
         dest.mkdir(parents=True, exist_ok=True)
-        print(f"Extracting {src_file.name} to {dest}...")
+        logger.info(f"Extracting {src_file.name} to {dest}...")
         fpk = FPK(src_file)
         fpk.extract(dest_dir=dest)
 
     elif src_file.is_dir():
-        print(f"Extracting all FPK files in directory {src_file}...")
+        logger.info(f"Extracting all FPK files in directory {src_file}...")
         for fpk_file in src_file.glob("*.FPK"):
             dest = Path.cwd() / "extracted" / fpk_file.stem
             dest.mkdir(parents=True, exist_ok=True)
-            print(f"\tExtracting {fpk_file.name} to {dest}...")
+            logger.info(f"\tExtracting {fpk_file.name} to {dest}...")
             fpk = FPK(fpk_file)
             fpk.extract(dest_dir=dest)
 
