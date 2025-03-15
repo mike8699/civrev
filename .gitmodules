@@ -1,3 +1,6 @@
 [submodule "PSN_get_pkg_info"]
 	path = dlc/PSN_get_pkg_info
 	url = git@github.com:windsurfer1122/PSN_get_pkg_info.git
+[submodule "make_npdata"]
+	path = dlc/make_npdata
+	url = https://github.com/aniruddh22/make_npdata.git
