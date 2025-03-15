@@ -1,0 +1,3 @@
+[submodule "PSN_get_pkg_info"]
+	path = dlc/PSN_get_pkg_info
+	url = git@github.com:windsurfer1122/PSN_get_pkg_info.git
