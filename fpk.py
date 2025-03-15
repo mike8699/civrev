@@ -56,9 +56,25 @@ class FPK:
 def main():
     src_file = Path(sys.argv[1])
 
-    fpk = FPK(src_file)
+    if not src_file.exists():
+        print(f"File {src_file} does not exist.", file=sys.stderr)
+        return
 
-    fpk.extract(Path("output"))
+    elif src_file.is_file():
+        dest = Path.cwd() / src_file.stem
+        dest.mkdir(parents=True, exist_ok=True)
+        print(f"Extracting {src_file.name} to {dest}...")
+        fpk = FPK(src_file)
+        fpk.extract(dest_dir=dest)
+
+    elif src_file.is_dir():
+        print(f"Extracting all FPK files in directory {src_file}...")
+        for fpk_file in src_file.glob("*.FPK"):
+            dest = Path.cwd() / "extracted" / fpk_file.stem
+            dest.mkdir(parents=True, exist_ok=True)
+            print(f"\tExtracting {fpk_file.name} to {dest}...")
+            fpk = FPK(fpk_file)
+            fpk.extract(dest_dir=dest)
 
 
 if __name__ == "__main__":
