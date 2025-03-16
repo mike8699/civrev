@@ -1,9 +1,10 @@
+import argparse
 import json
 import logging
 import struct
-import sys
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
 
 logging.basicConfig(level=logging.INFO)
 
@@ -150,37 +151,51 @@ class FPK:
                 fpk.seek(current_position)
 
 
-def main():
-    src_file = Path(sys.argv[1])
+def main() -> None:
+    parser = argparse.ArgumentParser(description="FPK file extractor/repacker.")
+    parser.add_argument(
+        "mode",
+        type=str,
+        choices=["extract", "repack"],
+        help="Mode to run the tool in: extract or repack.",
+    )
+    parser.add_argument(
+        "src", type=str, help="Source FPK file or directory to extract/repack."
+    )
+
+    parsed_args = parser.parse_args()
+    src_file = Path(parsed_args.src)
+    mode: Literal["extract", "repack"] = parsed_args.mode
 
     if not src_file.exists():
         logger.info(f"File {src_file} does not exist.")
         return
 
-    elif src_file.is_file():
-        dest = Path.cwd() / src_file.stem
-        dest.mkdir(parents=True, exist_ok=True)
-        logger.info(f"Extracting {src_file.name} to {dest}...")
-        fpk = FPK(src_file)
-        fpk.extract(dest_dir=dest)
-
-    elif src_file.is_dir():
-        logger.info(f"Extracting all FPK files in directory {src_file}...")
-        for fpk_file in src_file.glob("*.FPK"):
-            dest = Path.cwd() / "extracted" / fpk_file.stem
+    if mode == "extract":
+        if src_file.is_file():
+            dest = Path.cwd() / src_file.stem
             dest.mkdir(parents=True, exist_ok=True)
-            logger.info(f"\tExtracting {fpk_file.name} to {dest}...")
-            fpk = FPK(fpk_file)
+            logger.info(f"Extracting {src_file.name} to {dest}...")
+            fpk = FPK(src_file)
             fpk.extract(dest_dir=dest)
+        elif src_file.is_dir():
+            logger.info(f"Extracting all FPK files in directory {src_file}...")
+            for fpk_file in src_file.glob("*.FPK"):
+                dest = Path.cwd() / "extracted" / fpk_file.stem
+                dest.mkdir(parents=True, exist_ok=True)
+                logger.info(f"\tExtracting {fpk_file.name} to {dest}...")
+                fpk = FPK(fpk_file)
+                fpk.extract(dest_dir=dest)
 
+    elif mode == "repack":
+        if not src_file.is_dir():
+            raise Exception(f"Source {src_file} must be a directory for repacking.")
 
-def repack_fpk():
-    src_dir = Path(sys.argv[1])
-    if not src_dir.exists():
-        logger.info(f"Directory {src_dir} does not exist.")
-        return
-    FPK.from_directory(src_dir)
+        FPK.from_directory(src_file)
+
+    else:
+        raise NotImplementedError()
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()
