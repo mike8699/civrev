@@ -35,6 +35,11 @@ class FPK:
 
             assert magic == self.MAGIC_BYTES, "Not a valid FPK file!"
 
+            # Explicitly handle duplicate entries for '473333162.pdf' and 'placeholder.txt'
+            # in Common0.FPK.
+            found_placeholder_txt = False
+            found_pdf = False
+
             for _ in range(item_count):
                 item_name_len: int = struct.unpack("<I", f.read(4))[0]
                 logger.debug(f"Item name length: {hex(item_name_len)}")
@@ -54,9 +59,28 @@ class FPK:
                 logger.debug(f"File size: {hex(file_size)}")
                 logger.debug(f"File offset: {hex(file_offset)}")
 
+                # These filenames are duplicated in the game files for some reason.
+                # We skip adding the duplicate entries.
+                if item_name == "473333162.pdf":
+                    if not found_pdf:
+                        found_pdf = True
+                    else:
+                        item_count -= 1
+                        continue
+                elif item_name == "placeholder.txt":
+                    if not found_placeholder_txt:
+                        found_placeholder_txt = True
+                    else:
+                        item_count -= 1
+                        continue
+
                 self.file_entries.append(
                     FileEntry(item_name, file_offset, file_size, additional_data)
                 )
+
+            assert (
+                len(self.file_entries) == item_count
+            ), f"Item count mismatch! ({len(self.file_entries)} != {item_count})"
 
     def extract(self, dest_dir: Path):
         dest_dir.mkdir(parents=True, exist_ok=True)
@@ -96,8 +120,8 @@ class FPK:
             filenames, list
         ), f"Ordering file {cls.ORDERING_FILENAME} is not a list."
         assert len(filenames) == items_count, (
-            f"Ordering file {cls.ORDERING_FILENAME} ({len(filenames)})does not match the number of "
-            f"files in the directory ({items_count})."
+            f"Ordering file {cls.ORDERING_FILENAME} ({len(filenames)}) does not match the "
+            f"number of files in the directory ({items_count})."
         )
 
         with open(fpk_file, "wb") as fpk:
