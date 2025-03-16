@@ -229,3 +229,5 @@ ps3shaders.txt
 *.pkg
 *.iso
 *.rap
+*.extradata
+ordering.json
