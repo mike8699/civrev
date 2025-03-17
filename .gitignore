@@ -231,3 +231,4 @@ ps3shaders.txt
 *.rap
 *.extradata
 ordering.json
+/ghidra/
