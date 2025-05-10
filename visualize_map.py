@@ -73,7 +73,7 @@ terrain_colors: dict[int, tuple[int, int, int]] = {
         210,
         180,
         160,
-    ),  # Plains w/ river on bottom and right (Dusty Beige - softened earth tone with water influence)
+    ),  # Plains w/ river on bottom and right (Dusty Beige)
 }
 
 
