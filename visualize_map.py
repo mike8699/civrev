@@ -70,18 +70,14 @@ terrain_colors: dict[int, tuple[int, int, int]] = {
         108,
         135,
     ),  # Hill with river on bottom, mountain on left (Dusty Purple-Gray)
-    0xC2: (
-        210,
-        180,
-        160,
-    ),  # Plains w/ river on bottom and right (Dusty Beige)
+    0xC2: (210, 180, 160),  # Plains w/ river on bottom and right (Dusty Beige)
 }
 
 
 # Function to parse the binary file
 def parse_map_binary(binary_map_path: str) -> np.ndarray:
     with open(binary_map_path, "rb") as f:
-        data = f.read()[:0x400:]  # Read the relevant data (0x400 bytes)
+        data = f.read(0x400)  # Read the relevant data (0x400 bytes)
 
     # Map the data (0x400 bytes) to a 32x32 grid
     map_data = np.frombuffer(data, dtype=np.uint8).reshape((map_size, map_size))
@@ -163,19 +159,38 @@ def render_map(map_data: np.ndarray) -> None:
     plt.show()
 
 
+def convert_bmp_to_map(bmp_file: str) -> None:
+    raise NotImplementedError("BMP to MAP conversion is not implemented yet.")
+
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Visualize a CivRev .map file.")
+    parser = argparse.ArgumentParser(
+        description="Visualize or convert a CivRev map file."
+    )
     parser.add_argument(
         "-m",
         "--map-file",
         type=str,
         help="Path to the binary map file.",
-        default="Pak9/the_world.map",
+        required=False,
+    )
+    parser.add_argument(
+        "-b",
+        "--bmp-file",
+        type=str,
+        help="Path to the BMP file.",
         required=False,
     )
     args = parser.parse_args()
 
-    map_file: str = args.map_file
+    if args.bmp_file and not args.map_file:
+        print("Error: --map-file is required when using --bmp-file.")
+        parser.print_help()
+        exit(1)
 
-    map_data = parse_map_binary(map_file)
-    render_map(map_data)
+    if args.bmp_file and args.map_file:
+        convert_bmp_to_map(args.bmp_file)
+    else:
+        map_file = args.map_file or "Pak9/the_world.map"
+        map_data = parse_map_binary(map_file)
+        render_map(map_data)
