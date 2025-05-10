@@ -184,6 +184,7 @@ cython_debug/
 *.mp3
 *.png
 *.PNG
+*.tif
 *.vpo
 *.cg
 *.fpo
