@@ -4,7 +4,7 @@ import numpy as np
 # Define the map size (32x32)
 map_size = 32
 
-terrain_colors = {
+terrain_colors: dict[list[int]] = {
     0x00: [0, 0, 139],  # Ocean (Dark Blue - deeper look)
     0x01: [124, 252, 0],  # Grassland (Lawn Green - brighter than forest)
     0x02: [238, 232, 170],  # Plains (Pale Goldenrod)
@@ -35,7 +35,7 @@ binary_map_path = "Pak9/the_world.map"
 
 
 # Function to parse the binary file
-def parse_map_binary(binary_map_path):
+def parse_map_binary(binary_map_path: str) -> np.ndarray:
     with open(binary_map_path, "rb") as f:
         data = f.read()[:0x400:]  # Read the relevant data (0x400 bytes)
 
@@ -45,7 +45,7 @@ def parse_map_binary(binary_map_path):
     return map_data
 
 
-def render_map(map_data):
+def render_map(map_data: np.ndarray) -> None:
     terrain_image = np.zeros((map_size, map_size, 3), dtype=np.uint8)
     unknown_coords = []
 
