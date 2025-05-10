@@ -1,4 +1,5 @@
 import argparse
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -154,6 +155,11 @@ def render_map(map_data: np.ndarray) -> None:
     )
 
     plt.tight_layout()
+
+    output_path = Path(map_file).with_suffix(".bmp")
+    plt.imsave(output_path, terrain_image)
+    print(f"Map image exported to {output_path}")
+
     plt.show()
 
 
