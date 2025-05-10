@@ -219,6 +219,7 @@ unitnames_*.txt
 wondernames_*.txt
 ps3shaders.txt
 *.FPK
+*.ELF
 *.bik
 *.PUP
 *.SFB
