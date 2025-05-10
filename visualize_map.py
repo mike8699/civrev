@@ -21,14 +21,31 @@ terrain_colors: dict[int, tuple[int, int, int]] = {
         113,
     ),  # Forested coastline (Medium Sea Green - natural + near water)
     0x21: (144, 238, 144),  # Grassland w/ river left (Light Green)
+    0x41: (102, 205, 170),  # Grassland w/ river on right + top (Medium Aquamarine)
     0x42: (255, 218, 185),  # Plains w/ river right (Peach Puff - warm, soft)
     0x43: (107, 142, 35),  # Grassland w/ river right (Olive Drab - earthy variation)
     0x44: (139, 115, 85),  # Mountain w/ river right (Brownish-gray)
     0x45: (244, 164, 96),  # Desert w/ river + coastline (Sandy Brown)
     0x46: (120, 110, 100),  # Mountain w/ river right (Cool Slate Brown)
     0x81: (46, 139, 87),  # Grassland w/ coast left (Sea Green)
+    0x82: (
+        222,
+        184,
+        135,
+    ),  # Plains w/ river on bottom (Burly Wood - warm earth tone with a soft, natural feel)
     0x83: (128, 128, 105),  # Hill w/ river bottom left (Gray-Green - terrain + water)
     0x84: (112, 128, 144),  # Mountain w/ river left + bottom (Slate Gray)
+    0x86: (100, 100, 120),  # Mountain with river on bottom (Cool Slate)
+    0xA4: (
+        123,
+        108,
+        135,
+    ),  # Hill with river on bottom, mountain on left (Dusty Purple-Gray)
+    0xC2: (
+        210,
+        180,
+        160,
+    ),  # Plains w/ river on bottom and right (Dusty Beige - softened earth tone with water influence)
 }
 
 
