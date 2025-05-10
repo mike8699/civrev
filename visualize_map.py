@@ -6,6 +6,32 @@ import numpy as np
 # Define the map size (32x32)
 map_size = 32
 
+terrain_names: dict[int, str] = {
+    0x0: "Ocean",
+    0x1: "Grassland",
+    0x2: "Plains",
+    0x3: "Mountains",
+    0x4: "Forest",
+    0x5: "Desert",
+    0x6: "Hills",
+    0x7: "Ice",
+    0x13: "Forested coastline",
+    0x21: "Grassland w/ river left",
+    0x41: "Grassland w/ river on right + top",
+    0x42: "Plains w/ river right",
+    0x43: "Grassland w/ river right",
+    0x44: "Mountain w/ river right",
+    0x45: "Desert w/ river + coastline",
+    0x46: "Mountain w/ river right",
+    0x81: "Grassland w/ coast left",
+    0x82: "Plains w/ river on bottom",
+    0x83: "Hill w/ river bottom left",
+    0x84: "Mountain w/ river left + bottom",
+    0x86: "Mountain with river on bottom",
+    0xA4: "Hill with river on bottom, mountain on left",
+    0xC2: "Plains w/ river on bottom and right",
+}
+
 terrain_colors: dict[int, tuple[int, int, int]] = {
     0x00: (0, 0, 139),  # Ocean (Dark Blue - deeper look)
     0x01: (124, 252, 0),  # Grassland (Lawn Green - brighter than forest)
@@ -63,6 +89,7 @@ def parse_map_binary(binary_map_path: str) -> np.ndarray:
 def render_map(map_data: np.ndarray) -> None:
     terrain_image = np.zeros((map_size, map_size, 3), dtype=np.uint8)
     unknown_coords = []
+    used_terrains = set()
 
     for row in range(map_size):
         for col in range(map_size):
@@ -71,25 +98,24 @@ def render_map(map_data: np.ndarray) -> None:
             rgb_value = terrain_colors.get(terrain_value, None)
             if rgb_value is not None:
                 terrain_image[row, col] = rgb_value
+                used_terrains.add(terrain_value)
             else:
-                terrain_image[row, col] = [128, 0, 128]
+                terrain_image[row, col] = [128, 0, 128]  # Purple for unknown
                 unknown_coords.append((row, col, terrain_value))
 
     # Flip and rotate the map image
     terrain_image = np.flipud(terrain_image)
     terrain_image = np.rot90(terrain_image, k=3)
 
+    plt.figure(figsize=(10, 10))
     plt.imshow(terrain_image)
     plt.axis("off")
 
-    # Correct text placement: apply same transformation to coordinates
+    # Add labels for unknown tiles
     for row, col, val in unknown_coords:
-        # Step 1: Flip vertically
         flipped_row = map_size - 1 - row
-        # Step 2: Rotate 90° clockwise
         x = map_size - 1 - flipped_row
         y = col
-
         plt.text(
             x,
             y,
@@ -102,6 +128,30 @@ def render_map(map_data: np.ndarray) -> None:
             bbox=dict(facecolor="black", alpha=0.5, boxstyle="round,pad=0.2"),
         )
 
+    # Create legend entries
+    from matplotlib.patches import Patch
+
+    legend_elements = [
+        Patch(
+            facecolor=np.array(terrain_colors[tid]) / 255.0,
+            edgecolor="black",
+            label=terrain_names.get(tid, f"0x{tid:02X}"),
+        )
+        for tid in sorted(used_terrains)
+    ]
+
+    plt.legend(
+        handles=legend_elements,
+        loc="upper center",
+        bbox_to_anchor=(0.5, -0.05),
+        ncol=3,
+        fontsize=8,
+        frameon=True,
+        framealpha=0.9,
+        title="Terrain Legend",
+    )
+
+    plt.tight_layout()
     plt.show()
 
 
