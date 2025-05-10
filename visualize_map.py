@@ -17,6 +17,7 @@ terrain_names: dict[int, str] = {
     0x7: "Ice",
     0x13: "Forested coastline",
     0x21: "Grassland w/ river left",
+    0x23: "Forest w/ river bottom right",
     0x41: "Grassland w/ river on right + top",
     0x42: "Plains w/ river right",
     0x43: "Grassland w/ river right",
@@ -47,6 +48,7 @@ terrain_colors: dict[int, tuple[int, int, int]] = {
         113,
     ),  # Forested coastline (Medium Sea Green - natural + near water)
     0x21: (144, 238, 144),  # Grassland w/ river left (Light Green)
+    0x23: (60, 179, 113),  # Forest w/ river bottom right (Medium Sea Green)
     0x41: (102, 205, 170),  # Grassland w/ river on right + top (Medium Aquamarine)
     0x42: (255, 218, 185),  # Plains w/ river right (Peach Puff - warm, soft)
     0x43: (107, 142, 35),  # Grassland w/ river right (Olive Drab - earthy variation)
