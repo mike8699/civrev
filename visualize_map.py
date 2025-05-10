@@ -5,28 +5,28 @@ import numpy as np
 map_size = 32
 
 terrain_colors = {
-    0x00: [0, 0, 255],  # Ocean (Deep Blue)
-    0x01: [34, 139, 34],  # Grassland (Forest Green)
-    0x02: [255, 255, 0],  # Plains (Yellow)
-    0x03: [139, 69, 19],  # Mountains (Saddle Brown)
+    0x00: [0, 0, 139],  # Ocean (Dark Blue - deeper look)
+    0x01: [124, 252, 0],  # Grassland (Lawn Green - brighter than forest)
+    0x02: [238, 232, 170],  # Plains (Pale Goldenrod)
+    0x03: [105, 105, 105],  # Mountains (Dim Gray - more rugged)
     0x04: [34, 139, 34],  # Forest (Forest Green)
-    0x05: [255, 228, 181],  # Desert (Light Khaki)
-    0x06: [169, 169, 169],  # Hills (Dark Gray)
-    0x07: [255, 250, 250],  # Ice (Snow White)
-    0x13: [],  # Trees with a coastline on left, top, and right
-    0x21: [144, 238, 144],  # Grassland with river on the left (Light Green)
-    0x42: [255, 223, 186],  # Plains with river on the right (Peach)
-    0x43: [34, 139, 34],  # Grassland with river on the right (Forest Green)
-    0x44: [139, 69, 19],  # Mountain with river on the right (Saddle Brown)
-    0x45: [
-        255,
-        228,
-        181,
-    ],  # Desert with river on the right and coastline on top (Light Khaki)
-    0x46: [],  # Mountain with river on right
-    0x81: [70, 130, 180],  # Grassland with coastline on the left (Steel Blue)
-    0x83: [],  # Hill with river on bottom left
-    0x84: [139, 69, 19],  # Mountain with river on left and bottom (Saddle Brown)
+    0x05: [210, 180, 140],  # Desert (Tan)
+    0x06: [160, 160, 160],  # Hills (Medium Gray)
+    0x07: [240, 248, 255],  # Ice (Alice Blue)
+    0x13: [
+        60,
+        179,
+        113,
+    ],  # Forested coastline (Medium Sea Green - natural + near water)
+    0x21: [144, 238, 144],  # Grassland w/ river left (Light Green)
+    0x42: [255, 218, 185],  # Plains w/ river right (Peach Puff - warm, soft)
+    0x43: [107, 142, 35],  # Grassland w/ river right (Olive Drab - earthy variation)
+    0x44: [139, 115, 85],  # Mountain w/ river right (Brownish-gray)
+    0x45: [244, 164, 96],  # Desert w/ river + coastline (Sandy Brown)
+    0x46: [120, 110, 100],  # Mountain w/ river right (Cool Slate Brown)
+    0x81: [46, 139, 87],  # Grassland w/ coast left (Sea Green)
+    0x83: [128, 128, 105],  # Hill w/ river bottom left (Gray-Green - terrain + water)
+    0x84: [112, 128, 144],  # Mountain w/ river left + bottom (Slate Gray)
 }
 
 
