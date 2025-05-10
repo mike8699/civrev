@@ -1,3 +1,5 @@
+import argparse
+
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -28,10 +30,6 @@ terrain_colors: dict[int, tuple[int, int, int]] = {
     0x83: (128, 128, 105),  # Hill w/ river bottom left (Gray-Green - terrain + water)
     0x84: (112, 128, 144),  # Mountain w/ river left + bottom (Slate Gray)
 }
-
-
-# Path to the binary map file
-binary_map_path = "Pak9/the_world.map"
 
 
 # Function to parse the binary file
@@ -91,6 +89,18 @@ def render_map(map_data: np.ndarray) -> None:
 
 
 if __name__ == "__main__":
-    # Parse the binary map and render it
-    map_data = parse_map_binary(binary_map_path)
+    parser = argparse.ArgumentParser(description="Visualize a CivRev .map file.")
+    parser.add_argument(
+        "-m",
+        "--map-file",
+        type=str,
+        help="Path to the binary map file.",
+        default="Pak9/the_world.map",
+        required=False,
+    )
+    args = parser.parse_args()
+
+    map_file: str = args.map_file
+
+    map_data = parse_map_binary(map_file)
     render_map(map_data)
