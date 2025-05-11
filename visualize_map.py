@@ -86,7 +86,7 @@ def parse_map_binary(binary_map_path: str) -> np.ndarray:
     return map_data
 
 
-def render_map(map_data: np.ndarray) -> None:
+def render_map(map_data: np.ndarray, show_plot: bool = False) -> None:
     terrain_image = np.zeros((map_size, map_size, 3), dtype=np.uint8)
     unknown_coords = []
     used_terrains = set()
@@ -157,7 +157,8 @@ def render_map(map_data: np.ndarray) -> None:
     plt.imsave(output_path, terrain_image)
     print(f"Map image exported to {output_path}")
 
-    plt.show()
+    if show_plot:
+        plt.show()
 
 
 def convert_bmp_to_map(bmp_file: str) -> None:
@@ -182,7 +183,7 @@ def convert_bmp_to_map(bmp_file: str) -> None:
     def closest_color(rgb):
         return min(
             reverse_terrain_colors.keys(),
-            key=lambda c: sum((c[i] - rgb[i]) ** 2 for i in range(3)),
+            key=lambda c: sum((int(c[i]) - int(rgb[i])) ** 2 for i in range(3)),
         )
 
     terrain_data = np.zeros((map_size, map_size), dtype=np.uint8)
@@ -225,6 +226,12 @@ if __name__ == "__main__":
         help="Path to the BMP file.",
         required=False,
     )
+    parser.add_argument(
+        "-s",
+        "--show",
+        action="store_true",
+        help="Show the map plot after rendering (default: False).",
+    )
     args = parser.parse_args()
 
     if args.bmp_file and not args.map_file:
@@ -237,4 +244,4 @@ if __name__ == "__main__":
     else:
         map_file = args.map_file or "Pak9/the_world.map"
         map_data = parse_map_binary(map_file)
-        render_map(map_data)
+        render_map(map_data, show_plot=args.show)
