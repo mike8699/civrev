@@ -3,6 +3,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+from PIL import Image
 
 # Define the map size (32x32)
 map_size = 32
@@ -160,12 +161,55 @@ def render_map(map_data: np.ndarray) -> None:
 
 
 def convert_bmp_to_map(bmp_file: str) -> None:
-    raise NotImplementedError("BMP to MAP conversion is not implemented yet.")
+    # Load BMP image
+    image = Image.open(bmp_file).convert("RGB")
+    img_array = np.array(image)
+
+    # Validate size
+    if img_array.shape[:2] != (map_size, map_size):
+        raise ValueError(
+            f"Expected {map_size}x{map_size} image, got {img_array.shape[:2]}."
+        )
+
+    # Undo rotation/flip applied during rendering
+    img_array = np.rot90(img_array, k=1)
+    img_array = np.flipud(img_array)
+
+    # Prepare reverse lookup of terrain colors
+    reverse_terrain_colors = {tuple(v): k for k, v in terrain_colors.items()}
+
+    # For fuzzy matching
+    def closest_color(rgb):
+        return min(
+            reverse_terrain_colors.keys(),
+            key=lambda c: sum((c[i] - rgb[i]) ** 2 for i in range(3)),
+        )
+
+    terrain_data = np.zeros((map_size, map_size), dtype=np.uint8)
+
+    for row in range(map_size):
+        for col in range(map_size):
+            pixel = tuple(img_array[row, col])
+            terrain_id = reverse_terrain_colors.get(pixel)
+            if terrain_id is None:
+                matched = closest_color(pixel)
+                terrain_id = reverse_terrain_colors[matched]
+            if terrain_id == 0:
+                terrain_id = 0x1
+            terrain_data[row, col] = terrain_id
+
+    # Flatten and write to binary file
+    output_path = Path(bmp_file).with_suffix(".map")
+    with open(output_path, "wb") as f:
+        f.write(terrain_data.flatten().tobytes() + (b"\xff" * 0x40))
+
+    print(f"Map binary exported to {output_path}")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Visualize or convert a CivRev map file."
+        description="Visualize or convert a CivRev map file. "
+        "Provide a map file to visualize, or a BMP file to convert."
     )
     parser.add_argument(
         "-m",
