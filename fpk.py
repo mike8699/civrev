@@ -78,16 +78,20 @@ class FPK:
                     FileEntry(item_name, file_offset, file_size, additional_data)
                 )
 
-            assert (
-                len(self.file_entries) == item_count
-            ), f"Item count mismatch! ({len(self.file_entries)} != {item_count})"
+            assert len(self.file_entries) == item_count, (
+                f"Item count mismatch! ({len(self.file_entries)} != {item_count})"
+            )
 
     def extract(self, dest_dir: Path):
         dest_dir.mkdir(parents=True, exist_ok=True)
         for entry in self.file_entries:
-            with open(dest_dir / entry.filename, "wb") as out_file, open(
-                dest_dir / f"{entry.filename}.{self.EXTRA_DATA_FILE_EXTENSION}", "wb"
-            ) as meta_file:
+            with (
+                open(dest_dir / entry.filename, "wb") as out_file,
+                open(
+                    dest_dir / f"{entry.filename}.{self.EXTRA_DATA_FILE_EXTENSION}",
+                    "wb",
+                ) as meta_file,
+            ):
                 meta_file.write(entry.additional_data)
                 with open(self.fpk_file, "rb") as f:
                     f.seek(entry.offset)
@@ -116,9 +120,9 @@ class FPK:
         filenames: list[str] = json.loads(
             (directory / cls.ORDERING_FILENAME).read_text()
         )
-        assert isinstance(
-            filenames, list
-        ), f"Ordering file {cls.ORDERING_FILENAME} is not a list."
+        assert isinstance(filenames, list), (
+            f"Ordering file {cls.ORDERING_FILENAME} is not a list."
+        )
         assert len(filenames) == items_count, (
             f"Ordering file {cls.ORDERING_FILENAME} ({len(filenames)}) does not match the "
             f"number of files in the directory ({items_count})."

@@ -18,7 +18,7 @@ def extract_arm9(rom: NintendoDSRom, output_dir: Path) -> None:
 def extract_overlays(rom: NintendoDSRom, output_dir: Path) -> None:
     output_dir.mkdir(exist_ok=True)
     for overlay_number, overlay in rom.loadArm9Overlays().items():
-        overlay_file_name = f'overlay_{str(overlay_number).rjust(4, "0")}.bin'
+        overlay_file_name = f"overlay_{str(overlay_number).rjust(4, '0')}.bin"
 
         overlay_file = output_dir / overlay_file_name
 
@@ -34,7 +34,7 @@ def extract_overlays(rom: NintendoDSRom, output_dir: Path) -> None:
     )
     new_overlay_number = max(ot.keys()) + 1
     new_overlay_file = (
-        output_dir / f'overlay_{str(new_overlay_number).rjust(4, "0")}.bin'
+        output_dir / f"overlay_{str(new_overlay_number).rjust(4, '0')}.bin"
     )
     new_overlay_file.touch()
 
