@@ -1,0 +1,21 @@
+target-version = "py312"
+
+[lint]
+select = [
+    "E",   # pycodestyle (part of flake8)
+    "F",   # pyflakes (part of flake8)
+    "I",   # isort
+    "UP",  # pyupgrade
+    "A",   # autoflake (unused imports and variables)
+    "B",   # flake8-bugbear
+    "C90", # mccabe complexity checks
+]
+ignore = [
+    "E501", # ignore line length to match Black-style formatting
+]
+
+[format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+docstring-code-format = true
