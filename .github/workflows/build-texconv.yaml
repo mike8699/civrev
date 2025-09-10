@@ -1,0 +1,50 @@
+name: Build texconv
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y cmake g++ make
+
+      - name: Setup vcpkg (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          git clone https://github.com/Microsoft/vcpkg.git
+          ./vcpkg/bootstrap-vcpkg.sh
+          ./vcpkg/vcpkg install directxmath directx-headers
+
+      - name: Configure CMake
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_TOOLS=ON -DCMAKE_TOOLCHAIN_FILE=${{ runner.os == 'Linux' && '../vcpkg/scripts/buildsystems/vcpkg.cmake' || '' }}
+        working-directory: DirectXTex/
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+        working-directory: DirectXTex/
+
+      - name: Upload texconv artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: texconv-${{ matrix.os }}
+          path: |
+            DirectXTex/build/bin/Release/texconv.exe
+            DirectXTex/build/bin/texconv
+            DirectXTex/build/texconv
+          if-no-files-found: ignore
