@@ -104,5 +104,6 @@ if __name__ == "__main__":
         dest = Path(__file__).parent / "nds_terrain_tiles"
         dest.mkdir(exist_ok=True)
 
+        img.save(str(dest / f"{tileset}.png"))
         for i, tile in enumerate(tiles):  # Show first 4 tiles
             tile.save(str(dest / f"{tileset}_{i}.png"))
