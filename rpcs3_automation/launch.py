@@ -190,6 +190,40 @@ def _find_all_rpcs3_windows() -> list[str]:
     return window_ids
 
 
+def _hold_key(key: str, duration: float = 3.0):
+    """Hold a key down for a duration (seconds)."""
+    try:
+        env = {**os.environ, "DISPLAY": DISPLAY}
+        game_wid = None
+        try:
+            result = subprocess.run(
+                ["xdotool", "search", "--name", "FPS:"],
+                capture_output=True,
+                text=True,
+                timeout=3,
+                env=env,
+            )
+            wids = [w for w in result.stdout.strip().split("\n") if w]
+            if wids:
+                game_wid = wids[0]
+        except Exception:
+            pass
+
+        if game_wid:
+            subprocess.run(
+                ["xdotool", "windowactivate", "--sync", game_wid],
+                env=env,
+                timeout=3,
+                capture_output=True,
+            )
+            subprocess.run(["xdotool", "keydown", key], env=env, timeout=3)
+            time.sleep(duration)
+            subprocess.run(["xdotool", "keyup", key], env=env, timeout=3)
+        print(f"  Held key {key} for {duration}s")
+    except Exception as e:
+        print(f"  Warning: Failed to hold key {key}: {e}")
+
+
 def _send_ps3_button(button: str):
     """Send a PS3 controller button press via keyboard mapping.
 
@@ -402,6 +436,11 @@ def _navigate_to_earth_scenario():
     # Loading screen then intro cutscene — skip with X
     print("  Skipping intro cutscene...")
     _press("X", delay=4)
+
+    # Zoom out camera by holding L2
+    print("  Zooming out (holding L2)...")
+    _hold_key("comma", duration=5.0)
+    time.sleep(1)
     _capture_state("after_game_start")
 
 
