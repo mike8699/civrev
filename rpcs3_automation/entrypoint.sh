@@ -1,15 +1,19 @@
 #!/bin/bash
 set -e
 
-# If DISPLAY is already set (forwarded from host), use it directly.
-# Otherwise start Xvfb for headless mode.
-if [ -z "$DISPLAY" ]; then
-    echo "Starting Xvfb (headless)..."
-    Xvfb :99 -screen 0 1280x720x24 -ac &
-    sleep 1
-    export DISPLAY=:99
-else
-    echo "Using host display $DISPLAY"
+# Always use Xvfb so that xdotool key input works reliably.
+# In GUI mode (DISPLAY was set), also run x11vnc to mirror to host.
+HOST_DISPLAY="$DISPLAY"
+echo "Starting Xvfb..."
+Xvfb :99 -screen 0 1280x720x24 -ac &
+sleep 1
+export DISPLAY=:99
+
+if [ -n "$HOST_DISPLAY" ]; then
+    echo "GUI mode: starting x11vnc to mirror display"
+    echo "  Connect with: vncviewer localhost:5900"
+    x11vnc -display :99 -nopw -forever -shared -rfbport 5900 -bg || \
+        echo "  Warning: x11vnc failed to start (VNC viewing unavailable)"
 fi
 
 # Create writable copy of DLC/game data so we can inject Pak9.edat

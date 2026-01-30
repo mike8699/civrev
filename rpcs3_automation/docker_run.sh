@@ -46,11 +46,11 @@ DOCKER_ARGS=(
 )
 
 if [ "$HEADLESS" = "0" ]; then
-    echo "GUI mode: RPCS3 will appear on your desktop"
-    xhost +local:docker 2>/dev/null || true
+    echo "GUI mode: watch via VNC at localhost:5900"
+    echo "  (e.g., vncviewer localhost:5900)"
     DOCKER_ARGS+=(
         -e DISPLAY="$DISPLAY"
-        -v /tmp/.X11-unix:/tmp/.X11-unix:rw
+        -p 5900:5900
     )
 else
     echo "Headless mode: using Xvfb"

@@ -6,7 +6,7 @@ ENV IN_DOCKER=1
 # Core dependencies + RPCS3 runtime libs
 RUN apt-get update && apt-get install -y --no-install-recommends \
     # Virtual display & window tools
-    xvfb xdotool imagemagick x11-apps \
+    xvfb xdotool xautomation imagemagick x11-apps x11vnc \
     # Python
     python3 python3-pip \
     # Mesa software rendering
