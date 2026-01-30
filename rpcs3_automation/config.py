@@ -1,4 +1,5 @@
 """Configuration for RPCS3 automation."""
+
 import os
 from pathlib import Path
 
@@ -12,7 +13,9 @@ if IN_DOCKER:
     VENV_PYTHON = Path("python3")
     GAME_DISC_DIR = Path("/game_disc")
 else:
-    RPCS3_BIN = Path.home() / "Desktop" / "rpcs3-v0.0.35-17645-7b212e0e_linux64.AppImage"
+    RPCS3_BIN = (
+        Path.home() / "Desktop" / "rpcs3-v0.0.35-17645-7b212e0e_linux64.AppImage"
+    )
     RPCS3_CONFIG_DIR = Path.home() / ".config" / "rpcs3"
     PROJECT_ROOT = Path(__file__).resolve().parent.parent
     VENV_PYTHON = PROJECT_ROOT / ".venv" / "bin" / "python"
@@ -31,4 +34,4 @@ FPK_SCRIPT = PROJECT_ROOT / "fpk.py"
 
 # Timing
 RPCS3_BOOT_TIMEOUT = 300  # seconds to wait for game to reach menu
-SCREENSHOT_DELAY = 2      # seconds to wait after F12 before grabbing screenshot
+SCREENSHOT_DELAY = 2  # seconds to wait after F12 before grabbing screenshot

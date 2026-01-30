@@ -8,14 +8,15 @@ Usage:
     python test_map.py --wait 120       # Max wait before timeout
     python test_map.py --generate-textures  # Regenerate DDS textures first
 """
+
 import argparse
-from datetime import datetime
 import shutil
 import subprocess
 import sys
+from datetime import datetime
 from pathlib import Path
 
-from config import PAK9_DIR, VENV_PYTHON, PROJECT_ROOT
+from config import PAK9_DIR, PROJECT_ROOT, VENV_PYTHON
 
 
 def generate_textures():
@@ -35,28 +36,48 @@ def generate_textures():
             text=True,
         )
         if result.returncode != 0:
-            print(f"Texture generation failed for {mf.name}:\n{result.stderr}",
-                  file=sys.stderr)
+            print(
+                f"Texture generation failed for {mf.name}:\n{result.stderr}",
+                file=sys.stderr,
+            )
         else:
             print(result.stdout)
 
 
 def main():
     parser = argparse.ArgumentParser(description="Test map changes in RPCS3")
-    parser.add_argument("--pack-only", action="store_true",
-                        help="Only pack and install, don't launch RPCS3")
-    parser.add_argument("--generate-textures", "-g", action="store_true",
-                        help="Regenerate DDS textures before packing")
-    parser.add_argument("--wait", "-w", type=int, default=None,
-                        help="Max seconds to wait for game to load")
-    parser.add_argument("--output", "-o", type=str, default="/output/screenshot.png",
-                        help="Save screenshot to this path")
+    parser.add_argument(
+        "--pack-only",
+        action="store_true",
+        help="Only pack and install, don't launch RPCS3",
+    )
+    parser.add_argument(
+        "--generate-textures",
+        "-g",
+        action="store_true",
+        help="Regenerate DDS textures before packing",
+    )
+    parser.add_argument(
+        "--wait",
+        "-w",
+        type=int,
+        default=None,
+        help="Max seconds to wait for game to load",
+    )
+    parser.add_argument(
+        "--output",
+        "-o",
+        type=str,
+        default="/output/screenshot.png",
+        help="Save screenshot to this path",
+    )
     args = parser.parse_args()
 
     if args.generate_textures:
         generate_textures()
 
     from pack import pack_and_install
+
     pack_and_install()
 
     if args.pack_only:
@@ -64,6 +85,7 @@ def main():
         return
 
     from launch import launch_and_screenshot
+
     screenshot = launch_and_screenshot(max_wait=args.wait)
 
     if screenshot and args.output:

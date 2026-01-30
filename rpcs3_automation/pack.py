@@ -1,10 +1,11 @@
 """Pack Pak9/ directory into FPK and install to RPCS3."""
+
 import shutil
 import subprocess
 import sys
 from pathlib import Path
 
-from config import PAK9_DIR, FPK_SCRIPT, VENV_PYTHON, EDAT_DEST, PROJECT_ROOT, IN_DOCKER
+from config import EDAT_DEST, FPK_SCRIPT, IN_DOCKER, PAK9_DIR, PROJECT_ROOT, VENV_PYTHON
 
 WORK_DIR = Path("/tmp/civrev_pack")
 

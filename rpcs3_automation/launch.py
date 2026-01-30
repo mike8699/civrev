@@ -1,21 +1,20 @@
 """Launch RPCS3, wait for loading, capture screenshot."""
+
 import os
 import subprocess
-import threading
 import time
 from io import BytesIO
 from pathlib import Path
 
 import numpy as np
-from PIL import Image
-
 from config import (
-    RPCS3_BIN,
-    RPCS3_SCREENSHOT_DIR,
     GAME_DISC_DIR,
+    RPCS3_BIN,
     RPCS3_BOOT_TIMEOUT,
+    RPCS3_SCREENSHOT_DIR,
     SCREENSHOT_DELAY,
 )
+from PIL import Image
 
 DISPLAY = os.environ.get("DISPLAY", ":99")
 
@@ -40,7 +39,10 @@ def _find_rpcs3_window() -> str | None:
         env = {**os.environ, "DISPLAY": DISPLAY}
         result = subprocess.run(
             ["xdotool", "search", "--name", "RPCS3"],
-            capture_output=True, text=True, timeout=3, env=env,
+            capture_output=True,
+            text=True,
+            timeout=3,
+            env=env,
         )
         window_ids = [w for w in result.stdout.strip().split("\n") if w]
         return window_ids[0] if window_ids else None
@@ -53,7 +55,8 @@ def _capture_display() -> np.ndarray | None:
     try:
         result = subprocess.run(
             ["import", "-display", DISPLAY, "-window", "root", "png:-"],
-            capture_output=True, timeout=5,
+            capture_output=True,
+            timeout=5,
         )
         if result.returncode != 0 or not result.stdout:
             if result.stderr:
@@ -74,7 +77,9 @@ def _frames_similar(a: np.ndarray, b: np.ndarray, threshold: float = 0.998) -> b
         return False
     small_a = np.array(Image.fromarray(a).resize((160, 120), Image.Resampling.NEAREST))
     small_b = np.array(Image.fromarray(b).resize((160, 120), Image.Resampling.NEAREST))
-    diff = np.mean(np.abs(small_a.astype(np.float32) - small_b.astype(np.float32))) / 255.0
+    diff = (
+        np.mean(np.abs(small_a.astype(np.float32) - small_b.astype(np.float32))) / 255.0
+    )
     return (1.0 - diff) >= threshold
 
 
@@ -113,14 +118,18 @@ def wait_for_stable_frame(
 
     while time.time() - start < timeout:
         if not _is_rpcs3_alive(proc):
-            print(f"  [{time.time() - start:.0f}s] RPCS3 exited (code {proc.returncode})")
+            print(
+                f"  [{time.time() - start:.0f}s] RPCS3 exited (code {proc.returncode})"
+            )
             return None
 
         frame = _capture_display()
         if frame is None:
             no_frame_count += 1
             if no_frame_count >= 10:
-                print(f"  [{time.time() - start:.0f}s] Failed to capture any frames after {no_frame_count} attempts, giving up")
+                print(
+                    f"  [{time.time() - start:.0f}s] Failed to capture any frames after {no_frame_count} attempts, giving up"
+                )
                 return None
             time.sleep(poll_interval)
             continue
@@ -153,8 +162,11 @@ def wait_for_stable_frame(
     return prev_frame
 
 
-RPCS3_LOG = Path("/root/.cache/rpcs3/RPCS3.log") if os.environ.get("IN_DOCKER") == "1" \
+RPCS3_LOG = (
+    Path("/root/.cache/rpcs3/RPCS3.log")
+    if os.environ.get("IN_DOCKER") == "1"
     else Path.home() / ".cache" / "rpcs3" / "RPCS3.log"
+)
 
 
 def _find_all_rpcs3_windows() -> list[str]:
@@ -165,7 +177,10 @@ def _find_all_rpcs3_windows() -> list[str]:
         try:
             result = subprocess.run(
                 ["xdotool", "search", "--name", search],
-                capture_output=True, text=True, timeout=3, env=env,
+                capture_output=True,
+                text=True,
+                timeout=3,
+                env=env,
             )
             for wid in result.stdout.strip().split("\n"):
                 if wid and wid not in window_ids:
@@ -191,7 +206,10 @@ def _send_ps3_button(button: str):
         try:
             result = subprocess.run(
                 ["xdotool", "search", "--name", "FPS:"],
-                capture_output=True, text=True, timeout=3, env=env,
+                capture_output=True,
+                text=True,
+                timeout=3,
+                env=env,
             )
             wids = [w for w in result.stdout.strip().split("\n") if w]
             if wids:
@@ -204,7 +222,10 @@ def _send_ps3_button(button: str):
             try:
                 result = subprocess.run(
                     ["xdotool", "search", "--name", "RPCS3"],
-                    capture_output=True, text=True, timeout=3, env=env,
+                    capture_output=True,
+                    text=True,
+                    timeout=3,
+                    env=env,
                 )
                 wids = [w for w in result.stdout.strip().split("\n") if w]
                 if wids:
@@ -215,11 +236,14 @@ def _send_ps3_button(button: str):
         if game_wid:
             subprocess.run(
                 ["xdotool", "windowactivate", "--sync", game_wid],
-                env=env, timeout=3, capture_output=True,
+                env=env,
+                timeout=3,
+                capture_output=True,
             )
             subprocess.run(
                 ["xdotool", "key", "--delay", "100", key],
-                env=env, timeout=3,
+                env=env,
+                timeout=3,
             )
         else:
             subprocess.run(["xdotool", "key", key], env=env, timeout=3)
@@ -229,7 +253,9 @@ def _send_ps3_button(button: str):
         print(f"  Warning: Failed to send {button}: {e}")
 
 
-def _wait_for_screen_text(keywords: list[str], timeout: int = 60, poll: float = 3.0) -> bool:
+def _wait_for_screen_text(
+    keywords: list[str], timeout: int = 60, poll: float = 3.0
+) -> bool:
     """Wait until screen capture shows we've moved past a particular screen.
 
     This is a simple heuristic — we just wait for the screen to change
@@ -253,6 +279,7 @@ def _navigate_startup(proc: subprocess.Popen):
     Sequence: wait 20s → X (skip cutscene) → START (title screen) →
     X (DLC dialog or title) → navigate menus to Earth scenario.
     """
+
     def _press(button: str, delay: float = 2.0):
         _send_ps3_button(button)
         time.sleep(delay)
@@ -300,6 +327,7 @@ def _navigate_to_earth_scenario():
     Single Player menu: Play Scenario, ...
     Play Scenario list: includes Earth (need to scroll down)
     """
+
     def _press(button: str, delay: float = 2.0):
         _send_ps3_button(button)
         time.sleep(delay)
@@ -335,7 +363,7 @@ def _navigate_to_earth_scenario():
     # Apocalypse!, Beta Centauri, Blitzkrieg!, Golden Age, Lightning Round, ...
     # Earth is further down (DLC scenario from Terrestrial Pack)
     print("  Scrolling to Earth scenario...")
-    for i in range(10):
+    for _ in range(10):
         _press("Down", delay=0.5)
     _capture_state("after_scroll_to_earth")
 
@@ -346,7 +374,7 @@ def _navigate_to_earth_scenario():
     print("  Should now be on difficulty selection screen.")
 
 
-def _wait_for_rsx(proc: subprocess.Popen, timeout: int, launch_time: float = 0) -> bool:
+def _wait_for_rsx(proc: subprocess.Popen, timeout: int, launch_time: float = 0) -> bool:  # noqa: C901
     """Wait for RPCS3's RSX rendering to start by monitoring the log file.
 
     Returns True if RSX was detected, False on timeout/crash.
@@ -372,7 +400,7 @@ def _wait_for_rsx(proc: subprocess.Popen, timeout: int, launch_time: float = 0) 
 
             current_size = RPCS3_LOG.stat().st_size
             if current_size > log_size:
-                with open(RPCS3_LOG, "r", errors="replace") as f:
+                with open(RPCS3_LOG, errors="replace") as f:
                     f.seek(log_size)
                     new_text = f.read()
                 log_size = current_size
@@ -402,7 +430,8 @@ def _send_f12():
         for wid in windows:
             subprocess.run(
                 ["xdotool", "key", "--window", wid, "F12"],
-                env=env, timeout=3,
+                env=env,
+                timeout=3,
             )
         if windows:
             print(f"Sent F12 screenshot key to {len(windows)} window(s)")
@@ -434,7 +463,9 @@ def launch_and_screenshot(max_wait: int | None = None) -> Path | None:
         # Check it actually started
         time.sleep(2)
         if not _is_rpcs3_alive(rpcs3):
-            stdout = rpcs3.stdout.read().decode(errors="replace") if rpcs3.stdout else ""
+            stdout = (
+                rpcs3.stdout.read().decode(errors="replace") if rpcs3.stdout else ""
+            )
             print(f"RPCS3 failed to start (exit code {rpcs3.returncode})")
             if stdout:
                 # Print last 20 lines
@@ -477,7 +508,9 @@ def launch_and_screenshot(max_wait: int | None = None) -> Path | None:
             print(f"Saved window capture to {fallback}")
             return fallback
 
-        print("No screenshot captured (try RPCS3's F12 screenshot in ~/.config/rpcs3/screenshots/)")
+        print(
+            "No screenshot captured (try RPCS3's F12 screenshot in ~/.config/rpcs3/screenshots/)"
+        )
         return None
     finally:
         print("Terminating RPCS3...")
@@ -492,8 +525,14 @@ def launch_and_screenshot(max_wait: int | None = None) -> Path | None:
 
 if __name__ == "__main__":
     import argparse
+
     parser = argparse.ArgumentParser()
-    parser.add_argument("-w", "--wait", type=int, default=None,
-                        help="Max seconds to wait for game to load")
+    parser.add_argument(
+        "-w",
+        "--wait",
+        type=int,
+        default=None,
+        help="Max seconds to wait for game to load",
+    )
     args = parser.parse_args()
     launch_and_screenshot(args.wait)
