@@ -298,22 +298,22 @@ def _navigate_startup(proc: subprocess.Popen):
 
     # Wait 20s for cutscene to become skippable
     print("  Waiting 20s for cutscene...")
-    time.sleep(20)
+    time.sleep(8)
     _capture_state("after_20s_wait")
 
     # X skips cutscene → DLC dialog appears
     print("  Pressing X to skip cutscene...")
-    _press("X", delay=8)
+    _press("X", delay=0.5)
     _capture_state("after_cutscene_skip")
 
     # DLC dialog: dismiss with X (OK button is highlighted)
     print("  Pressing X to dismiss DLC dialog...")
-    _press("X", delay=5)
+    _press("X", delay=0.5)
     _capture_state("after_dlc_dismiss")
 
     # Now on title screen ("Press START to begin")
     print("  Pressing START for title screen...")
-    _press("start", delay=8)
+    _press("start", delay=0.5)
     _capture_state("after_start")
 
     # Now at main menu. Navigate to Earth scenario.
@@ -345,17 +345,17 @@ def _navigate_to_earth_scenario():
 
     # Main menu → Single Player (1 Down from Play Now)
     print("  Main menu → Single Player")
-    _press("Down", delay=2)
-    _press("X", delay=8)
+    _press("Down", delay=0.2)
+    _press("X", delay=0.2)
     _capture_state("after_single_player")
 
     # Single Player menu: New Game, Load Game, Game of the Week, Play Scenario
     # Need 3 Down presses to reach Play Scenario
     print("  Single Player → Play Scenario")
-    _press("Down", delay=1)
-    _press("Down", delay=1)
-    _press("Down", delay=1)
-    _press("X", delay=8)
+    _press("Down", delay=0.2)
+    _press("Down", delay=0.2)
+    _press("Down", delay=0.2)
+    _press("X", delay=0.2)
     _capture_state("after_play_scenario")
 
     # Scenario list → scroll to Earth
@@ -364,14 +364,45 @@ def _navigate_to_earth_scenario():
     # Earth is further down (DLC scenario from Terrestrial Pack)
     print("  Scrolling to Earth scenario...")
     for _ in range(10):
-        _press("Down", delay=0.5)
+        _press("Down", delay=0.2)
     _capture_state("after_scroll_to_earth")
 
     print("  Selecting Earth scenario...")
-    _press("X", delay=8)
+    _press("X", delay=0.2)
     _capture_state("after_earth_select")
 
-    print("  Should now be on difficulty selection screen.")
+    # Difficulty screen: Chieftain, Warlord, King, Emperor, Deity
+    # Deity is 4 Down from Chieftain
+    print("  Selecting Deity difficulty...")
+    _press("Down", delay=0.2)
+    _press("Down", delay=0.2)
+    _press("Down", delay=0.2)
+    _press("Down", delay=0.2)
+    _press("X", delay=0.5)
+    _capture_state("after_deity_select")
+
+    # Civ selection screen: cursor starts on a random civ.
+    # Fixed order (left to right): Romans, Egyptians, Greeks, Indians,
+    # Americans, Chinese, ...
+    # Go left until we hit the first civ (Romans), then right 5 to Russians.
+    # There are 16 civs, so 16 lefts guarantees we wrap to Romans.
+    print("  Selecting Russians (scrolling left to Romans first)...")
+    for _ in range(16):
+        _press("Left", delay=0.2)
+    _capture_state("after_scroll_to_romans")
+
+    # Now go right 5 to reach Russians
+    for _ in range(5):
+        _press("Right", delay=0.2)
+    _capture_state("after_scroll_to_russians")
+
+    print("  Selecting Russians...")
+    _press("X", delay=8)
+
+    # Loading screen then intro cutscene — skip with X
+    print("  Skipping intro cutscene...")
+    _press("X", delay=4)
+    _capture_state("after_game_start")
 
 
 def _wait_for_rsx(proc: subprocess.Popen, timeout: int, launch_time: float = 0) -> bool:  # noqa: C901
