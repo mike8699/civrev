@@ -1,3 +1,10 @@
+# /// script
+# requires-python = ">=3.12"
+# dependencies = [
+#     "ndspy==4.2.0",
+# ]
+# ///
+
 import sys
 from pathlib import Path
 

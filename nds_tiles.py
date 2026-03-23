@@ -1,3 +1,11 @@
+# /// script
+# requires-python = ">=3.12"
+# dependencies = [
+#     "ndspy==4.2.0",
+#     "pillow==11.3.0",
+# ]
+# ///
+
 import math
 from pathlib import Path
 
