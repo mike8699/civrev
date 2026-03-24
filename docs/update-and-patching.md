@@ -107,27 +107,37 @@ PS3CopyContentFiles:  cellFsUtime failed with error code %d!
 This save game cannot be loaded due to unavailable or corrupt downloaded content.
 ```
 
-## Modding Vectors
+## Modding Vectors (Tested)
 
-### 1. Loose File Override via `patch/` (confirmed working)
+### 1. Binary-Patching Disc FPK Archives (confirmed working)
 
-Drop any game asset file into `USRDIR/patch/` and it overrides the FPK-packed version. This is the simplest and safest approach — no FPK repacking needed.
+The most reliable approach. Binary-patch values directly in FPK files on the extracted disc image. This preserves exact file size and internal structure.
 
-Known working file types: `.xml` (asset definitions), `.dds` (textures), `.gr2` (3D models), `.gfx` (Scaleform UI), `.STR` (localization).
+**Confirmed by test**: Binary-patching `Pregame.FPK` on the disc image to change water color hex values (`#477EB6` → `#FF0000`, etc.) successfully changed in-game water rendering. All five water/fog color constants were confirmed to take effect.
 
-Likely also works for: `ccglobaldefines.xml` (game constants), pedia XML (game data), any named asset loaded by the Firaxis resource system.
+The disc image must be extracted (not an ISO) for RPCS3 to load modified files. The game disc path in RPCS3 is configured via `~/.config/rpcs3/games.yml`.
 
-### 2. FPK Replacement
+**Key detail — PB (Pre-Built) overrides**: DLC/pre-built maps use separate `PB*` constants (e.g. `PBDeepWaterColor`, `PBShallowWaterColor`) that override the regular values. Both sets must be patched to affect all map types.
 
-Drop a modified FPK archive in `USRDIR/` to fully replace a disc-era archive. The game's HDD install means it loads from HDD, so a replacement FPK there takes precedence.
+### 2. Loose File Override via `patch/` (limited)
+
+The v1.30 update added a `patch/` directory under the HDD install's `USRDIR/` with loose files that override FPK-packed assets. This works for the Firaxis asset/resource system (3D models, textures, UI).
+
+**Known working**: `.xml` (asset definitions), `.dds` (textures), `.gr2` (3D models), `.gfx` (Scaleform UI), `.STR` (localization) — proven by the Camelot/Sphinx wonder assets shipping this way in the v1.30 update.
+
+**Does NOT work for**: `ccglobaldefines.xml` and other early-init config files loaded directly from FPK archives before the resource system initializes.
+
+### 3. FPK Replacement on Disc (confirmed working)
+
+Replace an entire FPK archive on the extracted disc image. The repacker (`fpk.py repack`) can rebuild FPK files from extracted directories, though minor size differences from repacking may occur. Binary patching (vector #1) is preferred when only changing existing values.
 
 Constraint: the FPK must contain the same entries (adding new entries crashes the game).
 
-### 3. EBOOT Replacement
+### 4. EBOOT Replacement (untested)
 
-RPCS3 can load decrypted ELF executables. A binary-patched EBOOT.ELF placed in `USRDIR/` enables code-level modifications: changing the spawn algorithm, adding new map loading code, modifying game constants in code, etc.
+RPCS3 can load decrypted ELF executables. A binary-patched EBOOT.ELF placed in the disc image enables code-level modifications: changing the spawn algorithm, adding new map loading code, modifying game constants in code, etc.
 
-### 4. DLC Injection
+### 5. DLC Injection (untested)
 
 Custom `.edat` packages can potentially be placed in the DLC directory. On RPCS3, DRM enforcement may be relaxed, allowing custom DLC content without valid signatures.
 
@@ -135,19 +145,34 @@ Custom `.edat` packages can potentially be placed in the DLC directory. On RPCS3
 
 | Path | Purpose |
 |------|---------|
-| `/dev_bdvd/PS3_GAME/USRDIR/` | Blu-ray disc game data (read-only) |
+| `/dev_bdvd/PS3_GAME/USRDIR/` | Blu-ray disc game data (read-only on real PS3) |
 | `/dev_hdd0/game/BLUS30130/USRDIR/` | HDD install + update (overlays disc) |
-| `/dev_hdd0/game/BLUS30130/USRDIR/patch/` | Loose file overrides (checked before FPK) |
+| `/dev_hdd0/game/BLUS30130/USRDIR/patch/` | Loose asset overrides (resource system only) |
 | `/dev_hdd0/home/00000001/exdata/` | DLC license (.rap) and data (.edat) files |
+
+On RPCS3, the disc path maps to an extracted folder configured in `games.yml`. The HDD path maps to `~/.config/rpcs3/dev_hdd0/`.
+
+## Disc Image Structure
+
+The extracted disc image (mapped as `/dev_bdvd/`) has FPK archives under subdirectories:
+
+```
+PS3_GAME/USRDIR/
+  EBOOT.BIN
+  Resource/
+    Common/           ← most FPK archives (Pregame, Common0, Level, etc.)
+      Art/            ← additional art assets
+    PS3/              ← platform-specific (music.FPK, ps3_misc.FPK)
+```
 
 ## Loading Priority
 
-When the game requests an asset:
-
 ```
-1. patch/<filename>     (loose file in patch directory)
-2. <archive>.FPK        (from HDD install / update)
-3. /dev_bdvd/.../        (disc fallback, if not installed to HDD)
+1. HDD update EBOOT.BIN     (takes precedence over disc EBOOT)
+2. HDD USRDIR/*.FPK         (update-replaced archives)
+3. HDD USRDIR/patch/*       (loose asset overrides, resource system only)
+4. Disc Resource/Common/*.FPK  (disc-only archives like Pregame, Misc0, Misc1)
+5. Disc Resource/PS3/*.FPK     (platform-specific disc archives)
 ```
 
-The update EBOOT.BIN takes absolute precedence over the disc version.
+The mandatory HDD install copies some FPK archives from disc to HDD. The v1.30 update then replaces those HDD copies. Disc-only FPKs (Pregame, Misc0, Misc1, pedia, ps3_misc) are always read from the disc image.
