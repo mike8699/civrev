@@ -79,6 +79,50 @@ All files live under `assets/bin/Data/`. This is a standard Unity asset bundle l
 ### Largest Asset Bundles
 Several bundles are 16-22 MB each - likely contain high-resolution textures (leader portraits, map textures, UI backgrounds).
 
+## Decompiled C# Code
+
+`decompiled/Assembly-CSharp/` contains 474 decompiled C# files from `Assembly-CSharp.dll` (via ilspycmd). Gitignored.
+
+### Architecture: C# Thin Wrapper over Native C++
+
+The critical finding is that **nearly all game logic lives in `libTkNativeDll.so` (native C++), not in the C# layer**. The C# classes are thin wrappers that use P/Invoke (`DllImport("TkNativeDll")`) to call into native code.
+
+Pattern used throughout:
+- Each `UCiv*` class defines a `CppMethods` interface with game logic methods
+- A `_CppMethodsImp` inner class implements it via `DllImport` calls to `CsToCpp_*` functions
+- A `_CppDelegates` struct defines callbacks from C++ back to C# via `CppToCs_*` functions
+- Classes inherit from `UCivCppMonoBehaviour` which handles C++/C# object binding via `IntPtr`
+
+### Key Game Constants (from C#)
+- `kMaxCiv = 6` (max players in a game), `kNumCiv = 17` (total civilizations)
+- `kMaxUnit = 256`, `kMaxCity = 128`
+- `kTileSize = 2.2f` (world units per tile)
+- 17 civilizations: Romans, Egyptians, Greeks, Spanish, Germans, Russians, Chinese, Americans, Japanese, French, Indians, Arabs, Aztecs, Africans, Mongols, English, Korean (+ alternates for English_1, Americans_1, French_1, Russians_1, Chinese_1)
+- 56 unit types (Settler through Great_Leader, including unique units: Cataphract, Bowman, Cannon_France, Panzer_Germany, Bomber_B52, WarElephant, Cossack, Hwacha)
+- 43 wonders (Pyramids through Kremlin)
+- 8 terrain types: Ocean, Grass, Plain, Forest, Hill, Desert, Mountain, Iceberg (+ virtual: City, River, NTER)
+
+### Key Decompiled Files for Game Mechanics
+- `UCivGame.cs` - Main game loop, native bridge (~130 DllImport functions)
+- `UCivGameUI.cs` - UI/game state bridge, event dispatching
+- `UCivCheat.cs` - Cheat system (SetTech, AddBuilding, AddWonder, AddUnit, AddGold, InstantVictory, etc.)
+- `UCivTile.cs` - Tile rendering, rivers, roads, fog of war
+- `UCivTerrain.cs` - Terrain/map system
+- `UCivUnit.cs` - Unit movement, combat, pathfinding
+- `UCivCity.cs` / `UCivCityControl.cs` - City management
+- `UCivCombatDisplay.cs` - Combat visualization
+- `UCivSaveData.cs` - Save/load system
+- `UCivNetwork.cs` - Multiplayer/online features
+- `UCivObjective.cs` - Victory conditions
+- `UCivCivilopedia.cs` - Encyclopedia data loading
+- `UCivPowerup.cs` - Power-up/bonus system
+- `CombatTest.cs` - Combat testing harness
+- `TestGame.cs` - Game testing utilities
+
+### What's in C# vs Native
+**C# side handles**: Unity rendering, UI (NGUI framework), audio, animation, camera, touch input, asset loading, save file I/O, social features (Facebook/Google), store/IAP
+**Native C++ side handles**: Core game simulation, AI, combat resolution, map generation, tech tree, city production, diplomacy, victory conditions, unit stats, turn processing
+
 ## Key Investigation Tools
 
 - **Unity asset extraction**: [AssetStudio](https://github.com/Perfare/AssetStudio) or [UABE](https://github.com/SeriousCache/UABE) for browsing/extracting the hash-named Unity bundles
