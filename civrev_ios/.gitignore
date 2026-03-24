@@ -1,0 +1,15 @@
+# Original IPA (large binary, not ours)
+*.ipa
+
+# Extracted IPA contents (regenerable via extract_and_decompile.sh)
+extracted/
+
+# Decompiled output (regenerable)
+decompiled/
+
+# Native analysis output (regenerable)
+native_analysis/
+
+# Generated reports (regenerable)
+file_structure.txt
+Info.plist.xml
