@@ -43,6 +43,24 @@ def pack_and_install() -> Path:
     EDAT_DEST.parent.mkdir(parents=True, exist_ok=True)
     shutil.move(str(fpk_path), str(EDAT_DEST))
     print(f"Installed to {EDAT_DEST}")
+
+    # Verify: check the_world.map inside the installed FPK
+    import hashlib
+
+    src_map = pak9_dir / "the_world.map"
+    if src_map.exists():
+        src_hash = hashlib.md5(src_map.read_bytes()).hexdigest()
+        print(f"  Source the_world.map: {src_map.stat().st_size} bytes, md5={src_hash}")
+        # Also print a quick terrain summary
+        import numpy as np
+
+        raw = np.frombuffer(src_map.read_bytes()[:1024], dtype=np.uint8).reshape(32, 32)
+        base = raw & 0x07
+        land = int(np.sum((base >= 1) & (base <= 6)))
+        ice = int(np.sum(base == 7))
+        flags = int(np.sum((raw & 0x10) != 0))
+        print(f"  Map stats: land={land}, ice={ice}, 0x10_flags={flags}")
+
     return EDAT_DEST
 
 

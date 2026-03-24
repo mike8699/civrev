@@ -1,9 +1,9 @@
 [submodule "PSN_get_pkg_info"]
-	path = dlc/PSN_get_pkg_info
+	path = civrev_ps3/dlc/PSN_get_pkg_info
 	url = git@github.com:windsurfer1122/PSN_get_pkg_info.git
 [submodule "make_npdata"]
-	path = dlc/make_npdata
+	path = civrev_ps3/dlc/make_npdata
 	url = https://github.com/aniruddh22/make_npdata.git
 [submodule "DirectXTex"]
-	path = DirectXTex
+	path = civrev_ps3/DirectXTex
 	url = https://github.com/microsoft/DirectXTex.git

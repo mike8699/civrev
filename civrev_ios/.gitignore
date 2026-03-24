@@ -10,6 +10,12 @@ decompiled/
 # Native analysis output (regenerable)
 native_analysis/
 
+# Ghidra decompiled pseudocode (regenerable)
+ghidra_decompiled/
+
+# Ghidra project files (temporary)
+.ghidra_project/
+
 # Generated reports (regenerable)
 file_structure.txt
 Info.plist.xml

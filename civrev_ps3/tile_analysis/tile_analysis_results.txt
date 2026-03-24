@@ -1,0 +1,217 @@
+Tile Analysis Results
+==================================================
+
+Tile Size: 16x16
+Number of matches: 10
+------------------------------
+  Game position: (32, 0)
+  Tileset: Trees_Alpha_3d
+  Tileset position: (64, 104)
+  Match score: 45.05
+
+  Game position: (32, 0)
+  Tileset: Deep_Water_3d
+  Tileset position: (0, 8)
+  Match score: 47.08
+
+  Game position: (48, 0)
+  Tileset: Trees_Alpha_3d
+  Tileset position: (68, 108)
+  Match score: 32.16
+
+  Game position: (48, 0)
+  Tileset: Deep_Water_3d
+  Tileset position: (0, 8)
+  Match score: 36.11
+
+  Game position: (64, 0)
+  Tileset: Trees_Alpha_3d
+  Tileset position: (64, 108)
+  Match score: 25.01
+
+  Game position: (64, 0)
+  Tileset: Deep_Water_3d
+  Tileset position: (0, 8)
+  Match score: 30.94
+
+  Game position: (64, 0)
+  Tileset: Hills_Alpha_3d
+  Tileset position: (0, 76)
+  Match score: 44.25
+
+  Game position: (80, 0)
+  Tileset: Deep_Water_3d
+  Tileset position: (60, 16)
+  Match score: 41.05
+
+  Game position: (96, 0)
+  Tileset: Deep_Water_3d
+  Tileset position: (48, 12)
+  Match score: 41.92
+
+  Game position: (144, 0)
+  Tileset: Deep_Water_3d
+  Tileset position: (40, 12)
+  Match score: 37.66
+
+
+Tile Size: 24x24
+Number of matches: 11
+------------------------------
+  Game position: (24, 0)
+  Tileset: Deep_Water_3d
+  Tileset position: (0, 16)
+  Match score: 46.69
+
+  Game position: (48, 0)
+  Tileset: Trees_Alpha_3d
+  Tileset position: (56, 104)
+  Match score: 35.18
+
+  Game position: (48, 0)
+  Tileset: Deep_Water_3d
+  Tileset position: (0, 16)
+  Match score: 32.99
+
+  Game position: (72, 0)
+  Tileset: Trees_Alpha_3d
+  Tileset position: (72, 104)
+  Match score: 39.84
+
+  Game position: (72, 0)
+  Tileset: Deep_Water_3d
+  Tileset position: (12, 12)
+  Match score: 34.72
+
+  Game position: (96, 0)
+  Tileset: Deep_Water_3d
+  Tileset position: (48, 12)
+  Match score: 46.42
+
+  Game position: (144, 0)
+  Tileset: Trees_Alpha_3d
+  Tileset position: (60, 100)
+  Match score: 47.92
+
+  Game position: (144, 0)
+  Tileset: Deep_Water_3d
+  Tileset position: (40, 12)
+  Match score: 38.68
+
+  Game position: (192, 0)
+  Tileset: Trees_Alpha_3d
+  Tileset position: (60, 104)
+  Match score: 34.15
+
+  Game position: (192, 0)
+  Tileset: Deep_Water_3d
+  Tileset position: (0, 16)
+  Match score: 23.62
+
+
+Tile Size: 32x32
+Number of matches: 14
+------------------------------
+  Game position: (32, 0)
+  Tileset: Trees_Alpha_3d
+  Tileset position: (56, 92)
+  Match score: 48.91
+
+  Game position: (32, 0)
+  Tileset: Deep_Water_3d
+  Tileset position: (16, 24)
+  Match score: 38.17
+
+  Game position: (64, 0)
+  Tileset: Trees_Alpha_3d
+  Tileset position: (56, 92)
+  Match score: 38.95
+
+  Game position: (64, 0)
+  Tileset: Deep_Water_3d
+  Tileset position: (4, 12)
+  Match score: 32.56
+
+  Game position: (96, 0)
+  Tileset: Deep_Water_3d
+  Tileset position: (40, 12)
+  Match score: 41.33
+
+  Game position: (128, 0)
+  Tileset: Trees_Alpha_3d
+  Tileset position: (56, 96)
+  Match score: 46.61
+
+  Game position: (128, 0)
+  Tileset: Deep_Water_3d
+  Tileset position: (24, 12)
+  Match score: 40.80
+
+  Game position: (192, 0)
+  Tileset: Trees_Alpha_3d
+  Tileset position: (56, 96)
+  Match score: 40.95
+
+  Game position: (192, 0)
+  Tileset: Deep_Water_3d
+  Tileset position: (16, 24)
+  Match score: 22.16
+
+  Game position: (0, 32)
+  Tileset: Deep_Water_3d
+  Tileset position: (16, 24)
+  Match score: 49.92
+
+
+Tile Size: 48x48
+Number of matches: 17
+------------------------------
+  Game position: (48, 0)
+  Tileset: Trees_Alpha_3d
+  Tileset position: (48, 80)
+  Match score: 48.72
+
+  Game position: (48, 0)
+  Tileset: Deep_Water_3d
+  Tileset position: (8, 16)
+  Match score: 32.77
+
+  Game position: (96, 0)
+  Tileset: Deep_Water_3d
+  Tileset position: (32, 20)
+  Match score: 33.79
+
+  Game position: (96, 0)
+  Tileset: Water_Ice_3d
+  Tileset position: (8, 12)
+  Match score: 45.97
+
+  Game position: (144, 0)
+  Tileset: Deep_Water_3d
+  Tileset position: (80, 48)
+  Match score: 44.85
+
+  Game position: (192, 0)
+  Tileset: Deep_Water_3d
+  Tileset position: (4, 16)
+  Match score: 27.65
+
+  Game position: (0, 48)
+  Tileset: Deep_Water_3d
+  Tileset position: (8, 16)
+  Match score: 36.93
+
+  Game position: (48, 48)
+  Tileset: Trees_Alpha_3d
+  Tileset position: (48, 80)
+  Match score: 41.53
+
+  Game position: (48, 48)
+  Tileset: Deep_Water_3d
+  Tileset position: (4, 16)
+  Match score: 36.55
+
+  Game position: (48, 48)
+  Tileset: Water_Grass_3d
+  Tileset position: (48, 56)
+  Match score: 49.22

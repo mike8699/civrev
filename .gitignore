@@ -237,7 +237,7 @@ ps3shaders.txt
 ordering.json
 /ghidra/
 /ghidra_nds/
-decompiled/**/*.c
+civrev_ps3/decompiled/**/*.c
 # CivRev DS-specific files
 *.nds
 /NDS_UNPACK/
