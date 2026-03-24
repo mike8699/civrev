@@ -13,6 +13,7 @@ Reverse-engineering findings for Sid Meier's Civilization Revolution (PS3).
 | [Game Constants](game-constants.md) | All values from ccglobaldefines.xml |
 | [EBOOT Analysis](eboot-analysis.md) | Decompiled functions, key addresses, RNG, native code architecture |
 | [DLC Map Packs](dlc-map-packs.md) | DLC structure, constraints, dlcscenariodata format |
+| [Update & Patching](update-and-patching.md) | v1.30 update mechanism, patch/ directory, DLC system, modding vectors |
 
 ## Game Identity
 
