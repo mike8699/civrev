@@ -11,7 +11,7 @@ GHIDRA_DIR="$SCRIPT_DIR/ghidra_decompiled"
 STRUCTURE_FILE="$SCRIPT_DIR/file_structure.txt"
 
 # Use existing NDS_UNPACK if available (from extract_nds.py)
-NDS_UNPACK_DIR="/home/mike/Desktop/civrev/NDS_UNPACK"
+NDS_UNPACK_DIR="$SCRIPT_DIR/../NDS_UNPACK"
 
 # Ghidra location
 GHIDRA_INSTALL_DIR="$HOME/ghidra"
@@ -76,14 +76,14 @@ elif [ -d "$EXTRACT_DIR" ] && [ -f "$EXTRACT_DIR/arm9_original.bin" ]; then
     DATA_DIR="$EXTRACT_DIR/data"
 else
     echo "=== Extracting ROM with extract_nds.py ==="
-    EXTRACT_SCRIPT="/home/mike/Desktop/civrev/extract_nds.py"
+    EXTRACT_SCRIPT="$SCRIPT_DIR/../extract_nds.py"
     if [ ! -f "$EXTRACT_SCRIPT" ]; then
         echo "Error: extract_nds.py not found at $EXTRACT_SCRIPT"
         echo "  Run: pip install ndspy  # then use extract_nds.py"
         exit 1
     fi
     # extract_nds.py outputs to NDS_UNPACK in its own directory
-    cd /home/mike/Desktop/civrev && python extract_nds.py "$ROM"
+    cd "$SCRIPT_DIR/.." && python extract_nds.py "$ROM"
     cd "$SCRIPT_DIR"
     ARM9_BIN="$NDS_UNPACK_DIR/arm9_original.bin"
     DATA_DIR="$NDS_UNPACK_DIR/data"
