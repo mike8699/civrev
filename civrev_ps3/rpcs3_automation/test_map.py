@@ -71,6 +71,14 @@ def main():
         default="/output/screenshot.png",
         help="Save screenshot to this path",
     )
+    parser.add_argument(
+        "--scenario",
+        "-s",
+        type=str,
+        default="earth",
+        choices=["earth", "equal_opportunity", "south_pacific", "uk", "invasion_usa"],
+        help="DLC scenario to load",
+    )
     args = parser.parse_args()
 
     if args.generate_textures:
@@ -86,7 +94,7 @@ def main():
 
     from launch import launch_and_screenshot
 
-    screenshot = launch_and_screenshot(max_wait=args.wait)
+    screenshot = launch_and_screenshot(max_wait=args.wait, scenario=args.scenario)
 
     if screenshot and args.output:
         out = Path(args.output)

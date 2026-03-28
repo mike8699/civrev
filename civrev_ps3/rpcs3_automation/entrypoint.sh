@@ -28,6 +28,15 @@ cp -a "$DLC_SRC/PARAM.SFO" "$DLC_DEST/" 2>/dev/null || true
 cp -a "$DLC_SRC/ICON0.PNG" "$DLC_DEST/" 2>/dev/null || true
 cp -a "$DLC_SRC/PS3LOGO.DAT" "$DLC_DEST/" 2>/dev/null || true
 
+# Copy DLC exdata (license RAP files + additional DLC packs like Pak1, Pak6)
+EXDATA_SRC="/game_exdata"
+EXDATA_DEST="/root/.config/rpcs3/dev_hdd0/home/00000001/exdata"
+if [ -d "$EXDATA_SRC" ]; then
+    mkdir -p "$EXDATA_DEST"
+    cp -a "$EXDATA_SRC/"* "$EXDATA_DEST/" 2>/dev/null || true
+    echo "Copied DLC exdata ($(ls "$EXDATA_DEST" | wc -l) files)"
+fi
+
 # Set up keyboard pad handler so we can send controller inputs
 mkdir -p /root/.config/rpcs3/input_configs/global
 cat > /root/.config/rpcs3/input_configs/global/Default.yml << 'PADEOF'
@@ -123,4 +132,11 @@ infoBoxEnabledWelcome=false
 EOF
 
 cd /civrev/rpcs3_automation
-exec python3 test_map.py "$@"
+
+# If first arg is "autoplay", run autoplay test instead
+if [ "${1:-}" = "autoplay" ]; then
+    shift
+    exec python3 test_autoplay.py "$@"
+else
+    exec python3 test_map.py "$@"
+fi

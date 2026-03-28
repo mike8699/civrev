@@ -32,14 +32,16 @@ DOCKER_ARGS=(
     -v "$GAME_DISC_DIR:/game_disc:ro"
     # DLC/game data (read-only, copied to writable location by entrypoint)
     -v "$GAME_DLC_DIR:/game_dlc:ro"
+    # DLC exdata (license files + additional DLC packs like Pak1, Pak6)
+    -v "$RPCS3_CONFIG/dev_hdd0/home/00000001/exdata:/game_exdata:ro"
     # PS3 firmware (read-only)
     -v "$RPCS3_CONFIG/dev_flash:/root/.config/rpcs3/dev_flash:ro"
     -v "$RPCS3_CONFIG/dev_flash2:/root/.config/rpcs3/dev_flash2:ro"
     -v "$RPCS3_CONFIG/dev_flash3:/root/.config/rpcs3/dev_flash3:ro"
     # Project (read-only)
     -v "$PROJECT_DIR:/civrev:ro"
-    # Persistent RPCS3 cache (PPU/SPU/shader) across runs
-    -v civrev-rpcs3-cache:/root/.cache/rpcs3
+    # Share RPCS3 cache (PPU/SPU/shader) with host for fast boot
+    -v "$HOME/.cache/rpcs3:/root/.cache/rpcs3:rw"
     # RPCS3 screenshots dir + writable output (same location)
     -v "$OUTPUT_DIR:/root/.config/rpcs3/screenshots:rw"
     -v "$OUTPUT_DIR:/output:rw"
