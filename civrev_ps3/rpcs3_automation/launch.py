@@ -51,25 +51,47 @@ def _find_rpcs3_window() -> str | None:
 
 
 def _capture_display() -> np.ndarray | None:
-    """Capture the display as a numpy array using ImageMagick import."""
+    """Capture the display as a numpy array.
+
+    Tries multiple methods: PIL ImageGrab, xwd, ImageMagick import.
+    """
+    # Method 1: PIL ImageGrab (works on X11)
+    try:
+        from PIL import ImageGrab
+        img = ImageGrab.grab()
+        if img is not None:
+            return np.array(img.convert("RGB"))
+    except Exception:
+        pass
+
+    # Method 2: xwd + PIL
+    try:
+        result = subprocess.run(
+            ["xwd", "-display", DISPLAY, "-root", "-silent"],
+            capture_output=True,
+            timeout=5,
+        )
+        if result.returncode == 0 and result.stdout:
+            img = Image.open(BytesIO(result.stdout)).convert("RGB")
+            return np.array(img)
+    except Exception:
+        pass
+
+    # Method 3: ImageMagick import (original)
     try:
         result = subprocess.run(
             ["import", "-display", DISPLAY, "-window", "root", "png:-"],
             capture_output=True,
             timeout=5,
         )
-        if result.returncode != 0 or not result.stdout:
-            if result.stderr:
-                print(f"  capture error: {result.stderr.decode().strip()}")
-            return None
-        img = Image.open(BytesIO(result.stdout)).convert("RGB")
-        return np.array(img)
-    except subprocess.TimeoutExpired:
-        print("  capture timed out")
-        return None
-    except Exception as e:
-        print(f"  capture failed: {e}")
-        return None
+        if result.returncode == 0 and result.stdout:
+            img = Image.open(BytesIO(result.stdout)).convert("RGB")
+            return np.array(img)
+    except Exception:
+        pass
+
+    print("  capture failed: no working screenshot method")
+    return None
 
 
 def _frames_similar(a: np.ndarray, b: np.ndarray, threshold: float = 0.998) -> bool:
@@ -307,7 +329,16 @@ def _wait_for_screen_text(
     return False
 
 
-def _navigate_startup(proc: subprocess.Popen):
+_debug_counter = 0
+
+
+def _next_debug_prefix() -> str:
+    global _debug_counter
+    _debug_counter += 1
+    return f"{_debug_counter:02d}"
+
+
+def _navigate_startup(proc: subprocess.Popen, scenario: str = "earth"):
     """Navigate from game boot through menus to Earth scenario.
 
     Sequence: wait 20s → X (skip cutscene) → START (title screen) →
@@ -326,41 +357,105 @@ def _navigate_startup(proc: subprocess.Popen):
             # Save debug frame
             try:
                 img = Image.fromarray(frame)
-                img.save(f"/output/debug_{label}.png")
+                img.save(f"/output/debug_{_next_debug_prefix()}_{label}.png")
             except Exception:
                 pass
 
-    # Wait 20s for cutscene to become skippable
-    print("  Waiting 20s for cutscene...")
-    time.sleep(8)
-    _capture_state("after_20s_wait")
+    # Wait for cutscene to become skippable
+    print("  Waiting 15s for cutscene...")
+    time.sleep(15)
+    _capture_state("after_wait")
 
     # X skips cutscene → DLC dialog appears
     print("  Pressing X to skip cutscene...")
-    _press("X", delay=0.5)
+    _press("X", delay=5)
     _capture_state("after_cutscene_skip")
 
     # DLC dialog: dismiss with X (OK button is highlighted)
     print("  Pressing X to dismiss DLC dialog...")
-    _press("X", delay=0.5)
+    _press("X", delay=5)
     _capture_state("after_dlc_dismiss")
 
     # Now on title screen ("Press START to begin")
     print("  Pressing START for title screen...")
-    _press("start", delay=0.5)
+    _press("start", delay=5)
     _capture_state("after_start")
 
-    # Now at main menu. Navigate to Earth scenario.
-    _navigate_to_earth_scenario()
+    # Now at main menu. Navigate to selected scenario.
+    _navigate_to_scenario(scenario)
 
 
-def _navigate_to_earth_scenario():
-    """Navigate from main menu to Earth scenario difficulty screen.
+def _ocr_screen(region: tuple = None) -> str:
+    """Capture screen, preprocess, and run OCR. Return detected text.
 
-    Main menu order: Play Now, Single Player, Multiplayer, Extras, Options
-    Single Player menu: Play Scenario, ...
-    Play Scenario list: includes Earth (need to scroll down)
+    Args:
+        region: Optional (left, top, right, bottom) crop box as fractions of
+                screen size (0.0-1.0). Default crops the left half where
+                scenario/menu names appear.
     """
+    frame = _capture_display()
+    if frame is None:
+        return ""
+    try:
+        import pytesseract
+        from PIL import ImageEnhance, ImageFilter
+
+        img = Image.fromarray(frame)
+        w, h = img.size
+
+        # Crop to region of interest (default: left 55% where menu text is)
+        if region is None:
+            region = (0.0, 0.0, 0.55, 1.0)
+        box = (int(w * region[0]), int(h * region[1]),
+               int(w * region[2]), int(h * region[3]))
+        img = img.crop(box)
+
+        # Scale up 2x for better OCR
+        img = img.resize((img.size[0] * 2, img.size[1] * 2), Image.LANCZOS)
+
+        # Boost contrast and convert to grayscale
+        img = img.convert("L")
+        img = ImageEnhance.Contrast(img).enhance(2.0)
+        img = ImageEnhance.Sharpness(img).enhance(2.0)
+
+        text = pytesseract.image_to_string(img, config="--psm 6")
+        return text
+    except Exception as e:
+        print(f"    OCR failed: {e}")
+        return ""
+
+
+def _wait_for_text_on_screen(
+    target: str, timeout: float = 15, poll: float = 1.5
+) -> bool:
+    """Poll screen OCR until target text appears."""
+    start = time.time()
+    while time.time() - start < timeout:
+        text = _ocr_screen()
+        if target.lower() in text.lower():
+            print(f"    Found '{target}' on screen")
+            return True
+        time.sleep(poll)
+    print(f"    '{target}' not found after {timeout}s")
+    return False
+
+
+def _navigate_to_scenario(scenario: str = "earth"):
+    """Navigate from main menu to a scenario using OCR to find the right one.
+
+    Uses OCR to read screen text and scroll through scenario list until
+    the target scenario name is visible, making this robust to DLC packs
+    changing the list order.
+    """
+    # Map scenario keys to the text that appears in the scenario list
+    scenario_names = {
+        "earth": "Earth",
+        "equal_opportunity": "Equal Opportunity",
+        "south_pacific": "South Pacific",
+        "uk": "United Kingdom",
+        "invasion_usa": "Invasion",
+    }
+    target_name = scenario_names.get(scenario, scenario)
 
     def _press(button: str, delay: float = 2.0):
         _send_ps3_button(button)
@@ -373,46 +468,84 @@ def _navigate_to_earth_scenario():
             print(f"    Screen state ({label}): brightness={brightness:.0f}")
             try:
                 img = Image.fromarray(frame)
-                img.save(f"/output/debug_{label}.png")
+                img.save(f"/output/debug_{_next_debug_prefix()}_{label}.png")
             except Exception:
                 pass
 
     # Main menu → Single Player (1 Down from Play Now)
     print("  Main menu → Single Player")
-    _press("Down", delay=0.2)
-    _press("X", delay=0.2)
+    _press("Down", delay=0.5)
+    _capture_state("after_menu_down")
+    _press("X", delay=3)
     _capture_state("after_single_player")
 
-    # Single Player menu: New Game, Load Game, Game of the Week, Play Scenario
-    # Need 3 Down presses to reach Play Scenario
+    # Single Player menu → Play Scenario (3 Down)
     print("  Single Player → Play Scenario")
-    _press("Down", delay=0.2)
-    _press("Down", delay=0.2)
-    _press("Down", delay=0.2)
-    _press("X", delay=0.2)
+    _press("Down", delay=0.5)
+    _press("Down", delay=0.5)
+    _press("Down", delay=0.5)
+    _capture_state("after_scenario_highlight")
+    _press("X", delay=3)
     _capture_state("after_play_scenario")
 
-    # Scenario list → scroll to Earth
-    # List: Attack of the Huns, Chariots of the Gods, Age of Imperialism,
-    # Apocalypse!, Beta Centauri, Blitzkrieg!, Golden Age, Lightning Round, ...
-    # Earth is further down (DLC scenario from Terrestrial Pack)
-    print("  Scrolling to Earth scenario...")
-    for _ in range(10):
-        _press("Down", delay=0.2)
-    _capture_state("after_scroll_to_earth")
+    # Wait for the scenario list to actually appear (look for "Choose" or "Scenario")
+    print(f"  Waiting for scenario list to appear...")
+    for wait_attempt in range(15):
+        text = _ocr_screen()
+        if "choose" in text.lower() or "scenario" in text.lower():
+            print(f"    Scenario list detected on attempt {wait_attempt}")
+            break
+        print(f"    Not on scenario list yet (attempt {wait_attempt})...")
+        time.sleep(2)
+    else:
+        _capture_state("scenario_list_not_found")
+        raise RuntimeError(
+            "FATAL: Scenario list never appeared. Check debug screenshots."
+        )
 
-    print("  Selecting Earth scenario...")
-    _press("X", delay=0.2)
-    _capture_state("after_earth_select")
+    # Scroll down through the list, checking OCR each time.
+    # The target may be VISIBLE on screen but cursor needs to reach it.
+    # Keep scrolling until OCR sees the target AND the cursor is on it
+    # (detected by the name appearing in the bottom/highlighted area).
+    print(f"  Searching for '{target_name}' in scenario list (OCR)...")
+    found = False
+    last_text = ""
+    for attempt in range(30):  # max 30 scrolls
+        text = _ocr_screen()
+        clean = " | ".join(line.strip() for line in text.splitlines() if line.strip())
+        if clean:
+            print(f"    OCR[{attempt}]: {clean[:120]}")
+        if target_name.lower() in text.lower():
+            print(f"    >>> Found '{target_name}' on attempt {attempt}!")
+            found = True
+            break
+        # Detect if we've hit the bottom (same text twice = no more scrolling)
+        if text == last_text and attempt > 5:
+            print(f"    List stopped scrolling at attempt {attempt}")
+            break
+        last_text = text
+        _press("Down", delay=0.4)
+
+    _capture_state(f"after_scroll_to_{scenario}")
+
+    if not found:
+        raise RuntimeError(
+            f"FATAL: '{target_name}' not found in scenario list after scrolling. "
+            f"Check debug screenshots in /output/ for what's on screen."
+        )
+
+    print(f"  Selecting {scenario} scenario...")
+    _press("X", delay=3)
+    _capture_state(f"after_{scenario}_select")
 
     # Difficulty screen: Chieftain, Warlord, King, Emperor, Deity
     # Deity is 4 Down from Chieftain
     print("  Selecting Deity difficulty...")
-    _press("Down", delay=0.2)
-    _press("Down", delay=0.2)
-    _press("Down", delay=0.2)
-    _press("Down", delay=0.2)
-    _press("X", delay=0.5)
+    _press("Down", delay=0.3)
+    _press("Down", delay=0.3)
+    _press("Down", delay=0.3)
+    _press("Down", delay=0.3)
+    _press("X", delay=3)
     _capture_state("after_deity_select")
 
     # Civ selection screen: cursor starts on a random civ.
@@ -422,26 +555,49 @@ def _navigate_to_earth_scenario():
     # There are 16 civs, so 16 lefts guarantees we wrap to Romans.
     print("  Selecting Russians (scrolling left to Romans first)...")
     for _ in range(16):
-        _press("Left", delay=0.2)
+        _press("Left", delay=0.3)
     _capture_state("after_scroll_to_romans")
 
     # Now go right 5 to reach Russians
     for _ in range(5):
-        _press("Right", delay=0.2)
+        _press("Right", delay=0.3)
     _capture_state("after_scroll_to_russians")
 
     print("  Selecting Russians...")
-    _press("X", delay=8)
+    _press("X", delay=15)
 
     # Loading screen then intro cutscene — skip with X
     print("  Skipping intro cutscene...")
-    _press("X", delay=4)
+    _press("X", delay=3)
+    _press("X", delay=3)
+    _press("X", delay=5)
 
-    # Zoom out camera by holding L2
-    print("  Zooming out (holding L2)...")
-    _hold_key("comma", duration=5.0)
+    # Capture initial spawn view
+    _capture_state("spawn_view")
+
+    # Zoom ALL the way out to see entire map
+    print("  Zooming out to maximum...")
+    _hold_key("comma", duration=10.0)
+    time.sleep(2)
+    _capture_state("max_zoom_out")
+
+    # Scroll south to center the map
+    print("  Centering map (scrolling south)...")
+    _hold_key("S", duration=8.0)
+    time.sleep(2)
+    _capture_state("centered")
+
+    # Take a zoomed-in view of the current position
+    print("  Zooming in for detail...")
+    _hold_key("period", duration=4.0)
     time.sleep(1)
-    _capture_state("after_game_start")
+    _capture_state("detail")
+
+    # Tilt camera for 3D perspective
+    print("  Tilting camera...")
+    _hold_key("End", duration=2.0)
+    time.sleep(1)
+    _capture_state("tilted")
 
 
 def _wait_for_rsx(proc: subprocess.Popen, timeout: int, launch_time: float = 0) -> bool:  # noqa: C901
@@ -514,7 +670,7 @@ def _send_f12():
         print(f"Warning: Failed to send F12: {e}")
 
 
-def launch_and_screenshot(max_wait: int | None = None) -> Path | None:
+def launch_and_screenshot(max_wait: int | None = None, scenario: str = "earth") -> Path | None:
     """Launch RPCS3, wait for load, capture screenshot, terminate."""
     game_path = _find_game_path()
     before = _existing_screenshots()
@@ -552,7 +708,7 @@ def launch_and_screenshot(max_wait: int | None = None) -> Path | None:
         if rsx_ok:
             # Navigate through startup screens to main menu.
             # Use screen capture to verify state at each step.
-            _navigate_startup(rpcs3)
+            _navigate_startup(rpcs3, scenario=scenario)
 
             # Try frame capture (works in headless/Xvfb, fails in GUI mode)
             test_frame = _capture_display()
@@ -604,5 +760,13 @@ if __name__ == "__main__":
         default=None,
         help="Max seconds to wait for game to load",
     )
+    parser.add_argument(
+        "-s",
+        "--scenario",
+        type=str,
+        default="earth",
+        choices=["earth", "equal_opportunity", "south_pacific", "uk", "invasion_usa"],
+        help="DLC scenario to load",
+    )
     args = parser.parse_args()
-    launch_and_screenshot(args.wait)
+    launch_and_screenshot(args.wait, scenario=args.scenario)
