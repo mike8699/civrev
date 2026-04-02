@@ -4,6 +4,7 @@ Reverse-engineering findings for Sid Meier's Civilization Revolution (PS3).
 
 ## Contents
 
+### Game Data & Modding
 | Document | Description |
 |----------|-------------|
 | [ISO Structure](iso-structure.md) | PS3 disc layout, FPK archives, asset organization |
@@ -14,6 +15,18 @@ Reverse-engineering findings for Sid Meier's Civilization Revolution (PS3).
 | [EBOOT Analysis](eboot-analysis.md) | Decompiled functions, key addresses, RNG, native code architecture |
 | [DLC Map Packs](dlc-map-packs.md) | DLC structure, constraints, dlcscenariodata format |
 | [Update & Patching](update-and-patching.md) | v1.30 update mechanism, patch/ directory, DLC system, modding vectors |
+
+### Online Multiplayer (Server Revival)
+| Document | Description |
+|----------|-------------|
+| [Multiplayer Overview](multiplayer-overview.md) | Architecture, game modes, connection flow, sync model |
+| [GameSpy Protocol](gamespy-protocol.md) | GP, Peerchat/IRC, Server Browsing, SOAP, NAT Negotiation details |
+| [Network Messages](network-messages.md) | All 69 game message types, wire format, broadcast semantics |
+| [GameSpy Credentials](gamespy-credentials.md) | Game name, secret key, server query fields, ports |
+| [PS3 Auth Flow](ps3-auth-flow.md) | PSN → GameSpy authentication, NP ticket flow, function addresses |
+| [Custom Server Requirements](custom-server-requirements.md) | What services to implement, minimum viable server, DNS setup |
+| [Cross-Platform Analysis](cross-platform-analysis.md) | iOS/NDS/CivRev2 comparison, using iOS code as Rosetta Stone |
+| [PS3 Function Map](ps3-function-map.md) | Identified networking functions in EBOOT by port/purpose |
 
 ## Game Identity
 
