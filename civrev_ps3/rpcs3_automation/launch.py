@@ -58,6 +58,7 @@ def _capture_display() -> np.ndarray | None:
     # Method 1: PIL ImageGrab (works on X11)
     try:
         from PIL import ImageGrab
+
         img = ImageGrab.grab()
         if img is not None:
             return np.array(img.convert("RGB"))
@@ -338,11 +339,10 @@ def _next_debug_prefix() -> str:
     return f"{_debug_counter:02d}"
 
 
-def _navigate_startup(proc: subprocess.Popen, scenario: str = "earth"):
-    """Navigate from game boot through menus to Earth scenario.
+def _navigate_startup_to_main_menu(proc: subprocess.Popen):
+    """Navigate from game boot to the main menu.
 
-    Sequence: wait 20s → X (skip cutscene) → START (title screen) →
-    X (DLC dialog or title) → navigate menus to Earth scenario.
+    Sequence: wait 15s → X (skip cutscene) → X (DLC dialog) → START (title screen)
     """
 
     def _press(button: str, delay: float = 2.0):
@@ -354,7 +354,6 @@ def _navigate_startup(proc: subprocess.Popen, scenario: str = "earth"):
         if frame is not None:
             brightness = np.mean(frame)
             print(f"    Screen state ({label}): brightness={brightness:.0f}")
-            # Save debug frame
             try:
                 img = Image.fromarray(frame)
                 img.save(f"/output/debug_{_next_debug_prefix()}_{label}.png")
@@ -381,7 +380,10 @@ def _navigate_startup(proc: subprocess.Popen, scenario: str = "earth"):
     _press("start", delay=5)
     _capture_state("after_start")
 
-    # Now at main menu. Navigate to selected scenario.
+
+def _navigate_startup(proc: subprocess.Popen, scenario: str = "earth"):
+    """Navigate from game boot through menus to Earth scenario."""
+    _navigate_startup_to_main_menu(proc)
     _navigate_to_scenario(scenario)
 
 
@@ -398,7 +400,7 @@ def _ocr_screen(region: tuple = None) -> str:
         return ""
     try:
         import pytesseract
-        from PIL import ImageEnhance, ImageFilter
+        from PIL import ImageEnhance
 
         img = Image.fromarray(frame)
         w, h = img.size
@@ -406,8 +408,12 @@ def _ocr_screen(region: tuple = None) -> str:
         # Crop to region of interest (default: left 55% where menu text is)
         if region is None:
             region = (0.0, 0.0, 0.55, 1.0)
-        box = (int(w * region[0]), int(h * region[1]),
-               int(w * region[2]), int(h * region[3]))
+        box = (
+            int(w * region[0]),
+            int(h * region[1]),
+            int(w * region[2]),
+            int(h * region[3]),
+        )
         img = img.crop(box)
 
         # Scale up 2x for better OCR
@@ -489,7 +495,7 @@ def _navigate_to_scenario(scenario: str = "earth"):
     _capture_state("after_play_scenario")
 
     # Wait for the scenario list to actually appear (look for "Choose" or "Scenario")
-    print(f"  Waiting for scenario list to appear...")
+    print("  Waiting for scenario list to appear...")
     for wait_attempt in range(15):
         text = _ocr_screen()
         if "choose" in text.lower() or "scenario" in text.lower():
@@ -670,7 +676,9 @@ def _send_f12():
         print(f"Warning: Failed to send F12: {e}")
 
 
-def launch_and_screenshot(max_wait: int | None = None, scenario: str = "earth") -> Path | None:
+def launch_and_screenshot(
+    max_wait: int | None = None, scenario: str = "earth"
+) -> Path | None:
     """Launch RPCS3, wait for load, capture screenshot, terminate."""
     game_path = _find_game_path()
     before = _existing_screenshots()

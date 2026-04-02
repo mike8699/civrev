@@ -28,8 +28,8 @@ DOCKER_ARGS=(
     --rm
     # GPU passthrough for hardware rendering
     --device /dev/dri:/dev/dri
-    # Disc game (read-only, for booting)
-    -v "$GAME_DISC_DIR:/game_disc:ro"
+    # Disc game (read-only source, writable copy made by entrypoint for patching)
+    -v "$GAME_DISC_DIR:/game_disc_src:ro"
     # DLC/game data (read-only, copied to writable location by entrypoint)
     -v "$GAME_DLC_DIR:/game_dlc:ro"
     # DLC exdata (license files + additional DLC packs like Pak1, Pak6)
@@ -40,8 +40,10 @@ DOCKER_ARGS=(
     -v "$RPCS3_CONFIG/dev_flash3:/root/.config/rpcs3/dev_flash3:ro"
     # Project (read-only)
     -v "$PROJECT_DIR:/civrev:ro"
-    # Share RPCS3 cache (PPU/SPU/shader) with host for fast boot
-    -v "$HOME/.cache/rpcs3:/root/.cache/rpcs3:rw"
+    # Share RPCS3 PPU/SPU cache with host for fast boot (but not logs)
+    -v "$HOME/.cache/rpcs3/cache:/root/.cache/rpcs3/cache:rw"
+    -v "$HOME/.cache/rpcs3/spu_progs:/root/.cache/rpcs3/spu_progs:rw"
+    -v "$HOME/.cache/rpcs3/ppu_progs:/root/.cache/rpcs3/ppu_progs:rw"
     # RPCS3 screenshots dir + writable output (same location)
     -v "$OUTPUT_DIR:/root/.config/rpcs3/screenshots:rw"
     -v "$OUTPUT_DIR:/output:rw"
