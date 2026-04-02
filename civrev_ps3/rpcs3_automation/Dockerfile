@@ -29,7 +29,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Python packages
 RUN pip --no-cache-dir install --break-system-packages uv
 RUN apt-get update && apt-get install -y --no-install-recommends tesseract-ocr && rm -rf /var/lib/apt/lists/*
-RUN uv pip install --no-cache-dir --system --break-system-packages numpy pillow scipy pytesseract
+RUN uv pip install --no-cache-dir --system --break-system-packages numpy pillow scipy pytesseract aiohttp
 
 # Download and extract RPCS3 AppImage
 RUN curl -L -J -o /tmp/rpcs3.AppImage https://rpcs3.net/latest-linux-x64 && \
@@ -40,7 +40,7 @@ RUN curl -L -J -o /tmp/rpcs3.AppImage https://rpcs3.net/latest-linux-x64 && \
     ln -s /opt/rpcs3/usr/bin/rpcs3 /usr/local/bin/rpcs3
 
 # Copy automation scripts
-COPY config.py pack.py launch.py test_map.py test_autoplay.py entrypoint.sh /civrev/rpcs3_automation/
+COPY config.py pack.py launch.py test_map.py test_multiplayer.py test_autoplay.py gdb_client.py entrypoint.sh /civrev/rpcs3_automation/
 
 # Project files (fpk.py, generate_map_textures.py, Pak9/) are mounted at runtime
 # RPCS3 config dir (with game data) is mounted at runtime
