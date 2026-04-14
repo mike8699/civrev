@@ -335,10 +335,23 @@ PATCHES: list[Patch] = [
     # 0x018c9ae0 is part of the CORE BOOT PATH, probably a base UI
     # class that lots of game systems derive from. Hanging its
     # constructor breaks ALL of UI init, not just the carousel.
+
+    # iter-156 DIAG: tested both EBOOT "Caesar" string locations
+    # (0x16a38a8 and 0x0169dcb4). Neither patch (Caesar → Korean)
+    # affected what the carousel displays — the slot 0 cell still
+    # rendered "Caesar / Romans". This conclusively proves the
+    # carousel reads its display text from RUNTIME PARSER OUTPUT
+    # BUFFERS (heap memory populated from rulernames_enu.txt /
+    # civnames_enu.txt at boot), NOT from static EBOOT strings.
     #
-    # This rules out the vtable class as carousel-specific. The
-    # carousel might USE an instance of this class, but the class
-    # itself is too general to identify the carousel.
+    # v0.9's fpk_byte_patch.py approach (Elizabeth → Sejong in the
+    # Pregame.FPK file directly) is the ONLY way to control the
+    # carousel display text, because it modifies the source bytes
+    # that the parser reads. There is no static EBOOT patch that can
+    # intercept the displayed text.
+    #
+    # iter-156 patches reverted. eboot_patches.py back to iter-137
+    # 6-patch baseline.
 ]
 
 
