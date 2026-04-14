@@ -2300,3 +2300,95 @@ broken_18 fault is the libnet stub NULL deref at 0x141fa4c.
   init or by a relocation, and what's supposed to live there.
 - Run the `gdb_client` Z-packet path against this fault to inspect
   the .data area at the moment of crash (per prompt.txt).
+
+### iter-135 (2026-04-14): two more red herrings; iter-14 alone triggers the fault
+
+This iteration uncovered TWO orthogonal bugs in the verification
+infrastructure that were both compounding the iter-127..134
+confusion:
+
+**Red herring #1: stale extracted/Pregame.** The directory
+`civrev_ps3/extracted/Pregame/` contained a corrupted
+`ccglobaldefines.xml` (26040 bytes vs the FPK header's encoded
+26037). It must have been extracted by an older buggy fpk.py
+that read 3 bytes too far. When the broken_18 / civ18only
+builders re-pack from this directory, fpk.py writes the corrupted
+file size into the new FPK, which shifts every subsequent file
+offset by 3 bytes. The shifted offsets break the FPK structure
+and the game crashes — but for reasons that have NOTHING to do
+with adding an 18th civnames entry.
+
+I confirmed this by extracting Pregame.FPK.orig with the current
+fpk.py into a fresh directory and re-packing — the result was
+byte-identical to the original (sha 69d771f4...). The fpk.py
+code is correct; only the on-disk extracted/ tree was stale.
+**Replaced** the corrupt ccglobaldefines.xml in extracted/Pregame/
+with the freshly-extracted copy.
+
+**Red herring #2: the broken_18 / civ18only fault has nothing
+to do with the extra Pregame entry.** With the fixed extracted/
+Pregame source, broken_18 still faults at 0x0141fa4c. Worse:
+**stock Pregame.FPK.orig + iter-14 EBOOT alone reproduces the
+exact same fault.** I tested every combination:
+
+  Stock EBOOT + stock Pregame                      → BOOTS (original)
+  Stock EBOOT + civ18only (fixed source) Pregame   → faults @ 0x141fa4c
+  iter-14 EBOOT (no iter-4) + civ18only Pregame    → faults @ 0x141fa4c
+  iter-14 EBOOT + stock Pregame                    → faults @ 0x141fa4c
+  iter-4+iter-14 EBOOT + v0.9 (English→Korea) Pregame → faults @ 0x141fa4c
+
+So the fault is triggered by the **iter-14 patches alone** (the
+`li r5, 17 → li r5, 18` instructions at 0xa2ee38 and 0xa2ee7c).
+The Pregame content doesn't matter at all. Even with stock
+Pregame.FPK.orig (17 entries), iter-14 makes the parser pass
+count=18 to parser_worker, and ~46 seconds later a libnet stub
+at 0x0141fa4c reads NULL and faults.
+
+**iter-133's earlier claim that "v0.9 boots cleanly with iter-14
++ iter-4 EBOOT" was wrong.** I had only sampled to +20s, where
+boot was still in PPU LLVM compile. The fault at 0:00:46+ was
+past the sample window. The iter-133 14-thread snapshot at +20s
+was real but proves nothing about boot completion.
+
+**Hypothesis for the iter-14 fault:** the parser_worker
+allocates `count*12+4` bytes. With count=17 vs count=18, the
+allocator picks a different heap slab/pool, shifting every
+subsequent allocation. One of those subsequent allocations is
+something a libnet sprx looks up by exact address — a function
+descriptor or callback table — and the shifted layout leaves
+the expected slot at .data 0x18b5a08 NULL.
+
+OR: the parser doesn't fill the 18th slot when the file only
+has 17 lines, leaving stack/heap garbage in entry[17]. A
+downstream consumer reads entry[17] and dereferences the garbage,
+eventually corrupting a sprx state or causing a cascade.
+
+OR: the iter-14 patch is at a li r5, X site that is NOT actually
+the parser count argument I thought it was. The "count = 17"
+analysis from iter-14 may have been wrong about which li r5
+instruction governs which parser call. Need to re-decompile
+parser_dispatcher and verify the iter-14 byte offsets really
+map to the rulernames/civnames calls (per iter-135 dispatcher
+decomp, the dispatcher has EIGHT parser_worker calls with
+DIFFERENT counts — 17 is only two of them).
+
+**Status:** The DoD-blocking iter-127..134 bug chain is fully
+invalidated. Re-baselined understanding:
+  - iter-7..132: tested wrong binary (encrypted SCE, iter-133)
+  - iter-133..134: tested right binary but with corrupted
+                   diagnostic FPKs (iter-135 finding #1)
+  - The actual fault is triggered by iter-14 EBOOT patches
+    alone, regardless of Pregame content.
+
+**Next iteration should:**
+- Disable iter-14 entirely and confirm the EBOOT (with iter-4
+  ADJ_FLAT only) boots cleanly with stock Pregame, broken_18,
+  AND civ18only.
+- If iter-14 alone is the trigger, audit every
+  `*(unaff_r2 + 0x1418)` and `*(unaff_r2 + 0x141c)` consumer to
+  see what assumes count=17.
+- Bisect iter-14: enable only the rulernames patch
+  (0xa2ee38), then only the civnames patch (0xa2ee7c). Find
+  which one triggers the fault.
+- Use Z-packet GDB watchpoints (per prompt.txt §a/b) to catch
+  the write that nulls .data 0x18b5a08.
