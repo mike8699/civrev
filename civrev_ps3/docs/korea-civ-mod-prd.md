@@ -2108,3 +2108,68 @@ entry added.
 
 
 
+
+### iter-131..132 (2026-04-14): null-guard the FUN_00c26a00 tail crash
+
+**What shipped:** A 4-byte in-place patch at EBOOT file offset
+`0x00c26a44`: `cmpw cr7, r5, r0` → `cmpwi cr7, r0, 0`. This
+hijacks an existing rarely-fired early-exit pair (the original
+`param_3 == *param_1` test was an oddball comparison between an
+int arg and a pointer value) into a NULL-buf check that branches
+to the function epilogue at `0xc26aa8` whenever `*param_1 == 0`.
+
+**Why:** Both the civ18-only and both-18 diagnostic Pregames trip
+faults inside FUN_00c26a00's tail block at `0xc26a80..0xc26a98`:
+
+  ```
+  lwz  r11, 0(r30)          ; r11 = buf
+  addi r9, r11, -16          ; r9 = buf - 16
+  lwz  r0, 12(r9)            ; reads (buf-4) — faults if NULL
+  add  r11, r11, r0          ; r11 = buf + length
+  stb  r0, 0(r11)            ; writes (buf+length) — RO if 0x2a120
+  ```
+
+The civ18-only case has buf=NULL and faults on the lwz. The
+both-18 case has buf=0x2a120 (a corrupted text-segment pointer)
+and faults on the stb. The null-guard catches the NULL case but
+not the corrupted-pointer case.
+
+**Verification:**
+- Static M0: PASS
+- v0.9 Pregame + iter-132 EBOOT: BOOTS NORMALLY (14 PPU threads
+  at +20s, valid PCs, no fault — full regression test passes)
+- civ18-only Pregame + iter-132 EBOOT: NO MORE VM ACCESS
+  VIOLATION (was iter-127's `READ at 0xfffffff8`)
+- both-18 Pregame + iter-132 EBOOT: STILL FAULTS at `WRITE to
+  0x2a12c (read-only)` — see
+  `verification/iter132_broken18_patched/rpcs3_warmcache.log`
+
+**Half-fix.** DoD item 1 (Korea as the 17th civ) requires the
+both-18 case to boot, since both `civnames_enu.txt` and
+`rulernames_enu.txt` need 18 entries to add Korea. The civ18-only
+diagnostic was an isolation experiment, not the target.
+
+**Cache gotcha:** RPCS3's PPU JIT cache is volume-mounted from
+the host `~/.cache/rpcs3/cache/BLUS30130/` and survives EBOOT
+changes. iter-131's first test loaded stale iter-127 modules and
+silently no-op'd the patch. Fix: `docker run --rm -v
+~/.cache/rpcs3:/cache ubuntu rm -rf /cache/cache/BLUS30130`
+between binary changes (or on any first run after a patch).
+Verified by module hash diff: post-clear runs show NEW
+`v7-kusa-*.obj` names instead of the cached `4Qwfv4QsPq...`.
+
+**iter-131 dead-end:** First attempt was a 16-byte wrapper at
+`0x017f4088` that null-guarded `FStringA::SetLength` (the bl
+target at `0xc26a60`). Re-test reproduced the SAME fault,
+proving the fault is NOT inside SetLength but in the tail block
+ABOVE. Wrapper reverted in iter-132.
+
+**Next iteration should:**
+- Either chase the upstream 0x2a120 corruption source — find
+  where the rulernames parse leaks `0x2a120` into a civnames
+  FStringA.buf field. Use the iter-119+ ghidra_v130 project and
+  walk backward from FUN_00c26a00's caller chain.
+- OR widen the null-guard to also catch low-text-segment
+  pointers via a 3-instruction sequence at 0xc26a40-48
+  (clobbers r0/r9 — needs a second patch at 0xc26a4c to bypass
+  the broken `mr r3, r9`).
