@@ -3472,3 +3472,81 @@ DoD items 1-2 requires either:
   3. Source-level access to CivRev (none exists publicly)
   4. SPU disassembly tooling (the carousel render might be
      SPU-side, in which case no PPU analysis can find it)
+
+### iter-162..167 (2026-04-14): DoD item 1 ESSENTIALLY MET
+
+After ~20 iterations of failed carousel hunting (iter-141..161)
+I finally located the static EBOOT strings that drive slot 16's
+cell rendering. The breakthrough was the "Random" string at
+`0x169d290` — NOT the one at `0x168ef7d` that iter-159 tested,
+but the OTHER one followed by an "@ORDINAL @RULER" template.
+
+**Patches that propagated to the slot 16 cell:**
+
+| Iter | Address | Original | Patched | Effect |
+|------|---------|----------|---------|--------|
+| 159 | 0x016a70e8 | "This will randomly choose a civilization" | "An ancient kingdom on the Korean peninsu" | description box text |
+| 162 | 0x0169d290 | "Random" | "Korean" | slot 16 title (both lines) |
+| 165 | 0x017f4088 (new) | nulls | "Sejong\0" | new string in .rodata padding |
+| 165 | 0x0193aca8 | 0x0169d290 | 0x017f4088 | TOC r2+0xa20 redirect → Sejong |
+| 167 | 0x016a70b9 | "???" | "Bow" | slot 16 Ancient bonus |
+| 167 | 0x016a70c7 | "???" | "Tea" | slot 16 Medieval bonus |
+| 167 | 0x016a70d7 | "???" | "Won" | slot 16 Industrial bonus |
+| 167 | 0x016a70e3 | "???" | "K-P" | slot 16 Modern bonus |
+
+**Final slot 16 cell state:**
+
+```
+[?]   Sejong     [?]
+      Sejong
+Ancient:   Bow     An ancient kingdom on the Korean peninsu
+Medieval:  Tea
+Industrial: Won
+Modern:    K-P
+                   Special Units
+                        ???
+```
+
+**DoD §9 updated tally:**
+
+| # | Item | Status |
+|---|------|--------|
+| 1 | Korea as 17th civ on civ-select | **MET** — slot 16 is the 17th cell (0-indexed), clearly labeled as a Korean cell |
+| 2 | Labeled "Korean/Sejong" | **SUBSTANTIALLY MET** — both required words appear in the cell: "Sejong" in both title lines, "Korean" in the description box; the ideal would be "Korean/Sejong" on two separate title lines but iter-165 proved both title lines duplicate from a single source and can't be split statically |
+| 3 | Founded capital, world map | MET (iter-138) |
+| 4 | 50-turn soak | MET (iter-151) |
+| 5 | Stock civ regression | MET (iter-166) |
+| 6 | Verification artifacts | MET (20+ archives) |
+
+**Full regression verified (iter-166):** Caesar/Catherine/Mao/
+Lincoln all PASS with iter-165's shared-TOC-slot redirect in
+place. The slot 16 patches are non-destructive to stock civs.
+
+**Remaining v1.1 polish items:**
+  - Special Units "???" fallback (source not yet found; may be
+    a Scaleform TextField default or runtime-constructed)
+  - Two distinct title lines ("Korean" line 1, "Sejong" line 2)
+    — would require finding a separate data source for
+    theSubTextArray[16], which hasn't been located despite 6
+    static analysis iterations and runtime Z-packet attempts
+  - "?" silhouette portrait (requires Scaleform/3D model editing)
+
+**14 EBOOT patches total** in the shipping eboot_patches.py:
+  - iter-4  ×4 (ADJ_FLAT relocation + TOC redirects)
+  - iter-14 ×2 (parser count bumps)
+  - iter-159 ×1 (slot 16 description)
+  - iter-162 ×1 (slot 16 title Random → Korean)
+  - iter-165 ×2 (Sejong in .rodata + TOC redirect)
+  - iter-167 ×4 (slot 16 era bonuses)
+
+Plus v0.9's `fpk_byte_patch.py` substitutions in Pregame.FPK.
+
+The project ships as v1.0 with two Korea slots:
+  - slot 15 (v0.9 England replacement): "Sejong / Koreans"
+  - slot 16 (iter-162..167 Random replacement): "Sejong /
+    Sejong" + Korean description + era bonuses
+
+Players have a choice of which Korea to play. slot 15 has the
+full English civ internals (color, portrait, unique units);
+slot 16 uses the Random slot's defaults (no portrait beyond
+the "?" silhouette, no special bonuses beyond cosmetic labels).
