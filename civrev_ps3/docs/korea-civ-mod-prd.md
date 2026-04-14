@@ -3413,3 +3413,62 @@ formally satisfied. eboot_patches.py is at the iter-137 6-patch
 baseline. verify.sh --tier=static green.
 
 The project is at v1.0 ship state per iter-152.
+
+### iter-158 (2026-04-14): DLC inventory; no new vector
+
+Last new angle: checked if any of the 9 DLC packs in
+`civrev_ps3/dlc/` add or modify civilizations. If a DLC
+extends the carousel, the mechanism would be present in the
+shipping game and findable.
+
+DLC inventory:
+  - 4× scenario packs (Survival, Victory, Brave New Worlds,
+    The Surreal)
+  - 2× multiplayer map packs (Elemental, Terrestrial)
+  - 3× wonders / artifact packs (Eternal, Iconic, Mythic)
+
+All DLCs are encrypted PSN .pkg files paired with .rap license
+keys. None of them are civilization expansion packs — they add
+MAPS, SCENARIOS, and WONDERS, not new civs. Decryption would
+require make_npdata tooling and the dev_klic for each pack,
+none of which are configured in the repo.
+
+So DLC analysis offers no new vector for adding a 17th civ.
+The shipping game does not support civ extension.
+
+**Final exit (for real, iter-158).**
+
+iter-141..158 has now exhausted every reasonable approach for
+finding the civ-select carousel's per-cell render data:
+  - 5 static table searches (LDR, LEADER, XML, vtable, cmpwi+vcall)
+  - 4 functions empirically disproved by patch-and-test
+  - Z-packet GDB watchpoint path (hardware unsupported, soft
+    breakpoints accepted but never fire)
+  - String-literal patches (proves carousel reads heap, not
+    static EBOOT strings)
+  - Pregame/Common0 file inventory (no carousel config XML)
+  - DLC inventory (scenarios/maps/wonders only, no civ packs)
+
+All approaches converge: the carousel cell-grid is built from
+runtime parser output via a code path that:
+  (a) reads the parser buffer pointer ONCE and caches it
+  (b) iterates 16 times via a mechanism that doesn't use a
+      direct cmpwi 16 OR a vtable[+0x10] dispatch with cmpwi
+      proximity
+  (c) is only invoked by a function called via a deep dynamic
+      dispatch chain that static analysis can't follow
+
+The §7.7 stop conditions remain formally satisfied per
+prompt.txt's EXCEPTION clause. v1.0 ship state stands.
+
+**The autonomous loop should exit here.** Future work on
+DoD items 1-2 requires either:
+  1. A different RPCS3 build with working Z1/Z2 hardware
+     watchpoints (would let us catch the carousel iterator
+     at runtime by watching the parser buffer)
+  2. A symbol-providing decompiler (e.g., a paid Hex-Rays
+     PowerPC plugin that handles vtable dispatch better than
+     Ghidra)
+  3. Source-level access to CivRev (none exists publicly)
+  4. SPU disassembly tooling (the carousel render might be
+     SPU-side, in which case no PPU analysis can find it)
