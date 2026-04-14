@@ -179,3 +179,128 @@ class GDBClient:
             lr = self.get_lr()
             results.append({"tid": tid, "pc": pc, "lr": lr})
         return results
+
+    # --- Z-packet support (breakpoints and watchpoints) -------------------
+    #
+    # GDB Remote Serial Protocol Z-packets:
+    #   Z0,addr,kind   software breakpoint (kind = instr size, PPC = 4)
+    #   Z1,addr,kind   hardware breakpoint
+    #   Z2,addr,kind   write watchpoint (kind = byte length)
+    #   Z3,addr,kind   read watchpoint
+    #   Z4,addr,kind   access watchpoint
+    #   zN,addr,kind   clear the corresponding Z
+    # Response: "OK" on success, "" if unsupported, "E NN" on error.
+    # When a breakpoint / watchpoint fires, the continue ('c') reply is a
+    # stop packet like "T05watch:<addr>;" or "T05swbreak:;".
+
+    def set_breakpoint(self, addr: int, kind: int = 4) -> bool:
+        """Set a software breakpoint at addr (PPC instruction = 4 bytes)."""
+        resp = self._send_cmd(f"Z0,{addr:x},{kind}")
+        return resp == "OK"
+
+    def clear_breakpoint(self, addr: int, kind: int = 4) -> bool:
+        """Clear a software breakpoint previously set via set_breakpoint."""
+        resp = self._send_cmd(f"z0,{addr:x},{kind}")
+        return resp == "OK"
+
+    def set_hw_breakpoint(self, addr: int, kind: int = 4) -> bool:
+        """Set a hardware breakpoint at addr."""
+        resp = self._send_cmd(f"Z1,{addr:x},{kind}")
+        return resp == "OK"
+
+    def clear_hw_breakpoint(self, addr: int, kind: int = 4) -> bool:
+        resp = self._send_cmd(f"z1,{addr:x},{kind}")
+        return resp == "OK"
+
+    def set_write_watchpoint(self, addr: int, length: int = 4) -> bool:
+        """Set a write watchpoint covering `length` bytes starting at addr."""
+        resp = self._send_cmd(f"Z2,{addr:x},{length}")
+        return resp == "OK"
+
+    def clear_write_watchpoint(self, addr: int, length: int = 4) -> bool:
+        resp = self._send_cmd(f"z2,{addr:x},{length}")
+        return resp == "OK"
+
+    def set_read_watchpoint(self, addr: int, length: int = 4) -> bool:
+        """Set a read watchpoint."""
+        resp = self._send_cmd(f"Z3,{addr:x},{length}")
+        return resp == "OK"
+
+    def clear_read_watchpoint(self, addr: int, length: int = 4) -> bool:
+        resp = self._send_cmd(f"z3,{addr:x},{length}")
+        return resp == "OK"
+
+    def set_access_watchpoint(self, addr: int, length: int = 4) -> bool:
+        """Set a read-OR-write watchpoint."""
+        resp = self._send_cmd(f"Z4,{addr:x},{length}")
+        return resp == "OK"
+
+    def clear_access_watchpoint(self, addr: int, length: int = 4) -> bool:
+        resp = self._send_cmd(f"z4,{addr:x},{length}")
+        return resp == "OK"
+
+    def continue_until_stop(self, timeout: float = 30.0) -> dict:
+        """Send 'c' (continue) and block until the target stops again.
+
+        Returns a dict describing the stop reason, parsed from the T packet:
+            {"raw": <payload>, "signal": <hex>, "reason": <str|None>,
+             "addr": <int|None>, "regs": {<hex regnum>: <hex value>}}
+
+        `reason` is one of: "swbreak", "hwbreak", "watch", "rwatch",
+        "awatch", "threadid", None. `addr` is the watchpoint address when
+        present. Raises TimeoutError if the target doesn't stop within
+        `timeout` seconds.
+        """
+        checksum = sum(ord(c) for c in "c") & 0xFF
+        self._send_raw(f"$c#{checksum:02x}".encode())
+        payload = self._recv_packet(timeout=timeout)
+        if not payload:
+            raise TimeoutError(f"no stop reply within {timeout}s after 'c'")
+        return self._parse_stop_reply(payload)
+
+    def _parse_stop_reply(self, payload: str) -> dict:
+        """Parse a T packet like 'T05watch:2a12c;64:c26a98;' into a dict."""
+        result = {
+            "raw": payload,
+            "signal": None,
+            "reason": None,
+            "addr": None,
+            "regs": {},
+        }
+        if not payload or payload[0] not in ("T", "S"):
+            return result
+        if payload[0] == "S":
+            try:
+                result["signal"] = int(payload[1:3], 16)
+            except ValueError:
+                pass
+            return result
+        # T<sig><n>:<r>;<n>:<r>;...
+        try:
+            result["signal"] = int(payload[1:3], 16)
+        except ValueError:
+            pass
+        body = payload[3:]
+        for field in body.split(";"):
+            if not field:
+                continue
+            if ":" not in field:
+                continue
+            key, val = field.split(":", 1)
+            key = key.strip()
+            val = val.strip()
+            if key in ("watch", "rwatch", "awatch"):
+                result["reason"] = key
+                try:
+                    result["addr"] = int(val, 16)
+                except ValueError:
+                    pass
+            elif key in ("swbreak", "hwbreak"):
+                result["reason"] = key
+            elif key == "thread":
+                result["reason"] = result["reason"] or "threadid"
+                result["regs"]["thread"] = val
+            else:
+                # Integer regnum:value pair
+                result["regs"][key] = val
+        return result
