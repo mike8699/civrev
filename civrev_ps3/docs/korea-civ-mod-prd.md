@@ -1188,6 +1188,75 @@ v1.0 counters (the only ones that matter for the current scope):
 
 ---
 
+### 2026-04-14 — iter-8 (BREAKTHROUGH — M2 green in v0.9 form)
+
+**Status:** M2 GREEN (replacement form); v0.9 shipping candidate
+**Working on:** §6.2 / §6.3 / §7 — all at once
+
+**Did this iteration:**
+- **Located the real civ-select name source.** Not leaderheads.xml,
+  not rodata strings, not stringdatabase.gsd. The civ-select carousel
+  reads `rulernames_enu.txt` (17 rulers: Caesar..Elizabeth, Grey Wolf)
+  and `civnames_enu.txt` (17 civ plurals: Romans..English, Barbarians)
+  from `Pregame.FPK`. Both are plain text and both are parsed live.
+- **Built `korea_mod/fpk_byte_patch.py`** — an in-place byte patcher
+  that modifies these files inside a byte-for-byte copy of
+  Pregame.FPK without repacking. Avoids fpk.py's alignment-stripping
+  bug that iter-7 tripped over.
+- **Wired `pack_korea.sh`** to use the byte patcher for Pregame and
+  keep the existing fpk.py repack for Common0.
+- **Shipped v0.9 replacement:** slot 15 `Elizabeth` → `Sejong   ` in
+  rulernames_enu.txt, `English` → `Koreans` in civnames_enu.txt.
+- **M2 green (replacement form):**
+  `./docker_run.sh --headless korea` → korea_seen=True at slot 11 of
+  the sweep (game slot 15 after cursor normalization). Screenshot
+  evidence in `korea_mod/verification/M2_iter8/` — the civ-select
+  detail panel reads "Sejong / Koreans" with "The Koreans begin the
+  game with knowledge of Monarchy".
+- Iter-4's 78-byte ADJ_FLAT EBOOT patch is now understood to be a
+  **no-op for the civ-select screen** (the ADJ_FLAT rodata table is
+  dead as far as civ-select is concerned). It doesn't hurt anything
+  but could be retired in a later iteration.
+
+**Verification:**
+- `korea_mod/verification/M1/result.json` → pass
+- `korea_mod/verification/M2_iter8/result.json` → pass (v0.9 form)
+- static M0 tier still passes
+
+**v1.0 DoD posture:**
+This is **not yet §9 DoD-compliant.** PRD §9 item 1 says Korea must
+be the 17th civ. Currently Korea replaces England at slot 15. The
+in-game portrait, civ bonuses, and unique units still reference
+Elizabeth/England because those come from other tables we have not
+yet patched. But this is the first iteration where Korea is
+functionally a selectable civ, and M6/M7 gameplay soak becomes
+testable against a real Korea state.
+
+**Open blockers for a §9-compliant v1.0:**
+- Extend `civnames_enu.txt` and `rulernames_enu.txt` to 18 lines
+  each (adding "Koreans, MP" / "Sejong, M" as lines 17). Requires
+  either a resize-safe FPK patcher or moving the affected files to
+  a slack region inside Pregame.FPK.
+- Bump the civ-select cursor's hard right-clamp from 17 slots (16
+  civs + Random) to 18 (17 civs + Random). Needs an EBOOT patch to
+  the relevant cmpwi/cmplwi constant in the carousel input handler.
+- Clone England's civ-bonus / unique-unit / portrait data into a
+  new slot 16 entry (in whatever table holds them — still not yet
+  located).
+
+**Next iteration should:**
+1. Decide whether to ship this v0.9 replacement as an interim
+   milestone (green-lights M6/M7 soak) or push directly for the
+   §9-compliant 17-slot extension.
+2. If (a): start M6 (found capital) and M7 (50-turn end-turn loop)
+   by driving the existing test_korea.py past the civ-select
+   screen into an in-game run.
+3. If (b): locate the civ-select cursor bound by setting a GDB
+   watchpoint on the "Random" string's TOC entry, or by targeted
+   instruction scanning near the 5 loader sites from iter-6.
+
+**PRD changes made this iteration:** Progress Log entry added.
+
 ### 2026-04-14 — iter-6 (leaderheads.xml is not the civ-select lever)
 
 **Status:** investigating; M1 still green, M2 still red
