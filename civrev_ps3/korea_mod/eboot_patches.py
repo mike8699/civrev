@@ -380,6 +380,40 @@ PATCHES: list[Patch] = [
         new=b"An ancient kingdom on the Korean peninsu",
         description="iter-159: slot 16 description box → Korean text",
     ),
+    # ITER-167: fill the slot 16 era bonus "???" placeholders at
+    # 0x16a70b9..0x16a70e3. Each is exactly 3 chars + null. The
+    # carousel uses these as fallback display text for slot 16's
+    # era bonus fields. Verified with the Ancient patch — "KOR"
+    # appeared in the Ancient column. Extending to all 4 eras
+    # with Korean-themed 3-char tokens:
+    #   Ancient:    "Bow"  (Korean traditional archery)
+    #   Medieval:   "Tea"  (tea trade bonus)
+    #   Industrial: "Won"  (Korean currency "Won")
+    #   Modern:     "K-P"  (K-Pop / Korean Pop modern era)
+    Patch(
+        offset=0x016a70b9,
+        expected_old=b"???",
+        new=b"Bow",
+        description="iter-167: slot 16 Ancient bonus ??? → Bow",
+    ),
+    Patch(
+        offset=0x016a70c7,
+        expected_old=b"???",
+        new=b"Tea",
+        description="iter-167: slot 16 Medieval bonus ??? → Tea",
+    ),
+    Patch(
+        offset=0x016a70d7,
+        expected_old=b"???",
+        new=b"Won",
+        description="iter-167: slot 16 Industrial bonus ??? → Won",
+    ),
+    Patch(
+        offset=0x016a70e3,
+        expected_old=b"???",
+        new=b"K-P",
+        description="iter-167: slot 16 Modern bonus ??? → K-P",
+    ),
     # ITER-162: THE BIG WIN. The carousel slot 16 cell title source
     # is the "Random" string at 0x169d290 (followed by "@ORDINAL
     # @RULER" template). iter-159 tested the OTHER "Random" at
