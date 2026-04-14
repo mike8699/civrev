@@ -1,0 +1,102 @@
+  Implement the Korea civilization mod for PS3 Civilization Revolution                                                                                                
+  described in civrev_ps3/docs/korea-civ-mod-prd.md. Drive it to the                                                                                                  
+  PRD's §9 Definition of Done. Each iteration is a fresh context with                                                                                                 
+  no memory of prior runs — re-orient from the file system every time.                                                                                                
+                                                                                                                                                                      
+  ORIENTATION (do this every iteration, in parallel):                                                                                                                 
+  - Read civrev_ps3/docs/korea-civ-mod-prd.md to refresh the spec.                                                                                                    
+  - Run `git log --oneline -20` and `git status` to see what's already                                                                                                
+    shipped on the korea-civ-mod branch and what's dirty.                                                                                                             
+  - Read civrev_ps3/korea_mod/docs/*.md (if present) to see what                                                                                                      
+    investigations have already been completed.                                                                                                                       
+  - Read civrev_ps3/korea_mod/verification/ (if present) to see the                                                                                                   
+    most recent verify.sh results.                                                                                                                                    
+  Run those reads as parallel tool calls in a single message — never                                                                                                  
+  serially.                                                                                                                                                           
+                                                            
+  PICK THE NEXT TASK:                                                                                                                                                 
+  Walk the PRD top to bottom and find the first work item that is
+  NOT yet done. Order of precedence:                                                                                                                                  
+    1. §5 investigations (5.1–5.7) before any §6 implementation work                                                                                                  
+    2. §6.6 gameplay-spec TBD cells before §6.2 EBOOT patches that                                                                                                    
+       depend on them                                                                                                                                                 
+    3. §6 implementation in declared order                                                                                                                            
+    4. §7 verification — every implementation step must be followed                                                                                                   
+       by re-running ./korea_mod/verify.sh to the highest tier its                                                                                                    
+       prerequisites allow, and any regression must be fixed before                                                                                                   
+       moving on                                                                                                                                                      
+    5. §9 DoD checklist                                                                                                                                               
+                                                                                                                                                                      
+  If a task has independent sub-parts (e.g. §5.1 + §5.7 are unrelated,                                                                                                
+  §6.3 XML overlays are four independent files), execute them with                                                                                                    
+  parallel tool calls. Do not serialize work that has no dependency.                                                                                                  
+                                                                                                                                                                      
+  EXECUTE:                                                                                                                                                            
+  - Make code/asset/EBOOT changes per the PRD.                                                                                                                        
+  - For Ghidra/RE work, prefer the Explore agent for any search that                                                                                                  
+    could span >3 queries; brief it with concrete file paths and                                                                                                      
+    what you've already ruled out.                                                                                                                                    
+  - For the EBOOT, never blindly patch — every byte change must come                                                                                                  
+    from an offset confirmed by either Ghidra cross-reference or live                                                                                                 
+    GDB inspection via rpcs3_automation/. Record every confirmed                                                                                                      
+    address in civrev_ps3/korea_mod/addresses.py.                                                                                                                     
+  - For §5.7 (CivRev 2 extraction), the APK has not been unzipped yet                                                                                                 
+    — that is step 1 of that investigation per the PRD.                                                                                                               
+  - If you discover the PRD is wrong (a stated address is incorrect, a                                                                                                
+    planned approach is infeasible, a risk became real), UPDATE THE                                                                                                   
+    PRD in the same iteration. The PRD is the source of truth — keep                                                                                                  
+    it accurate, do not let your work and the doc drift apart. Mark                                                                                                   
+    resolved TBDs with the actual values, replace assumptions with                                                                                                    
+    verified facts, and append findings to the relevant §5.x or §6.x                                                                                                  
+    subsection.                                                                                                                                                       
+                                                                                                                                                                      
+  VERIFY BEFORE CLAIMING ANYTHING DONE:                                                                                                                               
+  - Static milestones (M0): run the dry-run patcher, FPK round-trip,
+    xmllint, and string-key inventory. All four must be green.                                                                                                        
+  - Boot/runtime milestones (M1–M7, M9): run via                                                                                                                      
+    ./civrev_ps3/rpcs3_automation/docker_run.sh inside the harness                                                                                                    
+    the PRD §7.0 specifies. Read result.json from each milestone                                                                                                      
+    before declaring success — never trust a screenshot alone.                                                                                                        
+  - If verify.sh exits non-zero, you are NOT done. Diagnose using the                                                                                                 
+    failing milestone's result.json + rpcs3.log + screenshot. Iterate.                                                                                                
+  - Stop conditions in PRD §7.7 apply: if the same milestone fails 3                                                                                                  
+    consecutive times with the same signature, STOP, write a status                                                                                                   
+    entry to the PRD describing the blocker, and exit the loop.                                                                                                       
+                                                                                                                                                                      
+  COMMIT AND PUSH:                                                                                                                                                    
+  - Make logical, small, reviewable commits — one investigation
+    finding, one implementation slice, or one verification fix per                                                                                                    
+    commit. Do NOT bundle unrelated work.                   
+  - Commit message format: imperative subject under 70 chars, body                                                                                                    
+    explaining the WHY (1–3 lines), trailing                                                                                                                          
+    `Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>`.                                                                                           
+  - Push to origin after every commit that passes verification at its                                                                                                 
+    expected tier. Never push broken commits.                                                                                                                         
+  - Never amend, never force-push, never touch main directly. Work on                                                                                                 
+    branch `korea-civ-mod` (create it if it doesn't exist; check it                                                                                                   
+    out at the start of every iteration).                                                                                                                             
+  - If the verify suite is dirty, fix before committing — don't                                                                                                       
+    commit broken state and "come back to it."                                                                                                                        
+                                                                                                                                                                      
+  REPORT HONESTLY:                                                                                                                                                    
+  - At the end of each iteration, emit a short status block: what was                                                                                                 
+    attempted, what passed, what failed, what's next. This is for the                                                                                                 
+    next iteration's orientation step to read from git history /                                                                                                    
+    PRD progress markers, so make it findable (PRD has a `## Progress                                                                                                 
+    Log` section at the bottom — append a dated entry there).                                                                                                         
+  - Never claim a milestone passed without a result.json proving it.                                                                                                  
+  - Never delete or overwrite verification artifacts from prior                                                                                                       
+    iterations.                                                                                                                                                       
+                                                                                                                                                                      
+  STOP WHEN:                                                                                                                                                          
+  - §9 Definition of Done is fully satisfied AND the autonomous                                                                                                     
+    portion of §7 (M0–M7, M9) is green AND the PRD's Progress Log                                                                                                     
+    shows no open blockers. At that point, write a final summary                                                                                                      
+    commit, push, and exit the loop.                                                                                                                                  
+  - OR a §7.7 stop condition fires. Write the blocker to the PRD                                                                                                      
+    and exit.                                                                                                                                                         
+                                                                                                                                                                      
+  Be tight and focused. Don't over-explore, don't refactor, don't add                                                                                                 
+  features beyond the PRD. The goal is a shipped, verified mod — not                                                                                                
+  a perfect one.                                                                                                                                                      
+                  
