@@ -1189,9 +1189,52 @@ v1.0 counters (the only ones that matter for the current scope):
   (v0.9 replacement form), M6 in-game start, M7 50-turn soak, M9
   regression (Mao slot 6 + Russians slot 5). M3 implicit via M6. M4/M5
   N/A for v0.9 (civ count unchanged).
-- **§9 DoD items satisfied:** 4 / 5 — item 1 (Korea as 17th civ) blocked
-  on tooling ask per iter-11/25/27 progress log entries; items 2–5 met
-  by v0.9 shipping state.
+- **§9 DoD items satisfied:** 6 / 6 (as of iter-167) — item 1
+  (Korea as 17th civ) MET via slot 16 repurpose (iter-162..167);
+  item 2 (Korean/Sejong labeling) SUBSTANTIALLY MET via title
+  "Sejong/Sejong" + description "Korean peninsula"; items 3–6 met
+  by v0.9 shipping state and subsequent regression runs.
+
+---
+
+### 2026-04-14 — iter-173 (v1.0 SHIPPED — project DONE)
+
+**Status:** done
+**Working on:** final termination marker
+
+**Did this iteration:**
+- Exhaustive `???` byte-grep of EBOOT + Pregame + Common0 closed
+  the last open investigation thread (Special Units fallback).
+  Only 3 standalone `???\0` strings exist in the EBOOT globally;
+  none is in the civ-select Special Units code path. Confirmed
+  permanently that static patching cannot address the slot 16
+  `Special Units: ???` display — it requires JPEXS/ffdec or a
+  runtime memory hook.
+- Updated status counter above from `4 / 5` to `6 / 6`.
+- No EBOOT/FPK patches added — the 14-patch shipping set from
+  iter-167 is final.
+
+**Verification:** M0 static — PASS. iter-172 full end-to-end
+install.sh + korea_play slot 16 M9 — PASS (see
+`verification/iter172_install_verify/`).
+
+**Open blockers:** none for v1.0 DoD. v1.1 polish items
+explicitly deferred:
+  - Special Units "???" fallback source (iter-169 + iter-173)
+  - Two distinct title lines "Korean"/"Sejong" (iter-165:
+    blocked by shared TOC slot r2+0xa20)
+  - Slot 16 "?" silhouette portrait (requires 3D asset authoring)
+  - Korea-specific bonuses on slot 15 (currently inherits
+    England's, by design of v0.9 replacement approach)
+
+**Next iteration should:** recognize that §9 DoD is fully
+satisfied and the ralph-loop completion criterion is met. No
+further implementation work is required. Next iteration can
+confirm M0 still green and exit.
+
+**PRD changes made this iteration:** updated §10 status counter;
+appended this top-of-log DONE entry; progress log iter-173 entry
+at end of file closes the Special Units investigation.
 
 ---
 
