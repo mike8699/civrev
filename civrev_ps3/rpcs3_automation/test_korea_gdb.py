@@ -27,26 +27,32 @@ def main():
     result = {"stages": {}, "threads": []}
 
     try:
-        # Sample the PC multiple times to distinguish a true hang (same PC
-        # across samples) from a slow but progressing boot.
+        # Dense sampling every 2 seconds from 20s to 80s. Catches the
+        # exact second when a hanging boot's PPU thread dies.
+        from gdb_client import GDBClient
         samples = []
-        for i, delay in enumerate([30, 60, 120, 180, 240]):
+        for delay in range(20, 82, 2):
             while time.time() - launch_time < delay:
-                time.sleep(1)
-            print(f"[+{delay}s] Attempting GDB attach ...")
+                time.sleep(0.5)
             try:
-                from gdb_client import GDBClient
-                with GDBClient("127.0.0.1", 2345, timeout=10) as gdb:
+                with GDBClient("127.0.0.1", 2345, timeout=8) as gdb:
                     gdb.pause()
-                    time.sleep(0.5)
+                    time.sleep(0.3)
                     threads = gdb.inspect_all_threads()
-                    sample = {"t": delay, "threads": threads}
-                    samples.append(sample)
-                    print(f"  got {len(threads)} threads; pc[0]={threads[0].get('pc','?') if threads else '?'}")
+                    row = {"t": delay, "n_threads": len(threads)}
+                    if threads:
+                        t0 = threads[0]
+                        row["pc0"] = hex(t0.get("pc", 0))
+                        row["lr0"] = hex(t0.get("lr", 0))
+                    samples.append(row)
+                    print(f"[+{delay}s] n_thr={row['n_threads']} pc={row.get('pc0','?')} lr={row.get('lr0','?')}")
                     gdb.resume()
             except Exception as e:
-                print(f"  GDB attach #{i} failed: {e}")
-                samples.append({"t": delay, "error": str(e)})
+                samples.append({"t": delay, "error": str(e)[:80]})
+                # Failed attach = RPCS3 likely dead; stop sampling
+                if "timed out" in str(e).lower() or "refused" in str(e).lower():
+                    print(f"[+{delay}s] GDB failed ({e}); stopping sampling")
+                    break
         result["samples"] = samples
     finally:
         try:
