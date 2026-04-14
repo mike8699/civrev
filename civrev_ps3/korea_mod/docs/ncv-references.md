@@ -115,6 +115,64 @@ symboled binary tells us where PS3 globals live — is weaker than
 advertised for civ-specific code. It still works for engine-level
 globals (PRNG, string pools, IO buffers) but not for civ tables.
 
+## iter-13 addendum — iOS InitGenderedNames pattern
+
+Against the iter-6 caveat that iOS is NDS-lineage (not PS3), the
+iOS decompile still reveals a likely-shared engine function:
+`InitGenderedNames(FStringA const&, FGenderVariable*&, int)` at
+iOS VA `0x7af14`.
+
+Usage pattern (from `civrev_ios/ghidra_decompiled/_all_functions.c`
+around line 77439+):
+
+```c
+FStringA::Copy(&buf, 11, "RulerNames_", 0);
+InitGenderedNames(&buf, PTR__rulername_001fc5c4, 0x11);   // 17 rulers
+
+FStringA::Copy(&buf, 9, "CivNames_", 0);
+InitGenderedNames(&buf, PTR__civname_001fc5b8, 0x11);     // 17 civs
+
+FStringA::Copy(&buf, 10, "CityNames_", 0);
+InitGenderedNames(&buf, PTR__cityname_001fc5b4, 0x101);   // 257 cities
+```
+
+**The count is passed as a literal argument (`0x11` for civs and
+rulers).** Internally, `InitGenderedNames` allocates an array of
+that size and parses the text file into it. Passing 17 (hardcoded
+at every call site) is why the civnames/rulernames buffer is
+exactly 17 wide — and why adding an 18th entry to the source text
+files OOB-writes adjacent memory.
+
+**Implication for the 17-slot extension:** to land Korea as a
+proper 17th civ on PS3, you must find the PS3 equivalent of these
+`InitGenderedNames(RulerNames_, ..., 0x11)` and
+`InitGenderedNames(CivNames_, ..., 0x11)` call sites and change
+the `0x11` literal to `0x12` (18). That's ONE byte patch per call
+site (the immediate in `li r5, 17` → `li r5, 18`).
+
+**Static-search impediment:** the PS3 binary has 283 sites of
+`li rX, 17` — too many to brute-force. The distinguishing context
+is that the right sites are immediately preceded (within ~15
+instructions) by an FStringA::Copy call that loads "RulerNames_"
+or "CivNames_". But those strings aren't reachable via LIS/ADDI
+or TOC-relative addis+addi in PS3 code (verified: the name-prefix
+pointer table at `0x194b648..0x194b668` has zero 32-bit or 64-bit
+references anywhere in the binary).
+
+The strings MUST be accessed somehow at runtime — the game boots
+and loads civnames_enu.txt successfully on stock data — so there's
+either:
+- A C++ class-method that inlines string literals as part of a
+  template instantiation we haven't decoded
+- A vtable-indirect call path (the name-prefix table is the
+  vtable, accessed via `this->vtable->string_ptrs[i]`)
+- A TOC-of-TOCs indirection (table pointer in TOC → table → strings)
+
+None of these are static-searchable without Ghidra UI XREFs. The
+blocker is fundamental: in the Ralph-loop harness we have Bash +
+Python but no Ghidra UI session. The iter-13 cross-ref narrows
+the target but does not make it directly reachable.
+
 ## Corrected iter-3 plan (after the iOS caveat)
 
 1. **Use the Xbox 360 binary as the real Rosetta Stone.** Per §5.6,
