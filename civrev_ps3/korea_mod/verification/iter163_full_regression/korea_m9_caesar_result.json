@@ -1,0 +1,14 @@
+{
+  "milestone": "M9",
+  "slot": 0,
+  "label": "caesar",
+  "pass": true,
+  "oracle": "OCR in-game HUD after selecting slot 0 (caesar)",
+  "stages": {
+    "main_menu": true,
+    "difficulty_selected": true,
+    "highlighted_ok": true,
+    "in_game_hud": true
+  },
+  "select_ocr": ">. 4 \"kts a > \u2014 \u2014_ bA y aioe -_ s) \\ cuentas | J 5 ) EE OEE | m /X/ Cleopatra Alexander Isabella | Ny Ee | Pi, << <7 Egyptians Greeks Spanish | Vie) Se . | LP Py EN aren, \u00ab SS ) PRS Ei Q/ 4 A | 7% Ts "
+}

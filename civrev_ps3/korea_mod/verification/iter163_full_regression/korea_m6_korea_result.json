@@ -1,0 +1,14 @@
+{
+  "milestone": "M6",
+  "slot": 15,
+  "label": "korea",
+  "pass": true,
+  "oracle": "OCR in-game HUD after selecting slot 15 (korea)",
+  "stages": {
+    "main_menu": true,
+    "difficulty_selected": true,
+    "highlighted_ok": true,
+    "in_game_hud": true
+  },
+  "select_ocr": "\u2014 AY ~) on = \u2018wo y \"3 _\u2014s -_) aes. p/ \u00bb \\ . y | Kontezuma Shaka Genghis | Korea | Aztecs Zulu Khan r 4 Korea | LAS Py TN { ror, a ' 4 ] Si Fy tae iS | ay Ve \\ \u2014~\u2014 ee eee eee ea d SA LN | a =a) SLL yz "
+}
