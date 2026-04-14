@@ -61,7 +61,10 @@ def main():
     result = {
         "milestone": "M7",
         "pass": False,
-        "oracle": f"end-turn {TARGET_TURNS}x without crash; HUD stays OCR-readable",
+        "oracle": (
+            f"end-turn {TARGET_TURNS}x without crash; HUD stays OCR-readable; "
+            f"game is still on the world map at the end (not soft-exited to menu)"
+        ),
         "target_turns": TARGET_TURNS,
         "stages": {},
         "snapshots": [],
@@ -164,7 +167,29 @@ def main():
                 print(f"  turn {i+1:02d}: {snap[:120]}")
 
         result["stages"]["end_turn_loop"] = end_turn_ok
-        result["pass"] = end_turn_ok and L._is_rpcs3_alive(rpcs3)
+
+        # Tightened oracle: the game must still be in an in-game state at
+        # the end of the soak. A soft exit back to the main menu (from
+        # civ elimination, accidental quit, etc.) would otherwise sneak
+        # through the old "RPCS3 still alive" oracle. Check the last 3
+        # snapshots for in-game HUD markers and flag a main-menu leak
+        # if they're missing.
+        in_game_markers = ("Turn", " BC", " AD", "Settlers", "Found City", "Science", "Gold")
+        menu_markers = ("Play Now", "Single Player", "Multiplayer")
+        tail_snaps = result["snapshots"][-3:] if result["snapshots"] else []
+        last_ocrs = [s.get("ocr", "") for s in tail_snaps]
+        any_in_game = any(
+            any(m in ocr for m in in_game_markers) for ocr in last_ocrs
+        )
+        all_menu = all(
+            any(m in ocr for m in menu_markers) for ocr in last_ocrs
+        ) if last_ocrs else False
+        result["stages"]["still_in_game_at_end"] = any_in_game and not all_menu
+        result["pass"] = (
+            end_turn_ok
+            and L._is_rpcs3_alive(rpcs3)
+            and result["stages"]["still_in_game_at_end"]
+        )
         _shot("99_final")
 
     except Exception as e:
@@ -186,6 +211,12 @@ def main():
     out = Path("/output/korea_m7_result.json")
     out.write_text(json.dumps(result, indent=2))
     print(f"wrote {out}; pass={result['pass']}")
+    if result.get("stages", {}).get("still_in_game_at_end") is False:
+        print(
+            "  M7 TIGHTEN-FAIL: last 3 snapshots do NOT show in-game HUD — "
+            "game likely soft-exited to main menu (civ eliminated, "
+            "accidental quit, etc.)"
+        )
     return 0 if result["pass"] else 1
 
 
