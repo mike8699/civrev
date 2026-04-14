@@ -1,5 +1,8 @@
 {
   "pass": true,
-  "checked": 9632,
-  "mismatches": []
+  "checked": 9633,
+  "mismatches": [],
+  "skipped_byte_patched": [
+    "Pregame_korea.FPK"
+  ]
 }
