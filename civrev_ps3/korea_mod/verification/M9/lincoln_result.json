@@ -1,0 +1,14 @@
+{
+  "milestone": "M9",
+  "slot": 7,
+  "label": "lincoln",
+  "pass": true,
+  "oracle": "OCR in-game HUD after selecting slot 7 (lincoln)",
+  "stages": {
+    "main_menu": true,
+    "difficulty_selected": true,
+    "highlighted_ok": false,
+    "in_game_hud": true
+  },
+  "select_ocr": "__# oj __| Qj whe \u2014SEE SS | Bismarck Catherine Mao LF Tokugawa Napoleon Gandhi | Germans Russians Chinese . Japanese French Indians | ( / yr, yy . \u2122~ T 5 i * | i \u2018i i ; X \u2014 \\ \u201c | ) ~~ Te. arer IL Ee x"
+}
