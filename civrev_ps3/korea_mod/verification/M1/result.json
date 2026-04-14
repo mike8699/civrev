@@ -1,0 +1,21 @@
+{
+  "milestone": "M1",
+  "pass": true,
+  "notes": "Patched EBOOT (with ADJ_FLAT relocated to 0x017f4040 + 2 TOC redirects) boots cleanly. docker_run.sh --headless navigates main menu -> Earth scenario -> Deity difficulty -> civ-select (Caesar/Romans visible) -> Russians selected -> intro cutscene dismissed -> in-game spawn view rendered. No crashes, no fatal log lines. Original 16 civs still functional (Caesar, Cleopatra, Alexander, Isabella, Bismarck, Catherine, Mao, Lincoln, Tokugawa visible in carousel during scroll). Korea-specific presence (M2) not yet confirmed — default test only scrolls 16 positions.",
+  "evidence": [
+    "civ_select_screenshot.png — civ-select with Catherine/Russians selected; carousel shows Greeks, Spanish, Germans, Chinese, Americans, Japanese",
+    "ingame_spawn_screenshot.png — in-game world map successfully rendered as Russians"
+  ],
+  "what_this_proves": [
+    "The 78-byte EBOOT patch (new Korean string + 17-entry ADJ_FLAT + 2 TOC redirects) is syntactically valid PPC64 binary",
+    "None of the 9 ADJ_FLAT call sites crash when reading from the new relocated table",
+    "The 16 original civs still render their adjective strings correctly — no regression on slot 0..15",
+    "The modded Common0.FPK (3 XML overlays: leaderheads, 2 pediainfos) loads without crashing"
+  ],
+  "what_this_does_NOT_prove": [
+    "That Korea appears as a 17th civ on the civ-select screen",
+    "That selecting Korea routes into civ index 16",
+    "That a Korea game can actually be started (M6)",
+    "M7 50-turn end-turn soak"
+  ]
+}

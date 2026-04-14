@@ -25,12 +25,12 @@ echo "[build] staging XML overlays into $STAGE/xml_overlays"
 mkdir -p "$STAGE/xml_overlays"
 cp "$HERE/xml_overlays"/*.xml "$STAGE/xml_overlays/"
 
-# EBOOT patch step — not yet implemented.
+# EBOOT patch step: dry-run first (M0a gate), then apply for real.
 if [ -f "$HERE/eboot_patches.py" ]; then
-    echo "[build] running eboot_patches.py --dry-run"
+    echo "[build] eboot_patches.py --dry-run (M0a)"
     python3 "$HERE/eboot_patches.py" --dry-run --in "$ROOT/EBOOT_v130_clean.ELF" --out "$STAGE/EBOOT_korea.ELF"
-else
-    echo "[build] eboot_patches.py not present yet — skipping EBOOT patch step"
+    echo "[build] eboot_patches.py apply"
+    python3 "$HERE/eboot_patches.py" --in "$ROOT/EBOOT_v130_clean.ELF" --out "$STAGE/EBOOT_korea.ELF"
 fi
 
 # FPK repack step — not yet implemented. Keep the hook in place so later
