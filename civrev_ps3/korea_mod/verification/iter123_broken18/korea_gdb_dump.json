@@ -1,0 +1,24 @@
+{
+  "stages": {},
+  "threads": [],
+  "samples": [
+    {
+      "t": 20,
+      "n_threads": 1,
+      "pc0": "0xc26a00",
+      "lr0": "0x0"
+    },
+    {
+      "t": 22,
+      "n_threads": 0
+    },
+    {
+      "t": 24,
+      "n_threads": 0
+    },
+    {
+      "t": 26,
+      "error": "timed out"
+    }
+  ]
+}
