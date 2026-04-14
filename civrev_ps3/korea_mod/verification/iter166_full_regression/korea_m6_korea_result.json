@@ -1,0 +1,14 @@
+{
+  "milestone": "M6",
+  "slot": 15,
+  "label": "korea",
+  "pass": true,
+  "oracle": "OCR in-game HUD after selecting slot 15 (korea)",
+  "stages": {
+    "main_menu": true,
+    "difficulty_selected": true,
+    "highlighted_ok": true,
+    "in_game_hud": true
+  },
+  "select_ocr": "SOS of \u2122 \u2014_ = = Y ie = y \\ \u2014s -_?) aes. p/ \u00bb k a yy | Aontezuma Shaka Genghis | Sejong | Aztecs Zulu Khan r 4 Sejong | [2 Pm TS ome \u201ci - 1 SE i 9 | , \u201d if te i ; \u2014-\u2014~a rr er meee wey \u2014 any anal 1 - aA"
+}
