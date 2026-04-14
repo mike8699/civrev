@@ -40,7 +40,7 @@ RUN curl -L -J -o /tmp/rpcs3.AppImage https://rpcs3.net/latest-linux-x64 && \
     ln -s /opt/rpcs3/usr/bin/rpcs3 /usr/local/bin/rpcs3
 
 # Copy automation scripts
-COPY config.py pack.py launch.py test_map.py test_multiplayer.py test_autoplay.py test_korea.py test_korea_play.py test_korea_soak.py test_korea_gdb.py test_korea_bp_probe.py test_gdb_smoke.py gdb_client.py entrypoint.sh /civrev/rpcs3_automation/
+COPY config.py pack.py launch.py test_map.py test_multiplayer.py test_autoplay.py test_korea.py test_korea_play.py test_korea_soak.py test_korea_gdb.py test_korea_bp_probe.py test_gdb_smoke.py test_gdb_bp_poll.py gdb_client.py entrypoint.sh /civrev/rpcs3_automation/
 
 # Project files (fpk.py, generate_map_textures.py, Pak9/) are mounted at runtime
 # RPCS3 config dir (with game data) is mounted at runtime
