@@ -1,0 +1,14 @@
+{
+  "milestone": "M6",
+  "slot": 15,
+  "label": "korea",
+  "pass": true,
+  "oracle": "OCR in-game HUD after selecting slot 15 (korea)",
+  "stages": {
+    "main_menu": true,
+    "difficulty_selected": true,
+    "highlighted_ok": true,
+    "in_game_hud": true
+  },
+  "select_ocr": "euummenmions/ j\u00a7 \\smmmaeees/ \u00a7 \\semmenammmms/ aes. p/ \u00bb \\ \u2014 | | Nontezuma Shaka Genghis | Random | Aztecs Zulu Khan r 4 Random | f ; v ie m~ { : PF * 4 ' 4 7] SF 7 ae a | 7 = \u2018e i ; \u2014-\u2014 ae eee eee eee"
+}
