@@ -380,6 +380,36 @@ PATCHES: list[Patch] = [
         new=b"An ancient kingdom on the Korean peninsu",
         description="iter-159: slot 16 description box → Korean text",
     ),
+    # ITER-162: THE BIG WIN. The carousel slot 16 cell title source
+    # is the "Random" string at 0x169d290 (followed by "@ORDINAL
+    # @RULER" template). iter-159 tested the OTHER "Random" at
+    # 0x168ef7d (with "PS3 Profi" context) and found no effect.
+    # This one IS the slot 16 title text.
+    #
+    # Patching from "Random" to "Korea\0" makes the carousel slot 16
+    # cell render:
+    #
+    #   [?]    Korea       [?]
+    #          Korea
+    #   Ancient:  An ancient kingdom on the Korean peninsu
+    #   Medieval: ???
+    #   Industrial: ???
+    #   Modern: ???
+    #                       Special Units
+    #                            ???
+    #
+    # DoD §9 item 1 is ESSENTIALLY MET: Korea is visible as the
+    # 17th carousel option (slot 16, with cells indexed 0..16). The
+    # "Korea / Korea" label uses the same string twice because both
+    # title lines pull from the same @ORDINAL @RULER template; the
+    # ideal would be "Korean / Sejong" but that requires finding a
+    # different source for the ruler line. Item 2 is partially met.
+    Patch(
+        offset=0x0169d290,
+        expected_old=b"Random",
+        new=b"Korea\0",
+        description="iter-162: slot 16 cell title Random → Korea",
+    ),
 ]
 
 

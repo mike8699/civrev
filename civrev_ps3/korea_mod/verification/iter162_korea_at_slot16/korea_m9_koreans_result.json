@@ -1,0 +1,14 @@
+{
+  "milestone": "M9",
+  "slot": 16,
+  "label": "koreans",
+  "pass": true,
+  "oracle": "OCR in-game HUD after selecting slot 16 (koreans)",
+  "stages": {
+    "main_menu": true,
+    "difficulty_selected": true,
+    "highlighted_ok": false,
+    "in_game_hud": true
+  },
+  "select_ocr": "\u2014\u2014\u2014 | f | | | Shaka Genghis Sejong |_| | Zulu Khan Koreans \u201ci | Hina 7 | 2 ek ee oP) Korea oP) iso Ae AY | Te Dee Korea T 2 RET ANY. | fies 4 c J 5 = ye | -z= me, eee Ancient: An ancient kingdom on th"
+}
