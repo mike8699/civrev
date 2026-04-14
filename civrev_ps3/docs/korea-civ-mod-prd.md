@@ -598,15 +598,15 @@ Ship v1.0, iterate in place. Do not block v1.0 on any v1.1+ work.
 | Field | Source | Value |
 |-------|--------|-------|
 | Internal name | new key | `CIV_KOREA` |
-| Display name | CR2 Localization `enu/CivNames` | TBD (likely "Korean" / "Koreans") |
-| Possessive form (`@CIVNAMEP`) | CR2 Localization | TBD |
+| Display name | CR2 Localization `enu/CivNames` | **resolved** — "Koreans" (iter-8 `fpk_byte_patch.py` Pregame `civnames_enu.txt` slot 15 replacement) |
+| Possessive form (`@CIVNAMEP`) | CR2 Localization | N/A — PS3 `civnames_enu.txt` has only one form per civ; the "possessive" distinction is a CR2-ism that doesn't map to CR1 |
 | Civ trait / starting bonus | CR2 `Mobile_PediaInfo_Civilizations.xml` `<Civilization name="Korean">` | TBD — must be expressible in PS3 CR1's bonus enum (see §5.7 risk) |
 | Starting tech | CR2 pedia | TBD |
 | Starting government | CR2 pedia | TBD (CR1 default: Despotism) |
 | Civ color (RGB) | CR2 `_civColors[16]` from `UCiv.cs` plus regional style | TBD — pick a Korean-flag-evocative color (red/blue) that doesn't collide with existing 16 |
 | Regional style | confirmed | `Asian` (matches China/Japan/Mongolia — audio fallbacks free) |
 | Unique unit | confirmed | Hwacha (Catapult replacement) |
-| City name list | CR2 Localization `enu/CityNames/Korean.txt` | TBD — extract verbatim, fall back to historical Korean cities (Seoul, Pyongyang, Busan, ...) if missing |
+| City name list | CR2 Localization `enu/CityNames/Korean.txt` | **resolved** — iter-29 `fpk_byte_patch.py` replaces the 16 English cities in `citynames_enu.txt` with Korean ones (Seoul, Naju, Pyongyang, Kaesong, Gyeongju, Incheon, Kunsan, Gangneung, Daegu, Cheongju, Jeju, Ulsan, Suwon, Iksan, Gimpo, Chuncheon). Fallback path taken — no CR2 extraction required. |
 | Civilopedia entry | CR2 `Mobile_Pedia_Text_Civilizations.xml` | TBD — translate CR2 entry to PS3 `TXT_KEY_CIV_KOREA_PEDIA` |
 | Fun facts (×2) | CR2 pedia | TBD |
 
@@ -615,7 +615,7 @@ Ship v1.0, iterate in place. Do not block v1.0 on any v1.1+ work.
 | Field | Source | Value |
 |-------|--------|-------|
 | Internal name | new key | `LEADER_SEJONG` |
-| Display name | CR2 `enu/RulerNames` | "Sejong" (confirmed in `all_strings.txt`) |
+| Display name | CR2 `enu/RulerNames` | **resolved** — "Sejong" (iter-8 `fpk_byte_patch.py` Pregame `rulernames_enu.txt` slot 15 replacement, padded to 9 bytes to fit the "Elizabeth" slot) |
 | Leader bonus 1 | CR2 `Mobile_PediaInfo_Leaders.xml` | TBD |
 | Leader bonus 2 (if any — CR1 supports up to 2) | CR2 pedia | TBD |
 | AI personality: aggression | CR2 native | TBD (default: low — Sejong is historically a builder/scientist archetype) |
