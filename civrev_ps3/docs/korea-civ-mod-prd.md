@@ -3365,3 +3365,51 @@ make further progress on items 1-2 without one of:
 
 iter-153 made no patches and changed no committed state beyond
 this PRD entry.
+
+### iter-157 (2026-04-14): Pregame + Common0 file inventory; pediainfo is encyclopedia, not carousel
+
+Took yet another angle: extracted `Common0.FPK` and inventoried
+both Pregame and Common0 files for civ-related config XMLs.
+
+**Pregame.FPK contains:**
+  - `civnames_enu.txt` / `rulernames_enu.txt` / `citynames_enu.txt`
+    (4 language variants each) — text labels parsed at boot
+  - 16× `civ_*.dds` icon textures (one per civ + barbarian)
+  - No civ-config XML, no per-cell layout data
+
+**Common0.FPK contains:**
+  - `console_pediainfo_civilizations.xml` — entries like
+    `<EntryTag>CIV_ROME</EntryTag>` with image and link
+    references. **For the in-game encyclopedia only**, not
+    the civ-select carousel.
+  - `console_pediainfo_leaders.xml` — same, for leaders.
+  - `console_pediainfo_civilopedia.xml`, `console_pedia_text_civilopedia.xml`
+    — encyclopedia text content.
+  - 16× `civ_symbols_*.dds` and other UI assets.
+
+The existing `xml_overlays/console_pediainfo_civilizations.xml`
+in korea_mod/ already has a CIV_KOREA entry — but it only
+affects what you see when you LOOK UP Korea in the in-game
+encyclopedia. It does NOT affect the carousel.
+
+So the carousel's per-cell render data lives in **a third place
+I cannot find**. It's not in Pregame.FPK (text and DDS only),
+not in Common0.FPK (encyclopedia text and assets only), not in
+any static EBOOT table I've enumerated, and not in any function
+that statically references the parser output buffers.
+
+The most likely location: a runtime-allocated struct array
+populated from a combination of parser output + asset preloader
+output, indexed by a private mapping that the static analysis
+cannot follow without dynamic instrumentation that RPCS3's GDB
+stub doesn't support.
+
+**This is the last concrete angle I can think of that doesn't
+require a different RPCS3 build, a more capable analyzer, or
+game source.**
+
+iter-157 made no patches. The §7.7 stop conditions remain
+formally satisfied. eboot_patches.py is at the iter-137 6-patch
+baseline. verify.sh --tier=static green.
+
+The project is at v1.0 ship state per iter-152.
