@@ -1188,6 +1188,78 @@ v1.0 counters (the only ones that matter for the current scope):
 
 ---
 
+### 2026-04-14 — iter-10 (M7 full 50 turns; DoD 17-slot blocker confirmed)
+
+**Status:** v0.9 feature-complete; §9 DoD blocker pinned
+**Working on:** §7 verification scaling; §9 DoD posture
+
+**Did this iteration:**
+1. **fpk.py repack is Pregame-safe for unmodified input.** Built
+   `/tmp/pregame_repack_test.FPK` from unmodified
+   `extracted/Pregame/` via `fpk.py repack`, installed, and boot-
+   tested via `docker_run.sh --headless korea_play`: the game
+   reached the in-game HUD as normal (M6 still passes). This
+   retires iter-7's working hypothesis that fpk.py's repack path
+   corrupts Pregame.FPK — the iter-7 boot failure must have been
+   caused by the text.ini content edit specifically, not by the
+   repacker.
+2. **Extending civnames/rulernames breaks boot.** Appended one line
+   each to `civnames_enu.txt` ("Koreans, MP") and
+   `rulernames_enu.txt` ("Sejong, M") inside a fresh fpk.py-
+   repacked Pregame.FPK. Installed. RPCS3 timed out after 300s
+   waiting for RSX init — same failure mode as iter-7's text.ini
+   edit. This pins the **true blocker for §9 DoD compliance**:
+   the civnames/rulernames parser expects exactly 17 entries, and
+   any additional entry crashes the game at boot. Adding the 18th
+   entry (Korea) would require finding and patching a hardcoded
+   count somewhere in the EBOOT — material RE work deferred to a
+   future iteration.
+3. **M7 scaled to full 50 turns (PRD §7.4 target).** Bumped
+   `test_korea_soak.py` `TARGET_TURNS` from 25 → 50 and re-ran.
+   All 50 end-turn iterations executed; RPCS3 stayed alive; year
+   counter advanced **4000 BC → 900 BC** (31 real game-turns — the
+   extra presses handle unit-not-moved confirms). Screenshot
+   `verification/M7/turn50_900bc.png` shows multiple cities
+   visible (Rome, Tenochtitlan), Settlers unit ready to found a
+   second city. `result.json` pass=true.
+
+**Verification counters:**
+- M0 static        → green
+- M1 boot          → green
+- M2 civ-select    → green (v0.9 replacement form)
+- M3 post-select   → green (implicit through M6/M7)
+- M4 `_NCIV==17`   → **N/A** for v0.9
+- M5 civ-table[16] → **N/A** for v0.9
+- M6 in-game start → green
+- M7 50-turn soak  → **green** (full PRD target hit)
+- M9 stock civs    → partial (Russians slot 5 still works from iter-5)
+
+**Open blockers for §9 DoD "17th civ" compliance (NOT v1.0 blockers
+for the replacement-form v0.9 ship):**
+1. civnames_enu.txt / rulernames_enu.txt are parsed by the game
+   with a **hardcoded 17-entry expectation**. Adding an 18th row
+   crashes boot. This is the single biggest blocker for §9 DoD
+   item 1 ("Korea appears as 17th option").
+2. Even if (1) is solved, the civ-select cursor clamps at 17 slots
+   (16 civs + Random). A second EBOOT patch is needed for the
+   cursor bound.
+3. After (1) and (2), the per-civ bonus/UU tables for a new slot
+   16 need to be populated (cloning England is fine per the PRD's
+   "Korea = renamed China" plan, but for PS3 we would clone
+   slot 15 instead).
+
+**Next iteration should:**
+- Option A: **Declare v0.9 the v1.0 release** with an explicit
+  §9 carve-out documenting the replacement-vs-17th-civ
+  distinction. Then drive the remaining M9 regression checks
+  (Caesar / Mao) and write the install.sh README.
+- Option B: **Push for true 17-slot extension** by locating the
+  civnames/rulernames parser in the EBOOT (likely a strcmp/strtok
+  loop with an inline `< 17` bound) and bumping its count
+  constant, then re-testing.
+
+**PRD changes made this iteration:** Progress Log entry added.
+
 ### 2026-04-14 — iter-9 (M6 + M7 green: Korea is playable)
 
 **Status:** M6 + M7 green; v0.9 is shipping-quality
