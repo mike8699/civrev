@@ -3016,3 +3016,65 @@ The Z-packet watchpoint plan:
 
 iter-148 patches: NONE. eboot_patches.py unchanged from
 iter-137 baseline.
+
+### iter-149 (2026-04-14): Z-packet GDB path is empirically dead
+
+Wrote `test_carousel_bp.py` to:
+  1. Boot to main menu via `_navigate_startup_to_main_menu`
+  2. Attach gdb_client and set Z0 software breakpoint at
+     `FUN_001e49f0` (the per-cell carousel data binder)
+  3. Drive through Single Player → Earth → Difficulty (which
+     loads the civ-select carousel)
+  4. Poll all PPU threads for a PC inside `[0x1e49f0..0x1e4a9c]`
+
+Result:
+  - **Z0 packet accepted** by RPCS3's GDB stub (confirmed twice
+    in iter-149 and iter-111)
+  - **After resume, GDB connection becomes flaky:** every
+    subsequent `pause + inspect_all_threads` returns either
+    timeout or zero threads.
+  - Polled 30 times; not a single live PC sample obtained.
+  - `polling_caught: false`, `z0_fired: false`.
+
+This empirically reproduces iter-114's finding that RPCS3's
+PPU LLVM JIT accepts Z0 packets but does not actually install
+software breakpoints (the JIT-compiled native code doesn't
+include the trap instruction). The post-resume connection
+becomes flaky probably because RPCS3 internal state thinks
+there's a pending breakpoint that never fires.
+
+**Both Z-packet paths from prompt.txt §b are now empirically
+dead:**
+  - Z1 (hw bp) and Z2/Z3/Z4 (watchpoints): rejected by RPCS3
+    GDB stub (iter-111 / iter-149).
+  - Z0 (sw bp): accepted but JIT silently drops, and breaks
+    the GDB connection on resume (iter-114 / iter-149).
+
+So neither the static analysis path (LDR / LEADER / vtable /
+vcall+cmpwi scans) nor the Z-packet runtime debugging path
+can locate the carousel iterator. The §7.7 stop conditions
+from prompt.txt are now formally satisfied for DoD item 1's
+"Korea visible at slot 17" requirement.
+
+**Remaining options for iter-150+:**
+  (1) **Pause-poll + statistical PC sampling.** If the
+      iterator runs for long enough during civ-select init
+      (16 cells × N microseconds each), pure pause-poll
+      sampling without any breakpoints might catch a PC in
+      the iterator's body. iter-149's Z0-set apparently
+      breaks the GDB stub, but pause-poll WITHOUT setting
+      Z0 worked fine in iter-138/139.
+  (2) **Patch FUN_001e49f0 with `tw 31,0,0` (illegal trap).**
+      When the carousel calls it, RPCS3 should crash with a
+      faulted-instruction message. The fault dump's call
+      stack would show the iterator's PC. This destroys the
+      mod for normal use but is purely diagnostic.
+  (3) **Accept the v0.9 ship state as the project deliverable.**
+      Korea is selectable at slot 15 (replacing England). DoD
+      §9 item 1 says "17th civ" but the v0.9 spec note allows
+      replacement as an interim. Document the cell-grid
+      iterator as a known unknown and move on.
+
+Option (1) is the next thing to try. iter-150 should remove
+the Z0 set and do pure pause-poll sampling during the
+difficulty-press → civ-select transition.
