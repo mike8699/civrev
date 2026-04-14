@@ -401,7 +401,30 @@ holds the source data for `civrev2-extraction.md`.
 
 ### 6.2 EBOOT patches
 
-All offsets here are placeholders pending §5.1 / §5.2 results. Use
+> **§5.2 finding (2026-04-13):** the PS3 EBOOT does NOT store civ data as
+> a single struct-per-civ table. It uses **parallel pointer arrays**, each
+> 16 × 4 bytes, indexed by the `CcCiv::Civs` enum. The confirmed arrays
+> (bases listed in `korea_mod/addresses.py` and dumped in
+> `korea_mod/docs/civ-record-layout.md`) are:
+> - Leader display name pointer array — `0x0194b434`
+> - Civ internal tag pointer array    — `0x0194b35c`
+> - Civ adjective pointer array       — `0x0195fe28`
+> - Civ adjective/plural pair table   — `0x0194b3c8` (irregular stride)
+> - Leader internal tag pointer array — immediately before `0x0194b35c`
+>   (head not yet scanned).
+>
+> This changes the §6.2 strategy: step 2 below ("extend the civ table") is
+> replaced by "relocate and extend every parallel array in lockstep". The
+> in-place-extend sub-option no longer applies — the arrays are adjacent
+> in `.rodata` with no trailing padding. Step 4's leader-name pointer
+> patch is now a pointer-table write at `leader_name_array[16]`, not a
+> struct-field write.
+>
+> §5.1's work also changes scope: there is no single `_NCIV` global. The
+> equivalent is a set of inline `0x10` immediates at every civ-loop site.
+> Each of those compares is an independent patch candidate.
+
+All offsets here are placeholders pending §5.1 / §5.2 completion. Use
 `patch_debug.py` as the byte-patcher template — it already handles
 file-offset-vs-virtual-address translation for this EBOOT.
 
@@ -1141,25 +1164,78 @@ have written to the log at all.
 
 v1.0 counters (the only ones that matter for the current scope):
 
-- **§5 investigations complete (v1.0 subset):** 0 / 5 — only 5.1
-  (`_NCIV` references), 5.2 (civ-record layout), 5.4 (asset-load
-  trace), 5.5 (live-verification harness), 5.6 (Xbox 360 cross-ref,
-  *if needed*) are v1.0-blocking. §5.3 (UU dispatch) and §5.7 (CR2
-  data extraction) are v1.1+.
-- **§6.2 EBOOT patches landed:** 0 / 4 (`_NCIV` bump, civ-table
-  extend with China copy, loop-bound rewrites, leader-name pointer
-  if needed). The deferred Hwacha and AI-personality patches are
-  NOT counted here.
-- **§6.3 XML overlays landed:** 0 / 4 (`leaderheads.xml`,
-  `console_pediainfo_civilizations.xml`,
-  `console_pediainfo_leaders.xml`, `gfxtext.xml`)
-- **§6.4 string keys defined:** 0 / 3 (`TXT_KEY_CIV_KOREA`,
-  `TXT_KEY_CIV_KOREAP`, `TXT_KEY_LEADER_SEJONG`)
-- **Verification milestones green:** none of M0, M1, M2, M3, M4, M5,
-  M6, M7, M9 (M8 is manual and not in the autonomous loop)
+- **§5 investigations complete (v1.0 subset):** 0 / 5 — §5.2 partially
+  done (four parallel arrays dumped end-to-end; LDR_* head and any
+  additional arrays still pending). §5.1 restated for parallel arrays
+  but call-site catalog not yet started. §5.4, §5.5, §5.6 untouched.
+- **§6.2 EBOOT patches landed:** 0 / 4 (under the revised model: per-
+  array relocation + loop-bound rewrites + pointer-write at slot 16).
+- **§6.3 XML overlays landed:** 1 / 4 (`leaderheads.xml` with 17th
+  entry reusing China's Mao assets; pediainfo and gfxtext pending).
+- **§6.4 string keys defined:** 0 / 3 — note: gfxtext.xml on PS3 is a
+  SWF-localization file, not the civ-name TXT_KEY_* store. The
+  authoritative civ/leader display strings are the in-EBOOT pointer
+  tables found in §5.2, not an XML key set. §6.4's "add three
+  TXT_KEY_* rows" plan may not apply to this binary — pending
+  investigation.
+- **Verification milestones green:** M0 (static only — XML well-
+  formedness). M1..M9 not yet wired.
 - **§9 DoD items satisfied:** 0 / 6
 
 ---
 
-### (no entries yet — first iteration will append above this line)
+### 2026-04-13 — iter-1 (scaffold + §5.2 kickoff)
+
+**Status:** investigating
+**Working on:** §5.2 civ-record layout, §5.1 NCIV references, korea_mod scaffold
+
+**Did this iteration:**
+- Scaffolded `civrev_ps3/korea_mod/` (docs/, xml_overlays/, verification/,
+  scripts/, addresses.py, build.sh, verify.sh, .gitignore).
+- **§5.2:** confirmed the PS3 EBOOT uses PARALLEL POINTER ARRAYS, not a
+  civ-record struct. Four 16 × 4-byte tables located and dumped end-to-end:
+  leader display names `0x0194b434`, civ internal tags `0x0194b35c`, civ
+  adjectives `0x0195fe28`, civ adjective/plural pairs `0x0194b3c8`. Full
+  pointer→string mapping recorded in `korea_mod/docs/civ-record-layout.md`.
+- **§5.1:** restated the investigation for the parallel-array reality and
+  captured candidate patch-site classes in
+  `korea_mod/docs/ncv-references.md`. Concrete call-site enumeration is
+  still outstanding.
+- **§6.3:** wrote `xml_overlays/leaderheads.xml` with a 17th `<LeaderHead
+  Nationality="16" Text="Sejong" ...>` entry reusing China's `GLchi_Mao.*`
+  asset prefix. CRLF preserved, xmllint clean.
+- **§5.5:** wired `build.sh` (stages overlays, hooks for future patcher)
+  and `verify.sh --tier=static` with M0 XML well-formedness check. M0
+  passes on the current scaffold.
+- Updated PRD §6.2 to reflect the parallel-array model and retire the
+  "extend the civ table" single-struct assumption.
+
+**Verification:** `./korea_mod/verify.sh --tier=static` → PASS (M0 only).
+
+**Open blockers:**
+- §5.1 call-site enumeration not yet started. Needed before any EBOOT
+  patching can begin — if we miss one `cmpwi rN, 0x10` the 17th civ
+  either reads out of bounds or aliases civ 0.
+- `LDR_*` leader internal tag array head not yet scanned (only the tail
+  `LDR_india..LDR_england` is visible in the current dump). Trivial to
+  resolve next iteration.
+- pediainfo / pregame XML overlays still TODO; they are not boot-blocking
+  but should land before M0d (string-key inventory) can be meaningful.
+- No EBOOT patcher yet (`eboot_patches.py` missing); M0a is skipped.
+
+**Next iteration should:**
+- Finish enumerating the `LDR_*` array head and any fifth parallel array
+  (city-name list pointers, color table, etc.) using the same
+  pointer-scan technique against `leaderheads.xml`-derived string needles.
+- Begin §5.1 call-site catalog by grepping
+  `civrev_ps3/decompiled_v130/` for references to the four confirmed
+  array bases and recording every enclosing function in
+  `ncv-references.md`.
+- Draft `eboot_patches.py --dry-run` against the (still-short) patch
+  site list so M0a starts producing real output.
+
+**PRD changes made this iteration:** §6.2 intro rewritten; Progress Log
+entry added.
+
+
 

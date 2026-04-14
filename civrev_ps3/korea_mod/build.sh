@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# korea_mod/build.sh — assemble the patched EBOOT + overlaid FPKs.
+#
+# v1.0 status: scaffold. The EBOOT patcher is not implemented yet — this
+# script currently only validates that the XML overlays are well-formed and
+# copies them into a staging tree. It will grow into the full
+# patch→pack→install pipeline as §6.2 lands.
+
+set -euo pipefail
+
+HERE="$(cd "$(dirname "$0")" && pwd)"
+ROOT="$(cd "$HERE/.." && pwd)"
+STAGE="$HERE/_build"
+
+rm -rf "$STAGE"
+mkdir -p "$STAGE"
+
+echo "[build] validating XML overlays"
+for f in "$HERE/xml_overlays"/*.xml; do
+    xmllint --noout "$f"
+    echo "  ok  $(basename "$f")"
+done
+
+echo "[build] staging XML overlays into $STAGE/xml_overlays"
+mkdir -p "$STAGE/xml_overlays"
+cp "$HERE/xml_overlays"/*.xml "$STAGE/xml_overlays/"
+
+# EBOOT patch step — not yet implemented.
+if [ -f "$HERE/eboot_patches.py" ]; then
+    echo "[build] running eboot_patches.py --dry-run"
+    python3 "$HERE/eboot_patches.py" --dry-run --in "$ROOT/EBOOT_v130_clean.ELF" --out "$STAGE/EBOOT_korea.ELF"
+else
+    echo "[build] eboot_patches.py not present yet — skipping EBOOT patch step"
+fi
+
+# FPK repack step — not yet implemented. Keep the hook in place so later
+# iterations only have to replace the stub, not re-plumb build.sh.
+if [ -f "$HERE/pack_korea.sh" ]; then
+    echo "[build] running pack_korea.sh"
+    "$HERE/pack_korea.sh" "$STAGE"
+else
+    echo "[build] pack_korea.sh not present yet — skipping FPK repack step"
+fi
+
+echo "[build] done"
