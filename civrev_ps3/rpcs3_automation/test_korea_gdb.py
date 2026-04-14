@@ -63,6 +63,39 @@ def main():
                 rpcs3.kill()
             except Exception:
                 pass
+        # Capture RPCS3's stdout/stderr
+        try:
+            if rpcs3.stdout:
+                stdout_bytes = rpcs3.stdout.read()
+                Path("/output/rpcs3_stdout.log").write_bytes(stdout_bytes or b"")
+        except Exception as e:
+            print(f"stdout capture failed: {e}")
+        # Copy any RPCS3 log files found anywhere under /root or /tmp
+        try:
+            import shutil
+            import subprocess as sp
+            out_dir = Path("/output/rpcs3_logs")
+            out_dir.mkdir(parents=True, exist_ok=True)
+            # Find .log files in common locations
+            for base in ("/root", "/tmp", "/root/.config/rpcs3",
+                         "/root/.cache/rpcs3", "/var/tmp"):
+                try:
+                    found = sp.check_output(
+                        ["find", base, "-maxdepth", "4", "-name", "*.log",
+                         "-size", "+0c"],
+                        stderr=sp.DEVNULL, timeout=10,
+                    ).decode().splitlines()
+                    for f in found:
+                        dst = out_dir / (Path(f).parent.name + "_" + Path(f).name)
+                        try:
+                            shutil.copy2(f, dst)
+                            print(f"copied {f} -> {dst.name}")
+                        except Exception as e:
+                            print(f"copy {f} fail: {e}")
+                except Exception:
+                    pass
+        except Exception as e:
+            print(f"log copy failed: {e}")
 
     Path("/output").mkdir(exist_ok=True)
     out = Path("/output/korea_gdb_dump.json")
