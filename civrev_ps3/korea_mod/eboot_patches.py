@@ -407,9 +407,23 @@ PATCHES: list[Patch] = [
     Patch(
         offset=0x0169d290,
         expected_old=b"Random",
-        new=b"Korea\0",
-        description="iter-162: slot 16 cell title Random → Korea",
+        new=b"Korean",
+        description="iter-162: slot 16 cell title Random → Korean",
     ),
+    # iter-164 DIAG patch REMOVED: patched "@ORDINAL @RULER" (at
+    # 0x169d298, right after "Random") → "Sejong" + null padding. No
+    # visible effect on the second title line — both lines still
+    # share the same source from 0x169d290. The second line isn't
+    # coming from "@ORDINAL @RULER"; it's coming from the same
+    # "Random"/"Korean" string that now feeds both theTextArray[16]
+    # AND theSubTextArray[16]. Slot 16's two title lines are
+    # fundamentally one-string-duplicated, not two-string-driven.
+    #
+    # iter-164 DID upgrade "Korea" → "Korean" (6 chars) in the
+    # iter-162 patch above, which is a tiny DoD item 2 improvement:
+    # the cell now displays "Korean / Korean" instead of
+    # "Korea / Korea" — at least one of the two required DoD
+    # words is now present.
 ]
 
 
