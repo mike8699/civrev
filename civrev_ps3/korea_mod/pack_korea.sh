@@ -62,4 +62,15 @@ stage_fpk() {
 }
 
 stage_fpk Common0
-stage_fpk Pregame
+# Pregame.FPK is assembled by an in-place byte patcher rather than
+# fpk.py repack. Empirically fpk.py's repack path corrupts Pregame.FPK
+# (iter-7 boot timeout), while Common0.FPK repacks fine. The byte
+# patcher preserves the original FPK's alignment padding exactly and
+# only touches the bytes listed in fpk_byte_patch.py's PATCHES list.
+if [ -f "$HERE/fpk_byte_patch.py" ]; then
+    echo "[pack_korea] Pregame: running in-place byte patcher"
+    python3 "$HERE/fpk_byte_patch.py" \
+        "$PS3_ROOT/Pregame.FPK" \
+        "$STAGE/Pregame_korea.FPK"
+    sha256sum "$STAGE/Pregame_korea.FPK"
+fi

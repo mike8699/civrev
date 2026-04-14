@@ -1,0 +1,109 @@
+{
+  "milestone": "M2",
+  "pass": true,
+  "oracle": "OCR {'Korea','Korean','Sejong'} on civ-select carousel during a 25-right sweep",
+  "observations": [
+    {
+      "i": 0,
+      "text": "\u2014\u2014\u2014 tee ods See ke | \u2014 Des \u2014\u2014_[= OO | Caesar . y*\\ Alexander Isabella Bismarck | Romans : y ag | Greeks Spanish Germans | CP De , . ge LA a7 ] Si Wy R | v ~ Ts \\ en \u2014~geens \u2014eeeemeet meee ar cereal we"
+    },
+    {
+      "i": 1,
+      "text": "Caesar Cleopatra . \u2018 \\ Isabella Bismarck Catherine | Romans Egyptians v) ae = Spanish Germans Russians | aS ares BYE \u201ca 1 oe oD | \u2018he \u201ce : - = - 1 - rAd | Vy ar x \u2014e 4 see | 2 ie BA Agave na DAN | 4 e"
+    },
+    {
+      "i": 2,
+      "text": "es, \\mummmmme\u2019/ j\u00a7 (iemmecemenecs \\ fee ee\u2019 ll =\u2014 ss ees | Caesar Cleopatra Alexander wel \\ Bismarck Catherine Mao | Romans Egyptians Greeks t ' Germans Russians Chinese | A | LAL Pm omer: te =, ; ht "
+    },
+    {
+      "i": 3,
+      "text": "EO ae i, __ | Cleopatra Alexander Isabella ae Nie ~ Catherine Mao Lincoln | Egyptians Greeks Spanish y iz \u00a9 ae. Russians Chinese American | 4a AAR ; | by ry Dy a Tg fe __\u00a7F) P 7] ii \\ i= pe | Vt\u201d \\ er"
+    },
+    {
+      "i": 4,
+      "text": "oe =\u2014 ee = , ( \u2018 sem | __pj _\u2014_s_\u2014s\u00abi ey 4 \u00b0 EE Oe | Alexander Isabella Bismarck s Mao Lincoln Tokugaw: | Greeks Spanish Germans ; Chinese Americans Japanese | \u2019 VA yr, yy . \u2122~ { \u2014 se * | AO a 7 | i ;"
+    },
+    {
+      "i": 5,
+      "text": "Isabella Bismarck Catherine i Lincoln Tokugawa Napoleor | Spanish Germans Russians ah, he | cm | Americans Japanese French | ST i oe mre: A LL. ; a bE Fe * R | 1 e- ~ ~~ \u2014\u2014 ne 1 ee eee 1 we. Ver. | Se"
+    },
+    {
+      "i": 6,
+      "text": "_ | ___| ie RP | Bismarck Catherine Mao LF Tokugawa Napoleon Gandhi | Germans Russians Chinese Japanese French Indians | Lt ji GL. S aren, * | a bE \\ > R | ay \u201ce \u00bb Tears I Ee ie as \u2018 | >To wf incon ws"
+    },
+    {
+      "i": 7,
+      "text": "Catherine Mao Lincoln se ae Napoleon Gandhi Saladin | Russians Chinese Americans 4 French Indians Arabs | St jh a\u00bb * \u2019 : 7] Si 9 TD R | v * \u201c 3 \u00bb : = == , 4 b \u201c \u2018 ANA | a \"i 2 m 4 were | >. Tokugawa W"
+    },
+    {
+      "i": 8,
+      "text": "coe i j ee ee | Mao Lincoln Tokugawa aa . a Gandhi Saladin Montezurr | Chinese Americans Japanese y ih-, Indians Arabs Aztecs | [7 Pm AS amr. p | 7 , te SS a | + hens \u201ca aE \u2014E\u2014\u2014\u2014_ sare ee Ee ee ee end"
+    },
+    {
+      "i": 9,
+      "text": "ee com ci ee | ee ee \u201c a ae | Lincoln Tokugawa Napoleon Saladin Montezuma Shaka | Americans Japanese French A ;, Arabs Aztecs Zulu | LIF DTN rer: | Pa! | USS i See | ~~ ae SN em) Gandhi em) NV a | *\"P"
+    },
+    {
+      "i": 10,
+      "text": "ene x I Meio = Neidieee i | \u2014_ Sl \u2014\u2014\u2014z a), Y |_| __ | Tokugawa Napoleon Gandhi Py aoe \u2018 Montezuma Shaka Genghis | Japanese French Indians , = \\ Aztecs Zulu Khan | [AD Pm TE ara: cS : P< a Site SH 4 A "
+    },
+    {
+      "i": 11,
+      "text": "\u2014_  \u2014 = Rd = lo | Napoleon Gandhi Saladin SS - A te Shaka Genghis SejongTs | French Indians Arabs = a \\e Ne Zulu Khan Koreans | UZ Lip) \\) \u2014--\u2014\u2014 3 i i a an Si A | V tl ata \u2014\u2014-_\u2014 [ny === ane nanan Sg d"
+    },
+    {
+      "i": 12,
+      "text": "ee ais 3 |) i | Gandhi Saladin Montezuma \u201coy | \u2018all aa > Genghis SejongTst Random | Indians Arabs Aztecs me y y Khan Koreans Random | [7e Pm emre|  4 4 lo 0 ee we | ~ \u2014_ Shaka ma) hy | Fa oe re re: ai"
+    },
+    {
+      "i": 13,
+      "text": "Ss es me N NL es . | Saladin Montezuma Shaka a y yO ~ SejongTst Random | Arabs Aztecs Zulu JAS ar \u00a9 a mS ve Koreans Random | iE AS eure\u201d Ai ame AE. es SS b | , ~~ ae \u2014\u2014 ae eee eee oe eel 1 \u201cA NN | > e"
+    },
+    {
+      "i": 14,
+      "text": "SOS of \u2122 =) on = ie ee yy \"3 _\u2014s 2 a y aes. p/ \u00bb . | Aontezuma Shaka Genghis Random | Aztecs Zulu Khan r \u00bb Random | [AF Pm US amr. \u201cai i oS SY % D | LO Ve o> [An Jr Sang Paani aad Ee. Fars | \"Px ee S1"
+    },
+    {
+      "i": 15,
+      "text": "= 4s ss yy ke _\u2014s = \u2014 a 7) | f | Shaka Genghis SejongTst a | Zulu Khan Koreans \u2019 | en arr er, \u00ab 7] b iy Qa A | tA bad / * \\ \u2014\u2014reeerterreenssarsiamaaemeaiiaatcaamaaatitiriammsiy inaibamammammareaaaceea"
+    },
+    {
+      "i": 16,
+      "text": "= 4s ss y le _\u2014s = \u2014 | f | Shaka Genghis SejongTst a | Zulu Khan Koreans \u2019 | en arr er, \u00ab 7] b iy Qa A | tA bad / * \\ reer eessersiameatameitiatcaaaaaiitirinemmmsiy wearers emanate memantine u . \u2018 A >"
+    },
+    {
+      "i": 17,
+      "text": "= 4s ss \" ke _\u2014s = \u2014\u2014 | f | Shaka Genghis SejongTst a | Zulu Khan Koreans \u2019 | en arr er, \u00ab 7] b iy Qa A | tA bad / * \\ rere ereeaesiamnatemaaitiatcaamaaaitirinmmciy ieee aceasta, maaan u . \u2018 A >\u2019 \\ | "
+    },
+    {
+      "i": 18,
+      "text": "= 4s ss yy le _\u2014s \u2014 \u2014 | f | Shaka Genghis SejongTst a | Zulu Khan Koreans \u2019 | en arr er, \u00ab 7] b iy Qa A | tA bad / * \\ \u2014\u2014 rreertererreerssarsiameatemeaitatcasmaaaititiarinmmmsiy ineeitibaaamaemmmearca"
+    },
+    {
+      "i": 19,
+      "text": "= 4s ss y le _\u2014s \u2014 \u2014\u2014 7) | f | Shaka Genghis SejongTst a | Zulu Khan Koreans \u2019 | en arr er, \u00ab 7] b iy Qa A | tA bad / * \\ \u2014\u2014 reeerterrreeeeeersiameatemeaitataaamaaatitiasincmmmsiy iain mnie maaan u . "
+    },
+    {
+      "i": 20,
+      "text": "= 4s ss \" ke _\u2014s \u2014 \u2014 | f | Shaka Genghis SejongTst a | Zulu Khan Koreans \u2019 | en arr er, \u00ab 7] b iy Qa A | tA bad / * \\ reer ereeersiameatemeaiiatcaaaaaititininmmmsiy inate aeeees eect mama ail u . \u2018 A "
+    },
+    {
+      "i": 21,
+      "text": "= 4s ss y le _\u2014s \"| \u2014\u2014 7 | f | Shaka Genghis SejongTst a | Zulu Khan Koreans \u2019 | en arr er, \u00ab 7] b iy Qa A | tA bad / * \\ \u2014\u2014 rereeterrreeesserniammatemeitiaatcasmaaaiitininmmmmsiy emilee cease mame ai"
+    },
+    {
+      "i": 22,
+      "text": "= 4s ss y le _\u2014s = \u2014\u2014 7 | f | Shaka Genghis SejongTst a | Zulu Khan Koreans \u2019 | en arr er, \u00ab 7] b iy Qa A | tA bad / * \\ \u2014\u2014 rereerteererrererseersiameatemitiatcasaaaiitiasiammciy ieee aceees emmemnimm"
+    },
+    {
+      "i": 23,
+      "text": "= 4s ss yy le _\u2014s \u2014 \u2014\u2014 | f | Shaka Genghis SejongTst a | Zulu Khan Koreans \u2019 | en arr er, \u00ab 7] b iy Qa A | tA bad / * \\ \u2014\u2014 rereerterreeessarsiamatemeaiaatcasmaasiitiiammmsiy ieaiibamammamaarea aceasta"
+    },
+    {
+      "i": 24,
+      "text": "= 4s ss y le _\u2014s \u2014 \u2014\u2014 7 | f | Shaka Genghis SejongTst a | Zulu Khan Koreans \u2019 | en arr er, \u00ab 7] b iy Qa A | tA bad / * \\ \u2014\u2014 prreertererraeeecarsiammaaemeaiatcaamaaaiitisinammmsiy wineeiibammmmmearenee"
+    }
+  ],
+  "korea_seen": true,
+  "korea_at_slot": 11
+}
