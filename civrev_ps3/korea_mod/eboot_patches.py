@@ -327,9 +327,18 @@ PATCHES: list[Patch] = [
     # long-lived register or struct field after initial init, and
     # subsequent reads bypass r2+0x141c entirely. Static `lwz rN,
     # 0x141c(r2)` search cannot find such consumers.
+
+    # iter-155 DIAG patch REMOVED. Patched FUN_001e489c (vtable[+0]
+    # constructor) entry with `b .`. RPCS3 timed out at "Waiting for
+    # RSX init" — the function is called VERY EARLY during boot, before
+    # the title screen, before civ-select. The vtable class at
+    # 0x018c9ae0 is part of the CORE BOOT PATH, probably a base UI
+    # class that lots of game systems derive from. Hanging its
+    # constructor breaks ALL of UI init, not just the carousel.
     #
-    # This makes the iter-141 strategy ("find consumers of TOC parser
-    # output") fundamentally unworkable for the carousel.
+    # This rules out the vtable class as carousel-specific. The
+    # carousel might USE an instance of this class, but the class
+    # itself is too general to identify the carousel.
 ]
 
 
