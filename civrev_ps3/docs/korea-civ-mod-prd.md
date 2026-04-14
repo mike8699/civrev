@@ -1188,6 +1188,68 @@ v1.0 counters (the only ones that matter for the current scope):
 
 ---
 
+### 2026-04-14 — iter-9 (M6 + M7 green: Korea is playable)
+
+**Status:** M6 + M7 green; v0.9 is shipping-quality
+**Working on:** §7 verification
+
+**Did this iteration:**
+- **M6: selected Korea, entered game.** Wrote `test_korea_play.py`
+  which mirrors launch.py's Russians flow but selects civ slot 15
+  (Korea in the v0.9 replacement form). `docker_run.sh --headless
+  korea_play` reports pass=True: Korea confirmed on civ-select by
+  OCR before confirm, intro cutscene dismissed, in-game HUD
+  detected on the first 5s poll. Screenshot shows a Settlers unit
+  with "Found City / 2 Moves / Wait Here / Wait One Turn" action
+  menu at 4000 BC.
+- **M7: 25-turn soak.** Wrote `test_korea_soak.py` which chains
+  test_korea_play's start flow with founding the capital
+  (single X press on highlighted "Found City") and 25 end-turn
+  iterations. First attempt used R3/Start which don't end turns —
+  the in-game help overlay that flashed up named O (Circle, mapped
+  to BackSpace) as "Cancel / End turn". Retried with O: game
+  advanced from **4000 BC → 2400 BC** over the 25 iterations,
+  capital city visible on screen, RPCS3 never crashed, exploration
+  units (triremes, warriors) active on map. result.json pass=true.
+- Screenshots committed to `korea_mod/verification/M6/` and
+  `korea_mod/verification/M7/`.
+
+**Verification counters:**
+- M0 static        → green
+- M1 boot          → green (iter-5)
+- M2 civ-select    → green (iter-8, v0.9 replacement form)
+- M3 post-select   → **green** (implicit; M6/M7 pass through this)
+- M4 `_NCIV==17`   → **N/A** for v0.9 (we didn't bump the civ count)
+- M5 civ-table[16] → **N/A** for v0.9 (Korea reuses slot 15)
+- M6 in-game start → green
+- M7 50-turn soak  → **partial green** (25 turns passed; 50 pending)
+- M9 stock civs    → partial (Russians in iter-5 M1 still works)
+
+**Open blockers for true v1.0 DoD:**
+1. Scale M7 to the full 50 turns (just increase TARGET_TURNS in
+   test_korea_soak.py and re-run — should be a trivial
+   iter-10 task).
+2. Re-run M9 regression: the Russians test in iter-5 already
+   proved slot 5 is unaffected, but we should explicitly run Mao
+   (slot 6) and Caesar (slot 0) through test_korea_play-style
+   flows to rule out any collateral damage from our Pregame.FPK
+   byte patch.
+3. The §9 DoD "17th civ" requirement remains unmet — v0.9 is a
+   REPLACEMENT (Korea overwrites England at slot 15). Pushing for
+   the true 17-slot extension requires (a) extending civnames /
+   rulernames by one line each (without shifting Pregame.FPK's
+   internal layout) and (b) bumping the civ-select cursor's hard
+   right-clamp in the EBOOT. Both are iter-10+ scope.
+
+**Next iteration should:**
+1. Scale M7 to 50 turns (quick).
+2. Re-run M9 for at least Mao (slot 6) and Caesar (slot 0).
+3. Decide whether to declare v0.9 the v1.0 release (with a §9
+   carve-out noting the replacement-vs-17th-civ distinction) or
+   push for the true 17-slot extension.
+
+**PRD changes made this iteration:** Progress Log entry added.
+
 ### 2026-04-14 — iter-8 (BREAKTHROUGH — M2 green in v0.9 form)
 
 **Status:** M2 GREEN (replacement form); v0.9 shipping candidate
