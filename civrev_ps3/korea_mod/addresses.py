@@ -23,31 +23,60 @@ so file offsets in EBOOT_v130_clean.ELF equal virtual addresses directly.
 # and extending EVERY parallel array, not relocating a single struct table.
 # ---------------------------------------------------------------------------
 
-# Internal civ tag strings (e.g. "CIV_Rome", "CIV_Egypt"). Matches the 16-entry
-# CcCiv enum order derived from leaderheads.xml.
-KOREA_MOD_CIV_TAG_ARRAY           = 0x0194b35c  # 16 × 4 bytes
+# ---------------------------------------------------------------------------
+# CRITICAL iter-4 finding: of the five parallel pointer tables located in
+# PS3 rodata, ONLY the flat civ-adjective table at 0x0195fe28 is actually
+# live runtime data. The other four are dead rodata — they appear as static
+# 16 × 4 byte pointer blocks but NO code reference exists anywhere in the
+# binary (verified by exhaustive 32-bit and 64-bit BE scan across the full
+# 26 MB file). They are most likely C++ static-init constants that the
+# compiler emitted into .rodata but that the real runtime code path never
+# consumes (the runtime leader data comes from leaderheads.xml parsing,
+# which populates a separate heap-allocated table).
+#
+# Concretely:
+#   - 0x0195fe28 (ADJ_FLAT)     → LIVE. 9 call sites load it TOC-relative
+#                                 via `lwz rN, offset(r2)` at offsets
+#                                 -0x1f34 and -0x9d8 from r2=0x0193a288.
+#   - 0x0194b318 (LDR_TAG)      → DEAD rodata, 0 refs.
+#   - 0x0194b35c (CIV_TAG)      → DEAD rodata, 0 refs.
+#   - 0x0194b3c8 (ADJ_PAIR)     → DEAD rodata, 0 refs.
+#   - 0x0194b434 (LEADER_NAMES) → DEAD rodata, 0 refs.
+#
+# Implication for §6.2: only ADJ_FLAT needs extension to 17 entries. The
+# other four tables can be left untouched (extending them is harmless but
+# pointless). The leader-name display strings for Sejong come from the
+# leaderheads.xml overlay (already shipping in xml_overlays/), not from a
+# rodata pointer table.
+# ---------------------------------------------------------------------------
 
-# Internal leader tag strings ("LDR_rome", "LDR_egypt", ..., "LDR_england").
-# 16 × 4 bytes, adjacent to CIV_TAG_ARRAY (which starts at +0x44 past this
-# array's end, with one 4-byte filler/vtable word at 0x194b358).
-KOREA_MOD_LDR_TAG_ARRAY           = 0x0194b318  # 16 × 4 bytes
+KOREA_MOD_CIV_TAG_ARRAY           = 0x0194b35c  # DEAD rodata (kept for docs)
+KOREA_MOD_LDR_TAG_ARRAY           = 0x0194b318  # DEAD rodata (kept for docs)
+KOREA_MOD_LEADER_NAME_PTR_ARRAY   = 0x0194b434  # DEAD rodata (kept for docs)
+KOREA_MOD_CIV_ADJ_PAIR_ARRAY      = 0x0194b3c8  # DEAD rodata (kept for docs)
 
-# English-facing leader names as displayed in menus:
-# "Caesar", "Cleopatra", "Alexander", "Isabella", "Bismarck", "Catherine",
-# "Mao", "Lincoln", "Tokugawa", "Napoleon", "Gandhi", "Saladin",
-# "Montezuma", "Shaka", "Genghis Khan", "Elizabeth".
-KOREA_MOD_LEADER_NAME_PTR_ARRAY   = 0x0194b434  # 16 × 4 bytes
+# The one live table — every Korea civ-adjective lookup hits this.
+KOREA_MOD_CIV_ADJECTIVE_PTR_ARRAY = 0x0195fe28  # LIVE, 9 call sites
 
-# Flat civ-adjective pointer table ("Roman", "Egyptian", ..., "English").
-# Stride-4, 16 entries. This is the clean form used by the name-resolver.
-KOREA_MOD_CIV_ADJECTIVE_PTR_ARRAY = 0x0195fe28  # 16 × 4 bytes
+# TOC entries that hold 0x0195fe28 as a 32-bit pointer. Both are
+# signed-16-bit offsets from r2 = 0x0193a288.
+KOREA_MOD_TOC_ADJ_FLAT_ENTRIES    = (0x01938354, 0x019398b0)  # r2-0x1f34, r2-0x9d8
+KOREA_MOD_TOC_BASE                = 0x0193a288  # PPC64 r2 at function entry
 
-# Interleaved adjective+plural pair table ("Roman","Romans","Egyptian",
-# "Egyptians", ...). Irregular stride — some civs omit the plural because the
-# singular and plural forms are identical (Chinese, Japanese, French, English).
-# Listed here for completeness; verification should treat it as a second
-# table to patch, not just a cosmetic duplicate.
-KOREA_MOD_CIV_ADJ_PAIR_ARRAY      = 0x0194b3c8  # variable stride, walk by ptrs
+# PS3 call sites that load ADJ_FLAT via lwz rN, X(r2). Each is a candidate
+# consumer of the adjective table; any index ≥ 16 passed to one of these
+# sites will read past the end of the current 16-entry table.
+KOREA_MOD_ADJ_FLAT_CALLSITES = (
+    0x0013cbf8,  # lwz r9, -0x1f34(r2)
+    0x0017e9b0,  # lwz r9, -0x9d8(r2)
+    0x0097d948,  # lwz r28, -0x1f34(r2)
+    0x0097dad0,  # lwz r9, -0x1f34(r2)
+    0x0097db28,  # lwz r28, -0x1f34(r2)
+    0x0097e0ac,  # lwz r29, -0x1f34(r2)
+    0x009f81d4,  # lwz r4, -0x9d8(r2)
+    0x009f9600,  # lwz r4, -0x9d8(r2)
+    0x00ff09e4,  # lwz r28, -0x9d8(r2)
+)
 
 # Placeholders pending investigation ---------------------------------------
 
