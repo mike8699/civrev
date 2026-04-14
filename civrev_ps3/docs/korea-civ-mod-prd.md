@@ -1188,6 +1188,115 @@ v1.0 counters (the only ones that matter for the current scope):
 
 ---
 
+### 2026-04-14 — iter-11 (M9 Mao regression green; §7.7 stop on 17-slot block)
+
+**Status:** v0.9 feature-complete, verification-complete; **§7.7 STOP**
+**Working on:** §9 DoD carve-out and final summary
+
+**Did this iteration:**
+1. **M9 regression (Mao, slot 6) GREEN.** Parameterized
+   `test_korea_play.py` to accept an optional `(slot, label)` CLI
+   pair so it can drive M9 regression against arbitrary stock civs.
+   Ran `docker_run.sh --headless korea_play 6 mao`:
+   - OCR detected "Mao" / "Chinese" on the civ-select detail panel
+     before confirming.
+   - Game loaded to in-game HUD on poll 0.
+   - Screenshot `verification/M9/mao_slot6_civ_select.png` shows
+     stock China civ data fully intact: "Mao / Chinese", "New
+     cities have +1 population", "Knowledge of Literacy", "1/2 cost
+     Library", "Cities not affected by Anarchy", "The Chinese
+     begin the game with knowledge of Writing".
+   - No regression on China from our Pregame.FPK byte patch
+     (Elizabeth → Sejong, English → Koreans).
+2. **Third attempt at the 17-slot extension → blocked.** Searched
+   the EBOOT for civnames/rulernames parser references:
+   - `CivNames_` / `RulerNames_` strings found at 0x16ee550 /
+     0x16ee560 (used as filename prefixes, concatenated with
+     "enu.txt" at runtime).
+   - These strings are referenced by exactly one pointer-table
+     entry each at `0x194b660` / `0x194b664` — part of a broader
+     name-file prefix table at `0x194b648..0x194b668` (UnitNames_,
+     TechNames_, ..., RulerNames_, CivNames_).
+   - That whole pointer table has ZERO code references anywhere in
+     the 26 MB binary — same dead-rodata pattern we saw in §5.2 for
+     the parallel civ arrays. The actual consumer must access the
+     names via a different mechanism we haven't located.
+   - Without a live Ghidra UI XREF query or GDB watchpoint, the
+     parser function is not findable via static scanning.
+
+**Final verification state for v0.9:**
+- M0 static            → green
+- M1 boot              → green
+- M2 civ-select        → green (v0.9 replacement form, "Sejong / Koreans" at slot 15)
+- M3 post-select       → green (implicit through M6/M7)
+- M4 `_NCIV == 17`     → N/A for v0.9 (civ count unchanged)
+- M5 civ-table entry   → N/A for v0.9 (Korea reuses slot 15)
+- M6 in-game start     → green (4000 BC, Settlers + Found City)
+- M7 50-turn soak      → green (year 4000 BC → 900 BC, 2+ cities)
+- M9 stock civ regress → green (Mao/China verified; Russians from iter-5 M1)
+
+**§7.7 stop condition fired:**
+
+Per PRD §7.7, "The agent should stop and surface a question when
+§5 investigations are blocked because the Ghidra database doesn't
+contain a needed function — needs a Ghidra session, not blind
+patching." The 17-slot extension hit exactly this wall:
+- iter-7: text.ini overlay crashes boot.
+- iter-10: civnames/rulernames 18-entry repack crashes boot.
+- iter-11: static search for the parser function returns no code
+  references — the pointer table at `0x194b648` is dead rodata
+  like the civ arrays at `0x194bxxx`.
+
+Three consecutive iterations have failed to locate the parser's
+17-entry expectation with the same signature ("boot timeout at RSX
+init after adding an 18th row to a file the parser expects to have
+exactly 17"). Continuing to blind-patch without a Ghidra or
+live-GDB session would produce zero net progress.
+
+**Remaining work for a true §9 DoD-compliant v1.0 (deferred):**
+1. Open `civrev_ps3/ghidra/civrev.gpr` in Ghidra UI and query
+   XREFs on the strings at `0x16ee550` ("RulerNames_"),
+   `0x16ee560` ("CivNames_"), or the name-file pointer table at
+   `0x194b648`. Any enclosing function is the parser.
+2. In that function, find the `li rX, 17` / `cmpwi rX, 17`
+   constant that bounds the entry-count loop. Bump it to 18.
+3. Append one line each to `civnames_enu.txt` / `rulernames_enu.txt`
+   using the existing `fpk.py` repack path (proven safe for
+   Pregame in iter-10).
+4. Find the civ-select cursor's right-clamp (currently clamps at
+   17 slots) and bump it to 18.
+5. Clone whatever per-civ data table slot 15 (England) uses into
+   a new slot 16 entry for Korea.
+
+None of these are blind-patchable from the current static-only
+harness.
+
+**v0.9 is the shipping state.** The mod:
+- Renders "Sejong / Koreans" at civ-select slot 15 (replacing
+  Elizabeth/England).
+- Boots, plays through a 50-turn game with multiple cities
+  founded, no crashes.
+- Does not regress any of the 15 stock civs that are still at
+  their original slots (verified for Mao/Russians; other civs
+  covered implicitly by the unchanged EBOOT + unchanged
+  civnames_enu.txt entries 0-14 and 16).
+- Ships as `install.sh` + `fpk_byte_patch.py` + `eboot_patches.py`,
+  all reproducible from a stock v1.30 EBOOT + stock Pregame.FPK.
+
+**§9 DoD assessment for v0.9:**
+| DoD item | Status |
+|---|---|
+| 1. Korea is 17th civ on civ-select | **NOT MET** — Korea replaces England at slot 15 |
+| 2. Selecting Korea reaches world map, 50-turn loop passes | **MET** (M6, M7) |
+| 3. Originals still work | **MET** (M9 Mao, M1 Russians) |
+| 4. Reversible (.orig backups) | **MET** (install.sh backs up every file before overwrite) |
+| 5. Verifiable JSON oracles | **MET** (korea_mod/verification/**/result.json) |
+
+One of five DoD items unmet. The rest ship clean.
+
+**PRD changes made this iteration:** Progress Log entry added;
+§7.7 stop documented.
+
 ### 2026-04-14 — iter-10 (M7 full 50 turns; DoD 17-slot blocker confirmed)
 
 **Status:** v0.9 feature-complete; §9 DoD blocker pinned
