@@ -111,6 +111,36 @@ _OLD_BASE_BE = _struct.pack(">I", 0x0195fe28)
 _NEW_BASE_BE = _struct.pack(">I", _NEW_TABLE_VA)
 
 PATCHES: list[Patch] = [
+    # ITER-14: bump InitGenderedNames entry-count from 17 → 18 for
+    # RulerNames and CivNames. The parser allocates a 17-wide buffer
+    # when called with count=0x11; feeding civnames_enu.txt or
+    # rulernames_enu.txt a 18th line currently OOB-writes that buffer
+    # and crashes boot (see verification/M2_iter12/summary.md).
+    #
+    # These are the ONLY two call sites in the binary that pass
+    # count=17 to the name-file init function (FUN_0xa21ce8 in the
+    # Ghidra EBOOT, equivalent sequence at 0x00a2ed6c..0x00a2ee80 in
+    # EBOOT_v130_clean.ELF). Located via Ghidra headless analysis in
+    # iter-14 by matching the full count-arg sequence
+    # (0x101, 0x42, 0x80, 0x11, 0x11) inside a single function.
+    #
+    # Each instruction is `li r5, 0x11` (opcode 14, encoded as
+    # 0x38a00011). Bumping to `li r5, 0x12` = 0x38a00012. One byte
+    # change per site: low byte (file offset +3) goes from 0x11 to
+    # 0x12.
+    Patch(
+        offset=0x00a2ee38,
+        expected_old=b"\x38\xa0\x00\x11",
+        new=b"\x38\xa0\x00\x12",
+        description="li r5,17 → li r5,18 (RulerNames_ init count)",
+    ),
+    Patch(
+        offset=0x00a2ee7c,
+        expected_old=b"\x38\xa0\x00\x11",
+        new=b"\x38\xa0\x00\x12",
+        description="li r5,17 → li r5,18 (CivNames_ init count)",
+    ),
+
     # (1) Write "Korean\0\0" into the padding region.
     Patch(
         offset=_KOREAN_STRING_VA,
