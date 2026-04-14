@@ -1,0 +1,52 @@
+{
+  "milestone": "M7",
+  "pass": true,
+  "oracle": "end-turn 50x without crash; HUD stays OCR-readable",
+  "target_turns": 50,
+  "stages": {
+    "in_game": true,
+    "end_turn_loop": true
+  },
+  "snapshots": [
+    {
+      "turn": 5,
+      "ocr": "2 \u00a9 ag Sa | = E > we Ce p> | oe : : : = pe a | Ze it BR Rome | \u201ca il oT er? | \u2014- Settlers | - y \u2014 ZX) Found City re re | | G@B, ( Ses ; | : a * ike be | P a Ax - @ . | | a Qs | arta aa ee | -_ = Ra fe"
+    },
+    {
+      "turn": 10,
+      "ocr": "ross we oe nee =a a =hs 7 | == 3 \u2014 as tat ma | \u2014 \u00ab=\u2014<(Ct\u00abCS Ye\u201d _o | \u2014_ \u2014_ a 1 ae SS | : \u00bb \u00a2 wy | a Settlers oT | = E e r = a = ty | | @ Found city ig Vine Se | . \u2014\u2014 a Yee | ae . = 4 WS \u00b0 \u2019 4 | 3 ; rt"
+    },
+    {
+      "turn": 15,
+      "ocr": "gee \u2014\u2014 \u2018sili \u201coe | : = . = ae pil git ae | | ee ed _\" \u00bb aan i a <i | ae =e oy i Rome | - = 2 - \u2018 a hy | Fe Siege @ | ae (je Settlers a, | \u201caa ees Found City f i . | 2 ; a = te or thes | : 4 a 7 ro. ( "
+    },
+    {
+      "turn": 20,
+      "ocr": ", \u2014_\u2014 - gee : . wir | > WZ \\\\ | ) ee 7 ie | : 2 ae ea A oe | : : tw als Ue SA ae | \u2014 kaa | - . a 64 a 3 | : A SS | E || Settlers | \u2014 - Z E _ ery | = ~~ OS Found City |} gahs.3 Sys | \u2014 \\ * by | ee FA |"
+    },
+    {
+      "turn": 25,
+      "ocr": "<<< OT ee ee | Z : 3 Z - \u2122 5 ao = z atte, eee | a | 4 Prt: Le os | 4 oe | . - - : . Se \u00a3 # Rome | nance Seal & Cag ea | SS \u2014 i | = = eee . Aa _\u00ae | gt ' asa | <a it: ay = ~ 3 = | . : an ae . | oa - ae "
+    },
+    {
+      "turn": 30,
+      "ocr": "\u2014\u2014 : - : a a, ~ | = S. ~ - R Fe | a Sols = | Za. a ee, | y r= / z . 3 | =e af ,\\e | wo f Sal % | i\u2018. Soy. i it \u00a5 | iw\u201d es | ~ o- | * - | , \u2014\u2014 ae | \u00a9 ek RA 2 | | Settlers \u2122 | lets. | ba 0 | <2? } a | c"
+    },
+    {
+      "turn": 35,
+      "ocr": "\u2014 5 : = = aes gy = | : = = = = = : E = | = \u2014\u2014 S - ae (e End Turr | : = a _ Ea | : - : a \u2018f\u00b0 Rome | . >. ee oe | _ = _ ; \u2014 a \u2014 | : 2 ~ = a rs 2 (fo \u2018\u00e9 ie | : ~ ee a om | A j ae | a \u2014 2. Seat | ; a = ia"
+    },
+    {
+      "turn": 40,
+      "ocr": "2 \u2014\u2014 a | ree i ~ ES | - 3 = : \u2014 =~ > | : \u20142 ee a | - 4 Sai ara | s | & Rome | | (Rls | \u2014 Ms x | | ig = i Settlers B= \u2014 | a ae: ae | Mn, ae te | \u2014 & @ByFround City , Cees | iho > - 55 = wo ke a | es > "
+    },
+    {
+      "turn": 45,
+      "ocr": "S Z : 3 : e \\ | = 5 \u201c Fe - moe ci! Ls Bs, | ; \u2014\u2014 eek | tS a Po 5 een te Se | a bs 5 : oe a ye 7 Res. le | \u00e9 oe z = =: lege \u2014\u2014\u2014 ae | z 4 Sit a . ea \u20ac cS ee - ~ A im Rome | \u00e9 Aes oe . 2 ee 4 | 5 g eae 2"
+    },
+    {
+      "turn": 50,
+      "ocr": "aie we i - zg : , 2 : - : = = was | gl 2 == . PF. a | eS - oe ye | : = ee? ie | ee =a pee ein > \u2014 mite Soe ie | S ? a - = es a \u2014 fy \u201c\u2014 | ST @ Settlers === | ey = = - pe er. | \u2014\u2014 ____ 7) Found City fas"
+    }
+  ]
+}

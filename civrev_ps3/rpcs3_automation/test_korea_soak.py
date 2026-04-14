@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
-"""Korea mod M7 test — 25-turn end-turn soak as Korea (v0.9 form).
+"""Korea mod M7 test — 50-turn end-turn soak as Korea (v0.9 form).
 
 Reaches in-game state via the same flow as test_korea_play.py, founds
-the capital (X on Settlers' 'Found City' action), then end-turns 25
+the capital (X on Settlers' 'Found City' action), then end-turns 50
 times capturing screenshots every 5 turns. Pass criteria: RPCS3 stays
 alive, no 'F .*' fatal lines in log, HUD text remains OCR-detectable.
 
-25 turns is half the PRD's §7.4 M7 target of 50 — chosen to fit the
-docker wall-clock budget. If 25 passes cleanly, iter-10 scales to 50.
+50 turns is the PRD §7.4 M7 target. iter-9 proved 25 turns works
+cleanly with year advance 4000 BC → 2400 BC; this scales to the
+full target.
 """
 
 import json
@@ -44,7 +45,7 @@ def _shot(label):
         print(f"  shot save fail: {e}")
 
 
-TARGET_TURNS = 25
+TARGET_TURNS = 50
 
 
 def main():
