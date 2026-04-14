@@ -167,6 +167,56 @@ PATCHES: list[Patch] = [
         new=_NEW_BASE_BE,
         description="redirect TOC entry r2-0x9d8 → new ADJ_FLAT base",
     ),
+
+    # ITER-131: null-guard wrapper for FStringA::SetLength (FUN_00c25f8c)
+    # and bl redirect inside FUN_00c26a00.
+    #
+    # civ18-only Pregame (iter-127) reproduces a READ fault at
+    # 0xfffffff8 inside FUN_00c25f8c at 0xc25ff8
+    # (`lwz r0, 0x8(r11)` with r11 = *param_1 - 0x10 and
+    # *param_1 == NULL). Static analysis (iter-129/130) tied this to
+    # the call site bl 0xc25f8c at 0xc26a60 inside FUN_00c26a00 —
+    # the parser's "copy string into FStringA" pipeline passes a
+    # FStringA whose buf field is still NULL because the 18th-entry
+    # slot was never initialized.
+    #
+    # Fix: write a 4-instruction wrapper into the rodata zero-fill
+    # padding at 0x017f4088 (just past iter-4's 68-byte ADJ_FLAT
+    # table at 0x017f4040..0x017f4084) that null-checks *param_1
+    # before tail-calling the real SetLength. Then patch the bl
+    # at 0xc26a60 to call the wrapper instead.
+    #
+    # Wrapper body (16 bytes @ 0x017f4088):
+    #   lwz    r0, 0(r3)       80030000  ; r0 = *param_1 (buf ptr)
+    #   cmpwi  cr0, r0, 0      2c000000  ; is buf NULL?
+    #   beqlr                  4d820020  ; yes → return to caller
+    #   b      0xc25f8c        4b431ef8  ; no  → tail-call SetLength
+    #
+    # The wrapper has NO stack frame, so the caller's LR is
+    # untouched: beqlr returns directly to FUN_00c26a00, and the
+    # unconditional `b` tail-calls SetLength which returns
+    # directly to FUN_00c26a00 when done.
+    #
+    # Only affects the single bl site at 0xc26a60. Every other
+    # caller of FUN_00c25f8c in the binary is unchanged.
+    #
+    # CAVEAT: this only silences the civ18-only NULL-read case.
+    # The both-18 case faults differently (WRITE to 0x2a12c in
+    # read-only .rodata, caused by a FStringA buf corrupted to
+    # 0x2a120 by upstream rulernames → civnames state leak). That
+    # needs a separate investigation in iter-132+.
+    Patch(
+        offset=0x017f4088,
+        expected_old=b"\x00" * 16,
+        new=bytes.fromhex("800300002c0000004d8200204b431ef8"),
+        description="iter-131 null-guard wrapper for FStringA::SetLength",
+    ),
+    Patch(
+        offset=0x00c26a60,
+        expected_old=b"\x4b\xff\xf5\x2d",  # bl FUN_00c25f8c
+        new=b"\x48\xbc\xd6\x29",            # bl 0x017f4088 (wrapper)
+        description="iter-131 redirect bl to null-guard wrapper",
+    ),
 ]
 
 
