@@ -110,6 +110,57 @@ def _build_patches(src_bytes: bytes) -> list[BytePatch]:
         )
     )
 
+    # citynames_enu.txt — replace the 16 English city names with Korean
+    # ones. Each replacement is exact byte length; trailing spaces get
+    # trimmed by the name parser (proven by the Sejong/Elizabeth patch).
+    # The ';ENGLISH:' block is unique in the file so we can key off
+    # "London, M" for the block anchor.
+    english_block = b";ENGLISH:\r\nLondon, M\r\n"
+    block_rel = src_bytes.find(english_block)
+    if block_rel < 0:
+        raise RuntimeError("citynames_enu.txt ';ENGLISH:' block not found")
+    # English cities in order, with Korean replacements of identical
+    # byte length. First entry is the capital.
+    city_substitutions = [
+        (b"London",     b"Seoul "),       # 6 — capital
+        (b"York",       b"Naju"),         # 4
+        (b"Nottingham", b"Pyongyang "),   # 10
+        (b"Hastings",   b"Kaesong "),     # 8
+        (b"Canterbury", b"Gyeongju  "),   # 10
+        (b"Coventry",   b"Incheon "),     # 8
+        (b"Warwick",    b"Kunsan "),      # 7
+        (b"Newcastle",  b"Gangneung"),    # 9
+        (b"Oxford",     b"Daegu "),       # 6
+        (b"Liverpool",  b"Cheongju "),    # 9
+        (b"Dover",      b"Jeju "),        # 5
+        (b"Brighton",   b"Ulsan   "),     # 8
+        (b"Norwich",    b"Suwon  "),      # 7
+        (b"Leeds",      b"Iksan"),        # 5
+        (b"Reading",    b"Gimpo  "),      # 7
+        (b"Birmingham", b"Chuncheon "),   # 10
+    ]
+    # Find each city name, scanning forward from the block start, so we
+    # never match an identical city name from an earlier civ's block.
+    cursor = block_rel
+    for old, new in city_substitutions:
+        # Each entry line is "<name>, M\r\n" — searching for "<name>, M"
+        # guarantees we match the English block's own instance.
+        needle = old + b", M"
+        pos = src_bytes.find(needle, cursor)
+        if pos < 0:
+            raise RuntimeError(
+                f"citynames_enu.txt: {old!r} not found after offset {cursor:#x}"
+            )
+        patches.append(
+            BytePatch(
+                offset=pos,
+                expected_old=old,
+                new=new,
+                description=f'citynames_enu (English→Korean): {old.decode()} → {new.decode().rstrip()!r}',
+            )
+        )
+        cursor = pos + len(old)
+
     return patches
 
 
