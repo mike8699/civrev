@@ -2475,3 +2475,78 @@ patch the SCE. v0.9 status (Korea ships at slot 15 replacing
 England) is also suspect — that was tested against the SCE
 which was never modified. The ACTUAL behavior of v0.9 with
 patches applied is unknown.
+
+### iter-137 (2026-04-14): rpcs3 --decrypt unblocks the patched-boot path
+
+**Root cause finally identified.** `EBOOT_v130_clean.ELF`, the
+base used by every iteration since iter-3, was extracted by an
+old SELF unpacker that stripped `PT_SCE_RELA`, `PT_TLS`, and the
+runtime fixups RPCS3's SELF loader normally applies. With those
+fixups missing, the `.data` sprx-import slots (e.g. 0x18b5a08
+where the libnet thunk loads its function descriptor pointer)
+stayed NULL after load, and the first call into a libnet thunk
+faulted at `0x0141fa4c`. iter-127..iter-136 all chased this
+baseline ELF brokenness rather than any real patch issue.
+
+**Fix:** found `~/Desktop/rpcs3-v0.0.35-17645-7b212e0e_linux64.AppImage`
+on the host. RPCS3 has a CLI option `--decrypt <path(s)>` that
+runs the SELF loader and dumps the post-fixup ELF. Ran it on
+`EBOOT.BIN.iter133_sce_bak` (the original SCE backup) and got a
+new `EBOOT_v130_decrypted.ELF` (sha 318eab2c91c23ea0...) with
+8 program headers including PT_SCE_RELA. Critically, the .data
+slot at 0x18b5a08 is populated with `0x0141fa0c` (the libnet
+stub thunk address), not zero.
+
+**eboot_patches.py refactor.** The new ELF has
+`p_offset != p_vaddr` (the first PT_LOAD has offset 0x0 for
+vaddr 0x10000), unlike the old clean ELF where they matched
+1:1. So all hardcoded "file offsets" in the old patch list were
+actually being interpreted as virtual addresses by accident, and
+they would silently land in the wrong file bytes on the new ELF.
+
+Refactored the `Patch` dataclass: `offset` is now a virtual
+address. The patcher walks PT_LOAD program headers and translates
+each vaddr to a file offset before reading or writing. All six
+existing iter-4 / iter-14 patches translated cleanly and matched
+their expected_old bytes on the first try.
+
+**Verification.**
+
+  | Step                                | Result |
+  |-------------------------------------|--------|
+  | ./build.sh on new base              | green, 6 patches applied |
+  | ./verify.sh --tier=static           | PASS |
+  | install_eboot.sh dual-path          | OK |
+  | docker korea_gdb (warm)             | n_threads=14 @ +20s, pc=0xe4a394 |
+  | VM access violation                 | NONE |
+
+This is the **first successful patched boot in the entire
+iter-7..137 chain.** Every previous "patch verified" claim was
+testing the wrong thing — either the unmodified SCE (iter-7..132)
+or the broken plain ELF (iter-133..136).
+
+**Status reset.**
+  - `EBOOT_v130_clean.ELF` is officially deprecated. It can stay
+    in the repo as historical context but should not be referenced
+    by any active build.
+  - `EBOOT_v130_decrypted.ELF` is the new base; force-added to
+    git despite the `*.ELF` gitignore.
+  - `addresses.py` claim that "file offsets equal virtual
+    addresses" is no longer true and needs a comment update.
+  - All patch sites enumerated in iters 7..136 should be
+    re-checked: the *bytes* are the same (same vaddrs, same
+    instruction encoding) but verification claims need to be
+    run against the new ELF before being trusted.
+  - DoD item 1 (Korea as 17th civ) is testable for the first
+    time. Next iteration: run `korea_play` long-form test and
+    confirm Korea is selectable in civ-select.
+
+**Next iteration should:**
+- Run docker `korea_play` against the new base + v0.9 Pregame
+  and confirm the title screen, civ-select, and a successful
+  game start with Korea selected.
+- Build broken_18 / civ18only Pregames against the FIXED
+  extract source from iter-135 and re-test against the new
+  base. The "broken_18 fault" theory may finally be testable
+  for real.
+- Drop addresses.py's "vaddr == file offset" claim.
