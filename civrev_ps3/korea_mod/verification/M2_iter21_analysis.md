@@ -92,3 +92,55 @@ find it because:
    the address that eventually lands at 0x2a12c after corruption)
 
 v0.9 remains the shipping state.
+
+## iter-23 log-correlation finding
+
+Cross-referenced the RPCS3 log around the fault time (0:00:11.620486):
+
+- **11.506s**: PPU main thread is in `liblv2: 0x01e03ddc`
+  (`sys_memory_allocate`), allocating process memory
+- **11.506s**: `_sys_process_get_paramsfo` reads process params
+- **11.506s**: Registers `cellProcessElf` module
+- **11.506s**: Loads `libsysmodule.sprx` (and later cellResc,
+  other system libraries)
+- **11.620s**: FAULT at PC `0x00c26a00` writing to `0x2a12c`
+
+The 114ms between 11.506 and 11.620 is system library loading
+phase. During or after that, PPU execution transitions from
+liblv2 code into **game code at PC 0x00c26a00**, which triggers
+the fault.
+
+Interpretation: this is during **C++ static initialization**
+(the phase BEFORE main() where global-object constructors run).
+PS3 games run static init after system libraries load. If the
+faulting FStringA is a **global object** whose constructor
+corrupts its own `buf` field under the extended-civnames
+conditions, the Clear() call during init triggers the fault.
+
+But: civnames_enu.txt hasn't been *parsed* yet at that point
+(parsing is via `FUN_00a216d4` which is called from game init
+much later, per iter-15). So the crash isn't a direct consequence
+of the extended civnames — it's an indirect effect where the
+**Pregame.FPK layout difference** (caused by fpk.py's repack)
+affects something earlier in boot.
+
+This is consistent with iter-12's flakiness finding:
+civnames+1 alone boots SOMETIMES but crashes OTHERS. The root
+cause might not be the specific civnames/rulernames count at
+all — it might be fpk.py's repack producing a Pregame.FPK that
+is subtly wrong in some way that interacts with boot-time
+module loading.
+
+## Revised root-cause theory
+
+The "broken 18-entry Pregame" state is actually "broken because
+fpk.py repacked it", not "broken because of 18 entries". The
+deterministic crashes we see when extending civnames+rulernames
+might be a COINCIDENCE — the real issue is that fpk.py's Pregame
+repack introduces non-determinism that occasionally manifests as
+fault at 0x2a12c.
+
+To test: repack UNMODIFIED Pregame.FPK via fpk.py (proven to
+boot in iter-10) but install it 10 times and check consistency.
+If it's flaky the same way, the civnames change isn't the
+cause.
