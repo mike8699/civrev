@@ -1,0 +1,39 @@
+{
+  "milestone": "iter-113-bp-poll",
+  "pass": false,
+  "oracle": "set Z0 at dispatcher, drive civ-confirm, poll PC of all threads every 300ms for up to 40s \u2014 success means the dispatcher PC was observed at least once",
+  "stages": {
+    "drove_to_civ_select": true,
+    "gdb_attach": true,
+    "bp_set": true,
+    "dispatcher_observed": false
+  },
+  "bp_targets": [
+    "0xa21ce8",
+    "0xa21cec",
+    "0xa21cf0",
+    "0xa216d4"
+  ],
+  "pc_samples": [
+    {
+      "t": 8.71,
+      "threads": []
+    },
+    {
+      "t": 17.67,
+      "threads": []
+    },
+    {
+      "t": 26.63,
+      "threads": []
+    },
+    {
+      "t": 35.58,
+      "threads": []
+    },
+    {
+      "t": 44.54,
+      "threads": []
+    }
+  ]
+}
