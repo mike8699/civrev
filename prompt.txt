@@ -31,37 +31,69 @@
   §6.3 XML overlays are four independent files), execute them with                                                                                                    
   parallel tool calls. Do not serialize work that has no dependency.                                                                                                  
                                                                                                                                                                       
-  EXECUTE:                                                                                                                                                            
-  - Make code/asset/EBOOT changes per the PRD.                                                                                                                        
-  - For Ghidra/RE work, prefer the Explore agent for any search that                                                                                                  
-    could span >3 queries; brief it with concrete file paths and                                                                                                      
-    what you've already ruled out.                                                                                                                                    
-  - For the EBOOT, never blindly patch — every byte change must come                                                                                                  
-    from an offset confirmed by either Ghidra cross-reference or live                                                                                                 
-    GDB inspection via rpcs3_automation/. Record every confirmed                                                                                                      
-    address in civrev_ps3/korea_mod/addresses.py.                                                                                                                     
-  - For §5.7 (CivRev 2 extraction), the APK has not been unzipped yet                                                                                                 
-    — that is step 1 of that investigation per the PRD.                                                                                                               
-  - If you discover the PRD is wrong (a stated address is incorrect, a                                                                                                
-    planned approach is infeasible, a risk became real), UPDATE THE                                                                                                   
-    PRD in the same iteration. The PRD is the source of truth — keep                                                                                                  
-    it accurate, do not let your work and the doc drift apart. Mark                                                                                                   
-    resolved TBDs with the actual values, replace assumptions with                                                                                                    
-    verified facts, and append findings to the relevant §5.x or §6.x                                                                                                  
-    subsection.                                                                                                                                                       
+  EXECUTE:
+  - Make code/asset/EBOOT changes per the PRD.
+  - For Ghidra/RE work, prefer the Explore agent for any search that
+    could span >3 queries; brief it with concrete file paths and
+    what you've already ruled out.
+  - For the EBOOT, never blindly patch — every byte change must come
+    from an offset confirmed by either Ghidra cross-reference or live
+    GDB inspection via rpcs3_automation/. Record every confirmed
+    address in civrev_ps3/korea_mod/addresses.py.
+  - For §5.7 (CivRev 2 extraction), the APK has not been unzipped yet
+    — that is step 1 of that investigation per the PRD.
+  - If you discover the PRD is wrong (a stated address is incorrect, a
+    planned approach is infeasible, a risk became real), UPDATE THE
+    PRD in the same iteration. The PRD is the source of truth — keep
+    it accurate, do not let your work and the doc drift apart. Mark
+    resolved TBDs with the actual values, replace assumptions with
+    verified facts, and append findings to the relevant §5.x or §6.x
+    subsection.
+  - **DEEP-RE WORK IS IN-SCOPE for the §9 DoD item 1 blocker.** The
+    iter-7..72 batch documented this blocker as "out of harness reach"
+    but two paths ARE reachable from the bash harness and should be
+    pursued aggressively:
+      (a) **analyzeHeadless / Ghidra Jython.** A working Ghidra install
+          lives at `/home/mike/ghidra/ghidra_11.3.1_PUBLIC/` and the
+          civrev project is at `civrev_ps3/ghidra/civrev.gpr`. You can
+          drop a Jython post-script under
+          `civrev_ps3/korea_mod/scripts/ghidra_helpers/` and invoke it
+          via `analyzeHeadless` to do XREFs, decompile bodies, walk
+          caller chains, dump structs, etc. — anything the interactive
+          UI can do that's scriptable. Use this to chase the
+          civnames/rulernames downstream consumer that OOBs at slot 17,
+          OR to find the civ-select cursor right-clamp, OR to locate
+          the parallel arrays' write paths.
+      (b) **GDB Z-packet watchpoint debugging.** RPCS3's GDB stub
+          listens on 127.0.0.1:2345 inside the docker harness.
+          `civrev_ps3/rpcs3_automation/gdb_client.py` already has
+          pause/resume/read_memory/read_register/thread inspection.
+          You may EXTEND it with Z2 (write watchpoint) and Z0 (code
+          breakpoint) packet support and use them to catch the
+          corrupting write to FStringA buf at runtime. The fault-site
+          anchors are pinned in `addresses.py`
+          (`KOREA_MOD_FAULTING_INSTRUCTION_SITE = 0xc26a98`,
+          `KOREA_MOD_FAULT_TARGET_INSIDE_VECTOR = 0x2a12c`,
+          `KOREA_MOD_STD_VECTOR_INSERT_VARIANT = 0x29f18`).
+    Both (a) and (b) are first-class paths now. The §7.7 STOP rule
+    no longer applies to "I tried 3 static-search variants and they
+    were empty" — escalate to a Jython script or a Z-packet
+    watchpoint instead of declaring the milestone blocked.                                                                                                                                                       
                                                                                                                                                                       
-  VERIFY BEFORE CLAIMING ANYTHING DONE:                                                                                                                               
+  VERIFY BEFORE CLAIMING ANYTHING DONE:
   - Static milestones (M0): run the dry-run patcher, FPK round-trip,
-    xmllint, and string-key inventory. All four must be green.                                                                                                        
-  - Boot/runtime milestones (M1–M7, M9): run via                                                                                                                      
-    ./civrev_ps3/rpcs3_automation/docker_run.sh inside the harness                                                                                                    
-    the PRD §7.0 specifies. Read result.json from each milestone                                                                                                      
-    before declaring success — never trust a screenshot alone.                                                                                                        
-  - If verify.sh exits non-zero, you are NOT done. Diagnose using the                                                                                                 
-    failing milestone's result.json + rpcs3.log + screenshot. Iterate.                                                                                                
-  - Stop conditions in PRD §7.7 apply: if the same milestone fails 3                                                                                                  
-    consecutive times with the same signature, STOP, write a status                                                                                                   
-    entry to the PRD describing the blocker, and exit the loop.                                                                                                       
+    xmllint, and string-key inventory. All four must be green.
+  - Boot/runtime milestones (M1–M7, M9): run via
+    ./civrev_ps3/rpcs3_automation/docker_run.sh inside the harness
+    the PRD §7.0 specifies. Read result.json from each milestone
+    before declaring success — never trust a screenshot alone.
+  - If verify.sh exits non-zero, you are NOT done. Diagnose using the
+    failing milestone's result.json + rpcs3.log + screenshot. Iterate.
+  - PRD §7.7 stop conditions apply ONLY when (a) you've exhausted both
+    analyzeHeadless Jython script paths and (b) you've exhausted GDB
+    Z-packet watchpoint paths against the failing milestone. Static-
+    only failures do NOT trigger §7.7 — escalate to dynamic tooling
+    instead.                                                                                                       
                                                                                                                                                                       
   COMMIT AND PUSH:                                                                                                                                                    
   - Make logical, small, reviewable commits — one investigation
@@ -88,15 +120,19 @@
   - Never delete or overwrite verification artifacts from prior                                                                                                       
     iterations.                                                                                                                                                       
                                                                                                                                                                       
-  STOP WHEN:                                                                                                                                                          
-  - §9 Definition of Done is fully satisfied AND the autonomous                                                                                                     
-    portion of §7 (M0–M7, M9) is green AND the PRD's Progress Log                                                                                                     
-    shows no open blockers. At that point, write a final summary                                                                                                      
-    commit, push, and exit the loop.                                                                                                                                  
-  - OR a §7.7 stop condition fires. Write the blocker to the PRD                                                                                                      
-    and exit.                                                                                                                                                         
-                                                                                                                                                                      
-  Be tight and focused. Don't over-explore, don't refactor, don't add                                                                                                 
-  features beyond the PRD. The goal is a shipped, verified mod — not                                                                                                
-  a perfect one.                                                                                                                                                      
+  STOP WHEN:
+  - §9 Definition of Done is fully satisfied AND the autonomous
+    portion of §7 (M0–M7, M9) is green AND the PRD's Progress Log
+    shows no open blockers. At that point, write a final summary
+    commit, push, and exit the loop.
+  - OR a §7.7 stop condition fires AFTER both Jython and Z-packet
+    paths have been exhausted (per the EXECUTE block). Write the
+    blocker to the PRD and exit.
+
+  Be tight and focused. Don't over-explore, don't refactor, don't add
+  features beyond the PRD. The goal is a shipped, verified mod — not
+  a perfect one. EXCEPTION: extending gdb_client.py with Z-packet
+  support and writing new analyzeHeadless Jython scripts under
+  korea_mod/scripts/ghidra_helpers/ are explicitly in-scope and
+  should be pursued before declaring DoD item 1 blocked.
                   
