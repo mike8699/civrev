@@ -30,9 +30,7 @@ from pathlib import Path
 # The clean base EBOOT. All file offsets in PATCHES are against this
 # specific file. Hash-gate to catch accidental base drift.
 EXPECTED_BASE_SHA256 = (
-    # Computed from civrev_ps3/EBOOT_v130_clean.ELF when this script
-    # was first wired. If the hash ever changes, regenerate PATCHES
-    # against the new base and bump this constant.
+    "f69b4e4ed8cd5e7fa668bb65ea1d19f87b6fb17d3ada122183a3f3e6054a06ce"
 )
 
 
