@@ -161,6 +161,16 @@ def _build_patches(src_bytes: bytes) -> list[BytePatch]:
         )
         cursor = pos + len(old)
 
+    # iter-160 attempted: gfx_chooseciv.gfx has a hardcoded
+    # slotData16 fallback string "RANDOM" at FPK offset 0x117010c.
+    # I patched it to "Korean" (both 6 bytes), and the file content
+    # did change. But the carousel slot 16 cell title still rendered
+    # "Random / Random" with no visible difference. The "RANDOM"
+    # string in .gfx is NOT the displayed text — it's probably a
+    # slot identifier/key used by the Scaleform script for internal
+    # bookkeeping. The displayed title comes from yet another source.
+    # iter-160 patch reverted.
+
     return patches
 
 
