@@ -1,3 +1,7 @@
 _build/
 !xml_overlays/
 !xml_overlays/*.xml
+
+# Per-run verify.sh diagnostics (re-generated each invocation)
+verification/M0/artifacts_check.json
+verification/M0/dry_run.log
