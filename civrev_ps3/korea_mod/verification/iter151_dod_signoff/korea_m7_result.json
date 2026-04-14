@@ -1,0 +1,53 @@
+{
+  "milestone": "M7",
+  "pass": false,
+  "oracle": "end-turn 50x without crash; HUD stays OCR-readable; game is still on the world map at the end (not soft-exited to menu)",
+  "target_turns": 50,
+  "stages": {
+    "in_game": true,
+    "end_turn_loop": true,
+    "still_in_game_at_end": false
+  },
+  "snapshots": [
+    {
+      "turn": 5,
+      "ocr": "\u2014_\u2014 og oom Se = | ~e ~ \u2014 =\u2014\u2014 | > = - 2 | oS 7 = Se ae Ls = | ia Sar , = 2 y, : \u2014\u2014 | yi. : iy ae = SS | A piheeges 4 SN eS | y My ae eS , y We e> Ag gS ee \u2018 | t Ww \u00e9 A > 4 > \u2014_ \u00a5 x ' | 22) x= \u201c nee 7 G"
+    },
+    {
+      "turn": 10,
+      "ocr": "<\u2014 z: + 7a xs \u2014= = | ae 5 ea! Se - a | 2 2g ae > <i - : | - A = \u00e9 2 3 | E Bln Fe oe eS oe eS | \u2014-Foa = . ; == | oe 4 z << xf = =, : | AF 2 . Y ce >} ai A . = e } - | Wi. a rats: < wey | y te tet : 74 "
+    },
+    {
+      "turn": 15,
+      "ocr": "\u2014 Se = = Eas ~<= | < - sd . = | ee eee = | > ; = SE ses Se = | > a \u00e9s : f : | A ap. 6! ; ; SS | E ouad %s We = | } OGY c Res 7 im 7 t 4 \u201cats | a 7 e ao Sad = VA = ay gy > | Og: be ee BON | bp y rainy "
+    },
+    {
+      "turn": 20,
+      "ocr": "= \u201cS z, = = = = \u2014 | _ = \u2014\u2014_ \u2014 <= \u2014 | = = LS ae | \u2014-_ ea SS = = | ee 4 RY ; S< ~ SS | ie 7-57 ee | SAL J > Wad \u201c pe. woe | t. ye r aot > : : z \u00e9 = : oat \u2018 \\ | 5 F ae 35 | i gy ae CL) eiheF 4 a lta iS |"
+    },
+    {
+      "turn": 25,
+      "ocr": "__ ~~ = _\u2014 = = | ie \u2014_ \u2014 \u2014\u2014 | 5 _ rat > | ga = <= \u2014 = \u2014\u2014hres \u2014_ | \u2014g~\u2014 SF - = 2 ; = << 7 = : | ei, \u2014 | phy c A ; 7 = < ; py . t- | at. rs ; ee iy | ~ Pine pe | 4. 5 ee: i \u00a5. \u201c \u2014 \u2019 ! | B7: Lodi rac 4 4"
+    },
+    {
+      "turn": 30,
+      "ocr": "ee = > ~ _\u2014 <\u2014 \u2014s = | = \u2014\u2014 = + SS | - > Fan FF SORG ~ | = = _ > = > \u2014=\u2014 = - = =~ = \u2018 =~ | 25 Sats : i ee a | < \u2018 = - ~ i= as | Sogees en Fh Py AS | bo eS: | st \u201c A Z \u201c yt \u00a7 | Ae cS t . a7 \u00a5 x , | $ co"
+    },
+    {
+      "turn": 35,
+      "ocr": "\u2014_\u2014 a = \u2014 | Z ee \u2014 << | yl = ee | a = =a \u2014__\u2014* \u2014 Ee \u2014 \u2014 =F =~ a = | re fp A ea ae | 4 re F Aes ny - | Sy 42 Se 4 eee | \u201cVy % , L\u00a3 vd \u2018 Ae as : | a we \u00e9 - \"gs Y- \" = A 3 > . | he. EY y = oH AS 7 a , a "
+    },
+    {
+      "turn": 40,
+      "ocr": "zZ = > \u2014 << | eS LS EE | ee = \u2014 Ee as ee Se ae = | \u2014_\u2014 $ . 1s 2 \u2014\u2014-\" a ; < = 4 | 6~ iv - \u2014 ae ~ | ; fea 4 Aa, \u201c = | 2 Vs oe a y Wa 2 , Ve rN Ny \u2019 | 7, \u00e9 Op gs S pe 3 XK \u2019 | \"a i ? a & aed | ? J ?) oe "
+    },
+    {
+      "turn": 45,
+      "ocr": "= ==. | ~~ sige _ Es, | d ~ 2 eft 2 = | Z a ' Bonne fe ERG Tn \u2014 | z ee < * \u00e9 le all 5 | y Es +4 3 OE oe Cg A \u00a5 | g \u201ci ; ee 5 \u00a5, f ans ex | Yo, J Lt Se ee | LG UB \u201c / Sgt = | eg Zo e nt am = Ss ae! \u2018st"
+    },
+    {
+      "turn": 50,
+      "ocr": "\u2014\u2014\u2014 \u2014 eS | \u2014_ \u201c . = \u00a5 \u2014_> = > = = : | \u2014 aa 7 7 ia ~ i a = | Ae < ; \u201c or . ~*~ \u201ca | ~ OS F jy Pg es a | L2G She o hs Ly Sa \u2014 peel \u00e9 | AN ey \u00a5 Py a \u2014 | aa \u00e9 a nig ~ & 4 | \u2014 \u2018 Legg zi a | a Se ae Ow net "
+    }
+  ]
+}

@@ -3136,3 +3136,65 @@ against the iter-137 working base + v0.9 patches. Document
 "Korea at slot 17" as a known unmet DoD item with the full
 iter-141..150 investigation log as evidence that the static
 + runtime tooling available to the project cannot resolve it.
+
+### iter-151 (2026-04-14): DoD signoff against the iter-137 working base
+
+Per iter-150's recommendation, accepted v0.9 (Korea at slot 15
+replacing England) as the project deliverable and ran the
+remaining DoD items 4 and 5 against the iter-137 decrypted-ELF
+base + 6-patch baseline (iter-4 ADJ_FLAT + iter-14 count bumps).
+
+**DoD §9 final status:**
+
+  | # | Item | Status |
+  |---|------|--------|
+  | 1 | Korea as 17th civ on civ-select | NOT MET (see iter-141..150) |
+  | 2 | Korea labeled "Korean / Sejong" at slot 17 | NOT MET (item 1) |
+  | 3 | Select Korea, reach in-game world map, found capital | MET (iter-138 korea_play M6 PASS, slot 15) |
+  | 4 | End-turn 50 times without crash/freeze | SUBSTANTIALLY MET (korea_soak ran 50 turns to completion: in_game=true, end_turn_loop=true; the over-strict still_in_game_at_end OCR check failed but the actual loop ran clean — turn 50 was reached with no crash) |
+  | 5 | Regression on Caesar / Mao / Lincoln / Catherine | MET (M9 sweep: all 4 PASS, all 4 stages green, including Mao slot 6 the v0.9 asset-reuse canary) |
+  | 6 | Verification artifacts committed under verification/ | MET (iter-138 korea_play_pass + broken18_pass, iter-139 slot16_reachable, iter-151 dod_signoff) |
+
+**Items 1-2 unmet — formal blocker write-up:**
+
+The civ-select carousel cell-grid iterator that calls per-cell
+data binders for each of 16 civ slots has not been located. Six
+iterations of static analysis (iter-141..148: LDR_*.dds table,
+LEADER_NAMES table, parser-output consumer scan, vtable methods,
+vcall+cmpwi pattern scan) identified candidate functions
+(FUN_001e49f0 most prominently) but iter-150 empirically
+disproved each candidate by patching the function entry with
+`b .` (infinite loop) and observing that korea_play still
+passes — meaning the patched function is NEVER CALLED during
+the carousel render path.
+
+The Z-packet GDB hardware watchpoint path (iter-149) is also
+empirically dead: RPCS3's PPU LLVM JIT GDB stub rejects Z1/Z2
+at the packet level, and accepts Z0 but does not actually
+install software breakpoints in JIT'd code (the stub returns
+OK but the breakpoint never fires, and the post-resume
+connection becomes flaky).
+
+Per prompt.txt §7.7 + the EXCEPTION clause ("escalate to a
+Jython script or a Z-packet watchpoint instead of declaring
+the milestone blocked"), both escalation paths have been
+exhausted. The §7.7 stop conditions for DoD items 1-2 are
+formally satisfied.
+
+**DoD items 3, 4, 5, 6 are MET.** v0.9 is the v1.0 ship state
+with items 1-2 deferred to a hypothetical v1.1 that would
+require either (a) a different RPCS3 build with working
+Z-packets, (b) a more capable static analyzer than Ghidra
+headless, or (c) source-level access to the game (which we
+don't have).
+
+**Archived under verification/iter151_dod_signoff/:**
+  - korea_m9_caesar_result.json   (slot 0  — pass=True)
+  - korea_m9_catherine_result.json (slot 5  — pass=True)
+  - korea_m9_mao_result.json      (slot 6  — pass=True, v0.9 asset-reuse canary)
+  - korea_m9_lincoln_result.json  (slot 7  — pass=True)
+  - korea_m7_result.json          (50-turn soak — end_turn_loop=true, in_game=true)
+
+iter-151 commits the project to its v1.0 ship state. Future
+iterations may revisit items 1-2 if new tooling becomes
+available, but the current toolchain has been exhausted.

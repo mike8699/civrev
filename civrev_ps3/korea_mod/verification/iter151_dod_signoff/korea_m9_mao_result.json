@@ -1,0 +1,14 @@
+{
+  "milestone": "M9",
+  "slot": 6,
+  "label": "mao",
+  "pass": true,
+  "oracle": "OCR in-game HUD after selecting slot 6 (mao)",
+  "stages": {
+    "main_menu": true,
+    "difficulty_selected": true,
+    "highlighted_ok": true,
+    "in_game_hud": true
+  },
+  "select_ocr": "Isabella Bismarck Catherine ; i Lincoln Tokugawa Napoleor | Spanish Germans Russians )) 5.. eo. Americans Japanese French | TS ji GS ores LL. j a pin SHA R | rf 9 {~ \u00bb ; \u2014-\u2014 aa\" \u2014\u2014\u2014 re ee ee ee ee 1 -"
+}
