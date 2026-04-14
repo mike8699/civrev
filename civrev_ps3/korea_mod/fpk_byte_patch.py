@@ -169,7 +169,17 @@ def _build_patches(src_bytes: bytes) -> list[BytePatch]:
     # string in .gfx is NOT the displayed text — it's probably a
     # slot identifier/key used by the Scaleform script for internal
     # bookkeeping. The displayed title comes from yet another source.
-    # iter-160 patch reverted.
+
+    # iter-161 attempted: gfx_chooseciv.gfx per-slot table at 0x296f
+    # has slot 16 → "barbarian" tag. Replaced with "korean\0\0\0"
+    # (preserving 9-byte length). Carousel slot 16 cell title still
+    # displayed "Random / Random" — no visible effect. The .gfx
+    # constant pool only has TWO "Random" occurrences ("RANDOM"
+    # slotData16 identifier at 0x5204 and "random" in "Math.random"
+    # at 0x573f) — neither is the displayed title source. The
+    # title is runtime-constructed by PPU code, not anywhere in
+    # the .gfx or stringdatabase.gsd.
+    # iter-161 patch reverted.
 
     return patches
 
