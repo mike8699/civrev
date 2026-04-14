@@ -1,0 +1,53 @@
+{
+  "milestone": "M7",
+  "pass": false,
+  "oracle": "end-turn 50x without crash; HUD stays OCR-readable; game is still on the world map at the end (not soft-exited to menu)",
+  "target_turns": 50,
+  "stages": {
+    "in_game": true,
+    "end_turn_loop": true,
+    "still_in_game_at_end": false
+  },
+  "snapshots": [
+    {
+      "turn": 5,
+      "ocr": "_ = = = = | = = > _ | A ~ \u201c = \u2014\u2014_-. \u201c= _ | at ye 3 , aie = | \\ pa > \u2014 van Ss | Koster 5 , (e End Turr | ert r bis is = anteit . ws ees, _ ; a ms -: | Z : ~ : gp | = sw a | 5 a a | > 4 \u00a5 , st eS | mar."
+    },
+    {
+      "turn": 10,
+      "ocr": "a \u201c r <<< | i= =, | \" 2 Se \u2014 Z c or \u2014 x ~ | F a < BS ef . \u2018 ; % =~ < | fos Fe a 4 | es ee oe | = =0s et an oe 8 : e | ee a | pie . 1 .. ae \u2014 sans: | = ae Beot 2k a | eS ~ an * Ee | a a NY SS | gow | e"
+    },
+    {
+      "turn": 15,
+      "ocr": "a ae = Je | < , ait = a> \u2014 \u2014t | ~s a = ey a | _ eas. : : | fe 4 Aa pi kes. 4 | om = ets Say \u2014 ey a , ~ | = ua Bi a Se en = \u2014 i a 3 . ==. a \u201c? \u2014\u2014e | = <a hi Settlers ) <= _ | rue =f a = @YFound City ea"
+    },
+    {
+      "turn": 20,
+      "ocr": "\u201c2 < = = 7 eS a \u2014 | Ze - : ~ \u00a5 \u2014 = = | SE 4 | > ae. \u201c ee \u201d be , as A 4 | EEE Sas | Oe 4 iia is =e End Turr | = \u2014~_ | ofl \\ 3h, | \u00a3 ea Saas | ce (Gs | : - \u2014 ys eo tai | . e \u2014_ a | are o- 4 J a \u2014 | = AN"
+    },
+    {
+      "turn": 25,
+      "ocr": "a= = = y ras | z = = \u2014 | a ; ; \u2014 \u2014_\u2014\u2014\u2014= : = | < aio. * ai \u201c SS < \u2018 ~F% a | > ab P <~ >\" an | 7 bak 4 ee _ Tos | ns poe ~ \u2014 t-4 | a \u20188 2, . - . re ae J eo | i a { i \u00e9 \u201c - ; \u201ca : - | S aes GE : . | aaa "
+    },
+    {
+      "turn": 30,
+      "ocr": "= == = <= | = = => \u2014\u2014 | ae, a | =z _ \u2014 =, : \u2014\u2014\u2014, = = | ~~ y i\u201c >. re : ? v | 5 < j \u2018 . 5\" \u201c 4 . \\ > | \u201d = Lc , x gi o . 7 575 - .\u2019 3 = t a 4 | _ ee i sf | Kae Spee tans | C2 ea | s a, \u00e9 \u201c y | ae i | m"
+    },
+    {
+      "turn": 35,
+      "ocr": "ee = \u2014 \u2014< \u2014_ | q -\u2014 | Information : ae | \u2014 > Sy cy. . \u2014\u2014\u2014 = | i c : < . __ le : \u201d A >\u00bb , = | . F \u2018ail , ee \u2014 Ss | a Bees a - | \u201c~ \u2014 ~~ ; F bs 2s : y, | ra <a ; x _ \u2014\u2014_ = \u2014 Li A = Sr P | Ja a ; \u2014 \u2014\u2014 . "
+    },
+    {
+      "turn": 40,
+      "ocr": "\u2014_ C cy MRS | Ee Ee. Single Playe | +e : te ii ee (a _____Multiplaye | Pl ye rec ~TEXtras | w < =f hs =a Options | eee"
+    },
+    {
+      "turn": 45,
+      "ocr": "i S STD MEIER'S ee | Ne % Se Ee i Single Play | pal yw rec Extras | Wd Se Options | eg 39 ame | | aie --"
+    },
+    {
+      "turn": 50,
+      "ocr": "ee CIVIL \u2014 | ka wenapeee 7 X_ Play Now | a 2% yay iA Be: ~~ Single Playe | ye ae | AVR | etcl ci rec Extras | $ ae ee fi 9 ux : 25) | : Ca hi a pe oo | \" = as i= La V\u2014\u2014\u2014\u2014vT 0"
+    }
+  ]
+}
