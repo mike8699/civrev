@@ -1,19 +1,24 @@
 #!/usr/bin/env bash
 # korea_mod/install.sh — stage the Korea mod into civrev_ps3/modified/
-# so the rpcs3_automation docker harness picks it up when it mounts
-# /game_disc_src.
+# and the RPCS3 HDD game directory.
 #
-# This script is deliberately conservative:
-#   1. It never touches the original stock FPKs under
-#      civrev_ps3/extracted/ — those are the canonical source trees.
-#   2. It never modifies civrev_ps3/Common0.FPK etc. at the repo root.
-#   3. It only writes to civrev_ps3/modified/PS3_GAME/USRDIR/, which
-#      is the docker-harness-mounted disc copy.
+# Writes to two locations:
+#   1. civrev_ps3/modified/PS3_GAME/USRDIR/ — the docker-harness-
+#      mounted disc copy (tracked in git).
+#   2. ~/.config/rpcs3/dev_hdd0/game/BLUS30130/USRDIR/EBOOT.BIN
+#      — the path RPCS3 actually boots from (per the iter-133
+#      finding). Dual-path EBOOT install is mandatory.
 #
-# v0.9 status: installs the modded Common0.FPK, Pregame.FPK (via
-# in-place byte patches in fpk_byte_patch.py — civ/ruler/city names),
-# and the patched EBOOT_korea.ELF (six harmless-on-v0.9 byte patches
-# applied by eboot_patches.py). All three are produced by build.sh.
+# Never touches the original stock FPKs under civrev_ps3/extracted/
+# or civrev_ps3/Common0.FPK — those are canonical sources.
+#
+# v1.0: installs the modded Common0.FPK, the byte-patched
+# Pregame_korea.FPK (fpk_byte_patch.py edits for civ/ruler/city
+# names), and the patched EBOOT_korea.ELF with 14 static byte
+# patches (iter-4 ADJ_FLAT relocation, iter-14 parser count bumps,
+# iter-159 slot 16 description, iter-162 title, iter-165 Sejong
+# TOC redirect, iter-167 era bonuses). See PRD §10 for per-
+# iteration patch breakdown.
 
 set -euo pipefail
 
@@ -59,12 +64,12 @@ install_fpk() {
 install_fpk Common0
 install_fpk Pregame
 
-# EBOOT patch install — only when the build step produced one.
+# EBOOT patch install — delegate to install_eboot.sh for the
+# dual-path install (modified/ + dev_hdd0/). install_eboot.sh also
+# handles backing up the original encrypted SCE EBOOT the first
+# time it runs.
 if [ -f "$BUILD/EBOOT_korea.ELF" ]; then
-    EBOOT_DST="$DISC_USRDIR/EBOOT.BIN"
-    backup_once "$EBOOT_DST"
-    cp "$BUILD/EBOOT_korea.ELF" "$EBOOT_DST"
-    echo "[install] installed patched EBOOT"
+    "$HERE/scripts/install_eboot.sh"
 else
     echo "[install] WARNING: no EBOOT_korea.ELF in _build/ — run ./build.sh first"
 fi
