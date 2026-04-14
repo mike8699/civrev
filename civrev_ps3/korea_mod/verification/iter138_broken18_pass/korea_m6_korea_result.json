@@ -1,0 +1,14 @@
+{
+  "milestone": "M6",
+  "slot": 15,
+  "label": "korea",
+  "pass": true,
+  "oracle": "OCR in-game HUD after selecting slot 15 (korea)",
+  "stages": {
+    "main_menu": true,
+    "difficulty_selected": true,
+    "highlighted_ok": false,
+    "in_game_hud": true
+  },
+  "select_ocr": "Aontezuma Shaka Genghis ~* i in Random | Aztecs Zulu Khan = | \\ al aN Random | YS je (a / a fF wnwsn SHAS A | i \u2014_~- \\ lean \u2014 see =< =e ee eee 1 + nd LONI | a asf A 4 ase 3 AA Elizabeth woe ac rag\u2019 } "
+}
