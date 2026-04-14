@@ -168,54 +168,67 @@ PATCHES: list[Patch] = [
         description="redirect TOC entry r2-0x9d8 → new ADJ_FLAT base",
     ),
 
-    # ITER-131: null-guard wrapper for FStringA::SetLength (FUN_00c25f8c)
-    # and bl redirect inside FUN_00c26a00.
+    # ITER-132: null-guard at FUN_00c26a00 (replaces iter-131 wrapper
+    # which was aimed at the wrong fault site).
     #
-    # civ18-only Pregame (iter-127) reproduces a READ fault at
-    # 0xfffffff8 inside FUN_00c25f8c at 0xc25ff8
-    # (`lwz r0, 0x8(r11)` with r11 = *param_1 - 0x10 and
-    # *param_1 == NULL). Static analysis (iter-129/130) tied this to
-    # the call site bl 0xc25f8c at 0xc26a60 inside FUN_00c26a00 —
-    # the parser's "copy string into FStringA" pipeline passes a
-    # FStringA whose buf field is still NULL because the 18th-entry
-    # slot was never initialized.
+    # iter-131 placed a null-guard wrapper around FUN_00c25f8c
+    # (FStringA::SetLength) on the theory that the civ18-only
+    # crash happened inside SetLength. But re-testing with the
+    # wrapper installed reproduced the SAME fault at PC 0xc26a00
+    # reading 0xfffffff8 — the wrapper was catching the NULL and
+    # SetLength was never entered, yet the crash persisted.
     #
-    # Fix: write a 4-instruction wrapper into the rodata zero-fill
-    # padding at 0x017f4088 (just past iter-4's 68-byte ADJ_FLAT
-    # table at 0x017f4040..0x017f4084) that null-checks *param_1
-    # before tail-calling the real SetLength. Then patch the bl
-    # at 0xc26a60 to call the wrapper instead.
+    # Re-reading FUN_00c26a00's full disassembly (0xc26a00..0xc26ac4)
+    # shows the real fault is in the function's TAIL, not in
+    # SetLength:
     #
-    # Wrapper body (16 bytes @ 0x017f4088):
-    #   lwz    r0, 0(r3)       80030000  ; r0 = *param_1 (buf ptr)
-    #   cmpwi  cr0, r0, 0      2c000000  ; is buf NULL?
-    #   beqlr                  4d820020  ; yes → return to caller
-    #   b      0xc25f8c        4b431ef8  ; no  → tail-call SetLength
+    #   0xc26a7c: lwz  r11, 0(r30)          ; r11 = *param_1 = buf
+    #   0xc26a80: addi r9, r11, -16          ; r9 = buf - 16
+    #   0xc26a84: clrldi r9, r9, 32          ; r9 = r9 & 0xffffffff
+    #   0xc26a88: lwz  r0, 12(r9)            ; r0 = length        ★
+    #   0xc26a8c: add  r11, r11, r0          ; r11 = buf + length
+    #   0xc26a90: li   r0, 0
+    #   0xc26a94: clrldi r11, r11, 32
+    #   0xc26a98: stb  r0, 0(r11)            ; *(buf+length) = 0  ★★
+    #   0xc26a9c: b    0xc26aa8              ; epilogue
     #
-    # The wrapper has NO stack frame, so the caller's LR is
-    # untouched: beqlr returns directly to FUN_00c26a00, and the
-    # unconditional `b` tail-calls SetLength which returns
-    # directly to FUN_00c26a00 when done.
+    # With buf == NULL: r11 = 0, r9 = 0xfffffff0, the lwz at
+    # 0xc26a88 reads 0xfffffffc (civ18-only), and the stb at
+    # 0xc26a98 writes 0x2a12c when buf was corrupted to 0x2a120
+    # (both-18). Both faults live in the SAME tail block — they
+    # just differ in which of the two memory ops trips first.
     #
-    # Only affects the single bl site at 0xc26a60. Every other
-    # caller of FUN_00c25f8c in the binary is unchanged.
+    # Clean fix: hijack the existing early-exit at 0xc26a44/48.
     #
-    # CAVEAT: this only silences the civ18-only NULL-read case.
-    # The both-18 case faults differently (WRITE to 0x2a12c in
-    # read-only .rodata, caused by a FStringA buf corrupted to
-    # 0x2a120 by upstream rulernames → civnames state leak). That
-    # needs a separate investigation in iter-132+.
+    #   Original:
+    #     0xc26a3c: lwz   r0, 0(r30)      ; r0 = *param_1 (buf)
+    #     0xc26a40: clrldi r9, r3, 32
+    #     0xc26a44: cmpw  cr7, r5, r0     ; cr7 = (param_3 == buf)
+    #     0xc26a48: beq   cr7, 0xc26aa8   ; skip tail if equal
+    #
+    # The `param_3 == *param_1` comparison is an oddball
+    # optimization — comparing an int arg to a pointer value is
+    # semantically weird and only fires by coincidence. It's a
+    # safe instruction to repurpose.
+    #
+    #   Patched:
+    #     0xc26a3c: lwz   r0, 0(r30)      ; r0 = *param_1 (unchanged)
+    #     0xc26a40: clrldi r9, r3, 32     ; (unchanged)
+    #     0xc26a44: cmpwi cr7, r0, 0      ; NEW: cr7 = (buf == 0)
+    #     0xc26a48: beq   cr7, 0xc26aa8   ; NEW meaning: skip if NULL
+    #
+    # One-word in-place patch. cmpwi cr7, r0, 0 = 0x2f800000.
+    # The existing beq cr7, +0x60 at 0xc26a48 is unchanged —
+    # we're just changing what cr7 means when we reach it.
+    #
+    # Silences both the civ18-only NULL read AND the both-18 RO
+    # write case, since both come from the same tail block that
+    # this early-exit skips entirely.
     Patch(
-        offset=0x017f4088,
-        expected_old=b"\x00" * 16,
-        new=bytes.fromhex("800300002c0000004d8200204b431ef8"),
-        description="iter-131 null-guard wrapper for FStringA::SetLength",
-    ),
-    Patch(
-        offset=0x00c26a60,
-        expected_old=b"\x4b\xff\xf5\x2d",  # bl FUN_00c25f8c
-        new=b"\x48\xbc\xd6\x29",            # bl 0x017f4088 (wrapper)
-        description="iter-131 redirect bl to null-guard wrapper",
+        offset=0x00c26a44,
+        expected_old=b"\x7f\x85\x00\x00",  # cmpw cr7, r5, r0
+        new=b"\x2f\x80\x00\x00",            # cmpwi cr7, r0, 0
+        description="iter-132 in-place null-guard for FUN_00c26a00 tail",
     ),
 ]
 
