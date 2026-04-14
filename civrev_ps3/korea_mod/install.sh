@@ -10,10 +10,10 @@
 #   3. It only writes to civrev_ps3/modified/PS3_GAME/USRDIR/, which
 #      is the docker-harness-mounted disc copy.
 #
-# v1.0 status: installs only the modded FPKs. The patched EBOOT step
-# is wired but skipped when korea_mod/_build/EBOOT_korea.ELF is
-# missing, which is the current state because §5.1 investigation is
-# still open.
+# v0.9 status: installs the modded Common0.FPK, Pregame.FPK (via
+# in-place byte patches in fpk_byte_patch.py — civ/ruler/city names),
+# and the patched EBOOT_korea.ELF (six harmless-on-v0.9 byte patches
+# applied by eboot_patches.py). All three are produced by build.sh.
 
 set -euo pipefail
 
@@ -66,7 +66,7 @@ if [ -f "$BUILD/EBOOT_korea.ELF" ]; then
     cp "$BUILD/EBOOT_korea.ELF" "$EBOOT_DST"
     echo "[install] installed patched EBOOT"
 else
-    echo "[install] no EBOOT_korea.ELF — EBOOT patch step skipped (expected until §5.1 lands)"
+    echo "[install] WARNING: no EBOOT_korea.ELF in _build/ — run ./build.sh first"
 fi
 
 echo "[install] done. Boot via civrev_ps3/rpcs3_automation/docker_run.sh"
