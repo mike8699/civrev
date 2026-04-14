@@ -234,3 +234,30 @@ either:
 
 None of these fit in the current bash harness iteration budget.
 v0.9 remains the definitive shipping state.
+
+## iter-26 — v130_clean caller chain expansion
+
+Used static binary scan (not Ghidra) to trace enclosing functions
+of the 5 `bl 0xc26a00` sites in v130_clean. Each caller's
+enclosing function identified by prologue scan; each enclosing
+function's upward callers found by `bl` instruction search:
+
+| call site | fn start | upward callers |
+|---|---|---|
+| 0xc26c4c | 0xc26b74 | 8 (0xa32784, 0xb29a74, 0xc19028, 0xc190a8, 0xc2912c, 0xc29b48, 0xc2b678, 0xc2b894) |
+| 0xc43fe4 | 0xc43dd0 | 4 (0xb35f50, 0xc3bccc, 0xc3f714, 0xc50a68) |
+| 0xc4a330 | 0xc4a2f8 | 1 (0xc4a9c4) |
+| 0xc4a884 | 0xc4a7dc | 0 (vtable call only) |
+| 0xc4b18c | 0xc4b100 | 1 (0xc48d2c) |
+
+**All callers are in the 0xa00000..0xc50000 range** — deep class
+methods, not near game init (0x10000..0x40000) or the name-file
+init around 0xa21ce8. This confirms: the fault-site function is
+many levels removed from the civ-name init chain.
+
+To connect any of these back to the init chain would require
+walking callers 4-6 levels deep through the game's class
+hierarchy — each level multiplies fan-out. Without a symbolized
+Ghidra project of v130_clean specifically (as opposed to the
+different EBOOT.ELF variant Ghidra has), manual trace is
+impractical.
