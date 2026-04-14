@@ -75,7 +75,7 @@ shopt -u nullglob
 
 # M0a — EBOOT patch dry-run. Fallback when the patcher is not yet wired.
 if [ -f "$HERE/eboot_patches.py" ]; then
-    if ! python3 "$HERE/eboot_patches.py" --dry-run --in "$ROOT/EBOOT_v130_clean.ELF" > "$VDIR/M0/dry_run.log" 2>&1; then
+    if ! python3 "$HERE/eboot_patches.py" --dry-run --in "$ROOT/EBOOT_v130_decrypted.ELF" > "$VDIR/M0/dry_run.log" 2>&1; then
         m0_pass=false
         m0_notes="eboot_patches.py --dry-run failed (see verification/M0/dry_run.log); $m0_notes"
     fi

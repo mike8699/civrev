@@ -27,16 +27,34 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
-# The clean base EBOOT. All file offsets in PATCHES are against this
-# specific file. Hash-gate to catch accidental base drift.
+# The clean base EBOOT. iter-137 switched the base from
+# `EBOOT_v130_clean.ELF` (a SELF→ELF extract that was missing the SCE
+# loader's runtime fixups, causing a libnet-stub NULL deref at boot)
+# to `EBOOT_v130_decrypted.ELF` produced by `rpcs3 --decrypt`. The
+# decrypted ELF carries 8 program headers including PT_SCE_RELA and
+# PT_TLS, and has the .data sprx slots (e.g. 0x18b5a08) properly
+# populated, so RPCS3's plain-ELF loader path boots it cleanly.
+#
+# Hash-gate against the new base.
 EXPECTED_BASE_SHA256 = (
-    "f69b4e4ed8cd5e7fa668bb65ea1d19f87b6fb17d3ada122183a3f3e6054a06ce"
+    "318eab2c91c23ea08b56fb92f512f69a3404967e5e794384157b87ea4786ce96"
 )
 
 
 @dataclass
 class Patch:
-    """A single-site byte patch against EBOOT_v130_clean.ELF."""
+    """A single-site byte patch.
+
+    `offset` is interpreted as a VIRTUAL ADDRESS, not a file offset.
+    The patcher walks the ELF's PT_LOAD program headers to translate
+    each vaddr to the corresponding file offset before reading or
+    writing. This is necessary because the iter-137 decrypted ELF has
+    `p_offset != p_vaddr` (file offset 0x0 for PT_LOAD #0 with vaddr
+    0x10000), unlike the old `EBOOT_v130_clean.ELF` where they matched.
+
+    The `expected_old` byte values are unchanged across both ELFs —
+    only the file offsets where they live differ.
+    """
 
     offset: int
     expected_old: bytes
@@ -274,6 +292,32 @@ PATCHES: list[Patch] = [
 ]
 
 
+def _build_vaddr_to_file_offset(raw: bytes):
+    """Build a (vaddr_lo, vaddr_hi, p_offset) table from PT_LOAD headers."""
+    e_phoff = _struct.unpack(">Q", raw[0x20:0x28])[0]
+    e_phnum = _struct.unpack(">H", raw[0x38:0x3a])[0]
+    segments: list[tuple[int, int, int]] = []
+    for i in range(e_phnum):
+        off = e_phoff + i * 56
+        p_type = _struct.unpack(">I", raw[off : off + 4])[0]
+        if p_type != 1:
+            continue
+        p_offset = _struct.unpack(">Q", raw[off + 8 : off + 16])[0]
+        p_vaddr = _struct.unpack(">Q", raw[off + 16 : off + 24])[0]
+        p_filesz = _struct.unpack(">Q", raw[off + 32 : off + 40])[0]
+        if p_filesz == 0:
+            continue
+        segments.append((p_vaddr, p_vaddr + p_filesz, p_offset))
+    return segments
+
+
+def _vaddr_to_file(segments, vaddr: int) -> int | None:
+    for lo, hi, p_offset in segments:
+        if lo <= vaddr < hi:
+            return vaddr - lo + p_offset
+    return None
+
+
 def apply_patches(
     base: Path, dest: Path | None, dry_run: bool
 ) -> int:
@@ -289,13 +333,23 @@ def apply_patches(
             )
             return 2
 
+    segments = _build_vaddr_to_file_offset(raw)
+
     mismatches = 0
     applied = 0
     for p in PATCHES:
-        current = bytes(raw[p.offset : p.offset + len(p.expected_old)])
+        file_off = _vaddr_to_file(segments, p.offset)
+        if file_off is None:
+            print(
+                f"  {p.offset:#010x}  vaddr not in any PT_LOAD segment  "
+                f"# {p.description}"
+            )
+            mismatches += 1
+            continue
+        current = bytes(raw[file_off : file_off + len(p.expected_old)])
         status = "ok" if current == p.expected_old else "MISMATCH"
         print(
-            f"  {p.offset:#010x}  "
+            f"  vaddr {p.offset:#010x}  file_off {file_off:#010x}  "
             f"old={p.expected_old.hex()} "
             f"new={p.new.hex()}  {status}  # {p.description}"
         )
@@ -303,7 +357,7 @@ def apply_patches(
             mismatches += 1
             continue
         if not dry_run:
-            out[p.offset : p.offset + len(p.new)] = p.new
+            out[file_off : file_off + len(p.new)] = p.new
             applied += 1
 
     print(f"[eboot_patches] {len(PATCHES)} planned, {mismatches} mismatch, {applied} applied")
@@ -327,7 +381,7 @@ def main() -> int:
     args = ap.parse_args()
 
     here = Path(__file__).resolve().parent
-    src = Path(args.src) if args.src else here.parent / "EBOOT_v130_clean.ELF"
+    src = Path(args.src) if args.src else here.parent / "EBOOT_v130_decrypted.ELF"
     dest = Path(args.dest) if args.dest else here / "_build" / "EBOOT_korea.ELF"
 
     if not src.exists():
