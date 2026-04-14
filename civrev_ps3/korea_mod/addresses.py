@@ -78,6 +78,31 @@ KOREA_MOD_ADJ_FLAT_CALLSITES = (
     0x00ff09e4,  # lwz r28, -0x9d8(r2)
 )
 
+# iter-14: the name-file init dispatcher. FUN_00a21ce8 calls
+# FUN_00a216d4 eight times — once per name file (CityNames, UnitNames,
+# TechNames, FamousNames, WondernamesMale, WondernamesFemale,
+# RulerNames, CivNames). Each call passes an entry-count in r5. Only
+# RulerNames and CivNames use count=0x11 (17) — everything else uses
+# a different count depending on how many entries that file has.
+#
+# Patched from 0x11 → 0x12 in eboot_patches.py so the parser will
+# accept an 18-entry input file (harmless no-op on the v0.9 path since
+# the stock files still have exactly 17 rows — the parser bails at
+# EOF regardless of the count ceiling).
+KOREA_MOD_INIT_GENDERED_NAMES_DISPATCH = 0x00a21ce8  # FUN_00a21ce8
+KOREA_MOD_INIT_GENDERED_NAMES_WORKER   = 0x00a216d4  # FUN_00a216d4
+KOREA_MOD_RULERNAMES_COUNT_LI_R5_SITE  = 0x00a2ee38  # li r5, 0x11
+KOREA_MOD_CIVNAMES_COUNT_LI_R5_SITE    = 0x00a2ee7c  # li r5, 0x11
+
+# FUN_00029f18 — the std::vector::insert/reserve variant whose
+# instruction at 0x0002a12c is the fault-address target whenever the
+# broken-18-entry civnames path is active (see
+# verification/M2_iter25_analysis.md). Kept here so future debugging
+# sessions have a named anchor.
+KOREA_MOD_STD_VECTOR_INSERT_VARIANT    = 0x00029f18  # FUN_00029f18
+KOREA_MOD_FAULT_TARGET_INSIDE_VECTOR   = 0x0002a12c  # stb target of corrupted r11
+KOREA_MOD_FAULTING_INSTRUCTION_SITE    = 0x00c26a98  # stb r0, 0(r11)
+
 # Placeholders pending investigation ---------------------------------------
 
 # §5.1 — _NCIV references. The binary has no single "NCIV" constant; `16`
