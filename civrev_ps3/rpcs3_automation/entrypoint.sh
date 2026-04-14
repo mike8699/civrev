@@ -262,6 +262,9 @@ elif [ "${1:-}" = "multiplayer" ]; then
 elif [ "${1:-}" = "korea" ]; then
     shift
     exec python3 test_korea.py "$@"
+elif [ "${1:-}" = "korea_play" ]; then
+    shift
+    exec python3 test_korea_play.py "$@"
 else
     exec python3 test_map.py "$@"
 fi

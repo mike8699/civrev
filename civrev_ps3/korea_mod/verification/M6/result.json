@@ -1,0 +1,12 @@
+{
+  "milestone": "M6",
+  "pass": true,
+  "oracle": "OCR in-game HUD for 'Sejong' or 'Koreans'",
+  "stages": {
+    "main_menu": true,
+    "difficulty_selected": true,
+    "korea_highlighted": true,
+    "in_game_hud": true
+  },
+  "korea_select_ocr": "Aontezuma Shaka Genghis 7 = Random | Aztecs Zulu Khan ar al a Random | Uh Pm ares |e, SS _ fF le mssn SH bree | , bad if i : F , q \u201c J AL \\ | a om aak => as a s AT Sejong ATA ac og\u2019 } AY | \u201d ae Ee \\ a"
+}
