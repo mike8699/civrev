@@ -51,6 +51,12 @@ class GDBClient:
                 pass
             self.sock = None
 
+    def query_supported(self) -> str:
+        """Send qSupported; returns the raw reply string. RPCS3's PPU
+        stub returns a list of feature strings telling us which
+        Z-packets and watchpoint types it implements."""
+        return self._send_cmd("qSupported:swbreak+;hwbreak+;vContSupported+")
+
     def _drain(self):
         """Read and discard any pending data."""
         self.sock.setblocking(False)

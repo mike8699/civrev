@@ -274,6 +274,9 @@ elif [ "${1:-}" = "korea_gdb" ]; then
 elif [ "${1:-}" = "korea_bp_probe" ]; then
     shift
     exec python3 test_korea_bp_probe.py "$@"
+elif [ "${1:-}" = "gdb_smoke" ]; then
+    shift
+    exec python3 test_gdb_smoke.py "$@"
 else
     exec python3 test_map.py "$@"
 fi
