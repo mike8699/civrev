@@ -116,7 +116,7 @@ verification artifacts are committed to
 
 | Milestone | Status | Evidence |
 |---|---|---|
-| M0 static | green | `verify.sh --tier=static`; 9632 FPK content checks |
+| M0 static | green | `verify.sh --tier=static`; xmllint + FPK round-trip (~9632 file content checks) + eboot dry-run + M0e committed-artifact pass-flag scan (13 result.json files) |
 | M1 boot | green | `verification/M1/ingame_spawn_screenshot.png` |
 | M2 civ-select | green | `verification/M2_iter8/slot15_sejong_koreans_final.png` |
 | M3 post-select | green | implicit through M6/M7 |
