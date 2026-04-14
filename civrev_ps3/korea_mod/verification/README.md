@@ -16,7 +16,8 @@ baseline, don't overwrite in place.
 | `M6/` | 4000 BC start + found city | `civ_select_korea.png`, `in_game_settlers.png`, `result.json` |
 | `M6_iter29/` | M6 re-verified with Korean city names | `korea_m6_korea_result.json` + screenshot (iter-29 city names PASS) |
 | `M7/` | 50-turn soak (iter-10 baseline) | turn 20 / 50 screenshots, `result.json` and `result_50turn.json` |
-| `M7_iter33/` | 50-turn soak post iter-29 city names | turn 5/30/35 screenshots, `result.json`, `notes.md` (flags the main-menu soft-exit oracle hole that iter-34 closed) |
+| `M7_iter33/` | 50-turn soak post iter-29 city names (OLD oracle) | turn 5/30/35 screenshots, `result.json`, `notes.md` (flags the main-menu soft-exit oracle hole that iter-34 closed) |
+| `M7_iter72/` | 50-turn soak with iter-34 tightened oracle | turn 30/35/50 screenshots, `result.json` (`pass=false`, first real-world firing of `still_in_game_at_end`), `notes.md` (confirms the early-exit is a test-harness idle-settler limitation, not a mod regression) |
 | `M9/` | 4-civ stock regression (PRD §9 DoD 5) | Caesar slot 0, Catherine slot 5, Mao slot 6, Lincoln slot 7 — each with `<name>_result.json` + `<name>_slot<N>_civ_select.png` + `<name>_in_game.png` |
 | `M2_iter12/` .. `M2_iter25_analysis.md` | failed 17-slot extension investigation | iter-12..25 summaries / RPCS3 logs / GDB dumps; none of these represent a shipping state, they document the §7.7 STOP research trail |
 
