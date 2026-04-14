@@ -1,0 +1,14 @@
+{
+  "milestone": "M9",
+  "slot": 16,
+  "label": "koreans",
+  "pass": true,
+  "oracle": "OCR in-game HUD after selecting slot 16 (koreans)",
+  "stages": {
+    "main_menu": true,
+    "difficulty_selected": true,
+    "highlighted_ok": false,
+    "in_game_hud": true
+  },
+  "select_ocr": "oi le = | f | | me , | Shaka Genghis Sejong |_| | Zulu Khan Koreans \u201ci | y oT oF q ; \u00ab| \u2018 7\" ', Fi VF ie | \"Fax St oP ) sejong 4 ~ ls prog/ } ' AY | \\? be hohe :: 7 Sejong 7 \u2018be | ag | af Se rit & AM "
+}
