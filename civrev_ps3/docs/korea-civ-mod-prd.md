@@ -1188,6 +1188,76 @@ v1.0 counters (the only ones that matter for the current scope):
 
 ---
 
+### 2026-04-14 — iter-6 (leaderheads.xml is not the civ-select lever)
+
+**Status:** investigating; M1 still green, M2 still red
+**Working on:** §5.1 / §6.3 invalidation, iter-7 pivot
+
+**Did this iteration:**
+- **Critical diagnostic:** temporarily swapped `xml_overlays/
+  leaderheads.xml` slot 15 from `Text="Elizabeth"` to
+  `Text="SejongTest"`, rebuilt, reinstalled, re-ran
+  `test_korea.py`. The civ-select carousel still rendered
+  "Elizabeth / English" at slot 15 (screenshot evidence in
+  `verification/M2_iter6/slot15_still_elizabeth.png`).
+- **Retires PRD §6.3's premise.** leaderheads.xml's `Text`
+  attribute is NOT read by the civ-select carousel. The overlay
+  ships as a no-op; the fourth-counter for §6.3 XML overlays (1/4
+  with the current Sejong entry) is not meaningful for M2.
+- **Reverted the diagnostic.** leaderheads.xml is back to the
+  17-entry form from iter-4. No harm, no help.
+- **Located the live leaderhead data pool** at `0x01939000..
+  0x0193a288` in the data segment — a mixed string-pointer table
+  that holds "gandhi", "Gandhi", "ind_gandhi.xml", "Montezuma",
+  "Caesar", "rom_caesar.xml", ... in non-civ-enum order (appears
+  to be leaderheads.xml file-order or similar). This is the real
+  leaderhead data structure, statically compiled into the EBOOT.
+  There is no obvious 16-entry civ-enum-indexed pointer array in
+  this region — the layout is a string pool that the CcCiv
+  class presumably walks.
+- **Random-slot RE partial.** Found the "Random" string at
+  `0x0169d290` and its TOC entry at `0x0193aca8` (TOC-relative
+  offset `+0xa20` from `r2=0x0193a288`). Five code sites load it
+  via `lwz rN, 0xa20(r2)`, all in a region around `0xa14448..
+  0xa1fa84` — candidate civ-select render functions. None of them
+  has a nearby `cmpwi 0x10` or `cmpwi 0x11`; the only
+  small-immediate compare in the surrounding 8 KB is `cmpwi r3,18`
+  at `0xa159bc`, which may or may not be a civ-count bound.
+
+**Verification:**
+- `korea_mod/verification/M2_iter6/result.json` → fail (expected
+  and surmountable)
+- M1 still green; the 78-byte EBOOT patch from iter-4 still runs.
+
+**Open blockers:**
+- **The civ-select display strings come from a source we have not
+  yet located.** It is neither `leaderheads.xml` (proven) nor the
+  dead rodata tables at `0x194bxxx` (also proven) nor the obvious
+  data-pool at `0x1939xxx` (which lacks a civ-indexed lookup).
+  The next step requires either (a) Ghidra UI XREFs on the class
+  `CcCiv::GetLeaderName()` or similar, or (b) live GDB on a
+  running RPCS3 with a watchpoint on the "Caesar" / "Elizabeth"
+  string addresses to catch the read.
+
+**Next iteration should:**
+1. Attach `gdb_client.py` to a running RPCS3 on the civ-select
+   screen, use `read_memory` / `search` to find where "Caesar"
+   appears in mutable memory, and trace back to the struct /
+   array that holds the pointer. That struct is the real v1.0
+   target.
+2. Alternatively, open `civrev_ps3/ghidra/civrev.gpr` in Ghidra
+   UI directly and look up XREFs to the leader display-name
+   strings (`0x016a38a8` for "Caesar", `0x016a3c38` for "Mao").
+   Any function that references them is a candidate consumer.
+3. Consider a completely different tack: patch the 16-byte
+   `Roman`, `Romans`, `Chinese`, ... string references in the
+   data pool directly (e.g. overwrite "English" with "Korean" so
+   civ slot 15 becomes Korea). This loses England but proves the
+   name-lookup lever and produces a testable "Korea is selectable"
+   state. It's not §9 DoD-compliant but unblocks M7 testing.
+
+**PRD changes made this iteration:** Progress Log entry added.
+
 ### 2026-04-14 — iter-5 (M1 pass, M2 fail, Random-slot discovery)
 
 **Status:** M1 green; M2 fail (surmountable)
