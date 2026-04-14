@@ -37,6 +37,17 @@ def _shot(label):
 
 
 def main():
+    # Optional arg: slot number to select (default 15 for Korea).
+    # Iter-11 reuses this script for M9 regression by passing slot=6 (Mao).
+    slot = 15
+    label = "korea"
+    if len(sys.argv) > 1:
+        try:
+            slot = int(sys.argv[1])
+            label = sys.argv[2] if len(sys.argv) > 2 else f"slot{slot}"
+        except ValueError:
+            pass
+
     game_path = L._find_game_path()
     launch_time = time.time()
     print(f"Launching RPCS3 with {game_path}")
@@ -47,9 +58,11 @@ def main():
     )
 
     result = {
-        "milestone": "M6",
+        "milestone": "M6" if slot == 15 else "M9",
+        "slot": slot,
+        "label": label,
         "pass": False,
-        "oracle": "OCR in-game HUD for 'Sejong' or 'Koreans'",
+        "oracle": f"OCR in-game HUD after selecting slot {slot} ({label})",
         "stages": {},
     }
 
@@ -106,28 +119,34 @@ def main():
         result["stages"]["difficulty_selected"] = True
 
         # Civ-select: 20 Lefts to normalize to Romans (slot 0),
-        # then 15 Rights to Korea at slot 15.
+        # then N Rights to the target slot.
         print("  Normalizing to leftmost (Romans)")
         for _ in range(20):
             _press("Left", 0.25)
         _shot("05_romans_normalized")
 
-        print("  Scrolling right 15 to Korea slot")
-        for _ in range(15):
+        print(f"  Scrolling right {slot} to {label} (slot {slot})")
+        for _ in range(slot):
             _press("Right", 0.3)
-        _shot("06_korea_highlighted")
+        _shot("06_slot_highlighted")
 
         # OCR the current selection to confirm
         text = L._ocr_screen(region=(0.0, 0.3, 1.0, 0.85))
-        korea_on_screen = any(k in text for k in ("Sejong", "Korean", "Korea"))
-        result["stages"]["korea_highlighted"] = korea_on_screen
-        result["korea_select_ocr"] = (
+        target_keywords = {
+            15: ("Sejong", "Korean", "Korea"),
+            6: ("Mao", "Chinese", "China"),
+            0: ("Caesar", "Romans", "Roman"),
+            5: ("Catherine", "Russians"),
+        }.get(slot, ())
+        target_on_screen = any(k in text for k in target_keywords)
+        result["stages"]["highlighted_ok"] = target_on_screen
+        result["select_ocr"] = (
             " | ".join(s.strip() for s in text.splitlines() if s.strip())[:200]
         )
-        if korea_on_screen:
-            print("  *** Korea confirmed on civ-select before confirm ***")
+        if target_on_screen:
+            print(f"  *** {label} confirmed on civ-select before confirm ***")
         else:
-            print(f"  WARNING: Korea keyword not detected; OCR: {text[:200]!r}")
+            print(f"  WARNING: {label} keyword not detected; OCR: {text[:200]!r}")
 
         # Confirm selection
         _press("X", 15)
@@ -142,10 +161,11 @@ def main():
         # Wait up to 60s for in-game HUD. Poll OCR every 5s for HUD text.
         print("  Waiting for in-game HUD")
         hud_seen = False
+        hud_markers = ("Turn", "Gold", "Science", "Found City", "Settlers", "BC")
         for poll in range(12):
             time.sleep(5)
             t = L._ocr_screen()
-            if any(k in t for k in ("Turn", "Gold", "Science", "Sejong", "Koreans", "Seoul")):
+            if any(k in t for k in hud_markers):
                 hud_seen = True
                 print(f"  HUD text detected on poll {poll}")
                 break
@@ -154,9 +174,9 @@ def main():
 
         if hud_seen:
             result["pass"] = True
-            print("  M6 PASS — Korea game loaded")
+            print(f"  {result['milestone']} PASS — {label} game loaded")
         else:
-            print("  M6 FAIL — no HUD text after 60s")
+            print(f"  {result['milestone']} FAIL — no HUD text after 60s")
 
     except Exception as e:
         print(f"test_korea_play exception: {e}")
@@ -174,7 +194,7 @@ def main():
                 pass
 
     Path("/output").mkdir(exist_ok=True)
-    out = Path("/output/korea_m6_result.json")
+    out = Path(f"/output/korea_{result['milestone'].lower()}_{label}_result.json")
     out.write_text(json.dumps(result, indent=2))
     print(f"wrote {out}; pass={result['pass']}")
     return 0 if result["pass"] else 1
