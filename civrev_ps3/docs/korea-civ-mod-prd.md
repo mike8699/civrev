@@ -3550,3 +3550,43 @@ Players have a choice of which Korea to play. slot 15 has the
 full English civ internals (color, portrait, unique units);
 slot 16 uses the Random slot's defaults (no portrait beyond
 the "?" silhouette, no special bonuses beyond cosmetic labels).
+
+### iter-169 (2026-04-14): Special Units "???" source not statically findable
+
+Investigated the slot 16 "Special Units: ???" placeholder.
+Findings:
+  - v0.9 slot 15 (England replacement) shows "Longbow Archer,
+    Lancaster Bomber, Spitfire Fighter" — a comma-separated
+    list of England's unique units.
+  - These unit names ARE in the EBOOT: "Longbow Archer" at
+    0x16ed020, "Spitfire fighter" at 0x16ed0f8, "Lancaster
+    bomber" at 0x16ed140.
+  - They're in a flat name array 0x16ed000..0x16ed160
+    containing ALL historic unique units (Ashigaru Phalanx,
+    Hoplite, Longbow Archer, Crossbow Archer, Trebuchet,
+    Cossack Horseman, Samurai Knight, Conqistador, Panzer
+    Tank, T34 Tank, Sherman Tank, 88mm gun, Howitzer, Zero
+    fighter, Mustang fighter, Spitfire fighter, Me109
+    fighter, Val bomber, Flying Fortess, Lancaster bomber,
+    Heinkel bomber, Trireme).
+  - But there's NO static "Longbow Archer, Lancaster Bomber,
+    Spitfire Fighter" comma-separated string. The list is
+    runtime-concatenated from individual unit names.
+  - For slot 16, the runtime concatenation produces no output
+    (no civ unit list), so the field falls back to "???" —
+    but the "???" fallback source isn't in the EBOOT or in
+    gfx_chooseciv.gfx either.
+
+The Special Units "???" for slot 16 likely comes from:
+  - A Scaleform TextField default value (inside the .gfx
+    binary format, not as a constant pool string)
+  - Or a runtime-constructed empty-placeholder string
+  - Or a localization file I haven't inspected
+  - Or Scaleform's builtin default for unset fields
+
+Without a Scaleform decompiler (JPEXS/ffdec), this is not
+tractable statically. Marking as v1.1 polish. The slot 16
+cell ships with "Special Units: ???" — cosmetic only.
+
+The project's current state (iter-168) remains the final
+ship state. iter-169 made no patches.
