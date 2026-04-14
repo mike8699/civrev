@@ -1,0 +1,52 @@
+{
+  "milestone": "M7",
+  "pass": true,
+  "oracle": "end-turn 50x without crash; HUD stays OCR-readable",
+  "target_turns": 50,
+  "stages": {
+    "in_game": true,
+    "end_turn_loop": true
+  },
+  "snapshots": [
+    {
+      "turn": 5,
+      "ocr": ": LSS ae oie = | ~~ \u2014 45 _ = \u2014 = | E ee. a OF a > oo \u2014\u2014 | og kegs \u2018 - (e End Turr | on ea N he Pe ee : is PO ry rome - aN s | ; - Saeco \u2014\u2014 | \u2014\u2014\u2014 \u00ae S | \u2014 yeas | zs oe A se | See |= | i i ee | a i ~ at "
+    },
+    {
+      "turn": 10,
+      "ocr": ", a aS ge ee | adie , a ws: G End Turr | ee 2 oni a | a a 5 Ro | = Sa LW | RU: | 4 aa \u20184 ee Ne a %; | eu Settlers FS | * \u2018| \u00ae Activate unit of 0 Ly, | J * rm - | c\\ Za\u00bb \u00a9 00"
+    },
+    {
+      "turn": 15,
+      "ocr": "\u201ca = : == > \u2014 | - -\u2014=\u2014 \u2014\u2014 \u2014\u2014 | FE . = | z = = \u00a5 \u2014\u2014\u2014\u2014_~ = = = | \u2014\u2014\u2014 7 ain, = | my 4 - \u2014 | \u2018 y ALA S< ~ \\ | > ae an wl =~ \u2018 | a * oa 7 ne + y ens, i > is . | se \u2014n oe as ss 4e ; ee seid i 5 a \\ , | ae P"
+    },
+    {
+      "turn": 20,
+      "ocr": "- = ee i = | \u2014 le = e = : | i Jae \u2014\u2014.= ees | _ 7 Pay, wr \u2122 a t f \u201c+ | | BEA settlers ee | (ZX Found City ep aah, | se femme tar eee | eee F Ea Ay aes | ; \" 2 e \u2018 2 apa | a ee oe | \u2014 \\_ Ag | a RRA a] o"
+    },
+    {
+      "turn": 25,
+      "ocr": "= SF = y\u2014 = = = = | 4 z = = \u2014 | cs - \u201c = \u2014_ \u2014-. \u201c= _ | << my 7 \u00a5 vo . - | ya Z b \u201cass A Sn < __* i | cals 7 ati wad a(@ End Turr | \u2014 \u2019 oy | \u2014\u2014 * | Pr : e irene Se 2 \\\\ & | > * YN . | oe <ee YES oe \u201cAS"
+    },
+    {
+      "turn": 30,
+      "ocr": "= a ea SS = | wE \u2014 ee \u2014\u2014 | . > = = | \u2014\u2014 3 ad \u2014 \u00a5 3 \u2014\u2014_\u2014_ = | Ca | \u2018 Wu | 4 vy \u2122 a fo, 7 , | <ote vas \u00bb \u2019 ween Dian \u2018 y we Lan? cme = See | | a ile He. _ _ ee eh ee | ws Pe OM i ie | Z \u2018 2 = ee | . Ss "
+    },
+    {
+      "turn": 35,
+      "ocr": "pe C SI MER S | fe & \u201cAy |  <e (x Play Now | A Pe Single Playe | re EL eB = miipnye | Ww < =A - ss =. Options | \u00a3\u00a2 324) Sem | le T_ . i"
+    },
+    {
+      "turn": 40,
+      "ocr": "& STD METER'S -_ | a : . yay id aS \u201c \u201d _ Single Playe | ye : Ate di .: \u00a2 ee pa 2 Multiplayer | pra. yo rec Extras | Ye | . ae ee fi 9 ux : <5 | : Ca hi a pe oo"
+    },
+    {
+      "turn": 45,
+      "ocr": "C ST) METER S | REVOLU | nial | | ae Waar (x Play Now | a \u2122 ya id ges. _ _ _ Single Playe | pe y al yN \u201c\u2014\u00a7 ay __Extras | wy Bae | <6 ssi = a | : ia I \u2014 ee"
+    },
+    {
+      "turn": 50,
+      "ocr": "C SID IVIB IES | a : . yay id aS \u201c \u201d _ Single Playe | ye : Ate di .: \u00a2 = pa 2 Multiplayer | pra. yo rec Extras | Ye See | . ae ee fi 9 ux : as | : Ca hi a pe i"
+    }
+  ]
+}
