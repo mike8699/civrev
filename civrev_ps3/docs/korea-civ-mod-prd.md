@@ -2239,3 +2239,64 @@ The first time it runs, it backs up the encrypted SCE EBOOT to
 considered TENTATIVE pending re-verification against the HDD
 path, but I'm leaving them in place as historical record so
 future iterations can audit which findings actually held up.
+
+### iter-134 (2026-04-14): real broken_18 fault is at 0x0141fa4c, not FUN_00c26a00
+
+With the iter-133 install_eboot.sh dual-path infrastructure, I
+finally re-tested broken_18 against the actual patched ELF (not
+the encrypted SCE that iter-7..iter-132 was unknowingly running
+against). The result invalidates the entire FUN_00c26a00 fault
+chain that iter-127..iter-132 documented:
+
+```
+·F 0:00:46 main_thread [0x0141fa4c]
+   VM: Access violation reading location 0x0 (unmapped memory)
+Last function: _sys_prx_register_module
+r12 = 0
+```
+
+The fault is in a libnet stub thunk at 0x141fa00..0x141fa50. The
+thunk loads a function pointer from .data slot 0x18b5a08 and
+dereferences it. The slot is NULL, meaning the sprx that should
+have populated it didn't. This happens right after a
+`_sys_prx_register_module(name="_sysProcessElf")` call.
+
+v0.9 + same reverted EBOOT boots clean past this point
+(iter-133: n_threads=14 at +20s, no fault). So the fault is
+broken_18-specific. Why a Pregame.FPK change would affect sprx
+stub resolution is the next mystery.
+
+**Decompiled in this iteration** (under
+`korea_mod/scripts/ghidra_helpers/DecompResizeAndAlloc.py` and
+`DecompMoreParts.py`):
+
+  - FUN_00c25b1c — inner allocator (NULL-safe, just allocates fresh)
+  - FUN_00c25ebc — resize wrapper (NOT NULL-safe, reads *(buf-8))
+  - FUN_00c25f8c — SetLength (calls FUN_00c25ebc, NOT NULL-safe)
+  - FUN_00a00f54 — entry_init (sets entry[8] = TOC[r2-0x52c]+0x10)
+  - FUN_00a00f04 — entry_init second half (zeros entry[0], entry[4])
+  - FUN_00a2e640 — parser_worker (allocates count*12+4 bytes,
+                                  entry_init each slot, parses lines)
+  - FUN_00c72cf8 — per-line entry store (comma-split, store_name
+                                         + flag parsing)
+
+The FStringA model: each entry initially shares a static empty
+FStringA via TOC[r2-0x52c]+0x10. SetLength on an entry would
+resize the static and rebind entry[8] to the new heap buf. In
+theory all 18 slots should work the same way.
+
+**Iter-127..iter-132 invalidated.** Every conclusion in those
+iterations about FUN_00c26a00's role, the 0x2a12c WRITE fault,
+and the iter-132 cmpwi patch is now known to be artifacts of
+running against the unmodified encrypted SCE EBOOT. The actual
+broken_18 fault is the libnet stub NULL deref at 0x141fa4c.
+
+**Next iteration should:**
+- Trace why broken_18 corrupts sys_prx state. The Pregame parses
+  happen at boot time before the libnet stub call — possibly the
+  18-entry parse overwrites a portion of memory that a sprx
+  loader later reads as a function pointer table.
+- Check whether the slot at .data 0x18b5a08 is set by an earlier
+  init or by a relocation, and what's supposed to live there.
+- Run the `gdb_client` Z-packet path against this fault to inspect
+  the .data area at the moment of crash (per prompt.txt).
