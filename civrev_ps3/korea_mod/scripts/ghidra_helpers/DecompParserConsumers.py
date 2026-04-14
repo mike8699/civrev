@@ -35,8 +35,11 @@ def ensure_fn(va):
 
 
 TARGETS = [
-    (0x001e49f0, 'consumer_A_001e49f0'),
-    (0x011675d8, 'consumer_B_011675d8'),
+    (0x001e489c, 'vtable_method_0_001e489c'),  # vtable[+0]
+    (0x001e493c, 'vtable_method_1_001e493c'),  # vtable[+8]
+    (0x001e4a9c, 'vtable_method_3_001e4a9c'),  # vtable[+18] (after 49f0)
+    (0x001e4b5c, 'vtable_method_4_001e4b5c'),
+    (0x001e4c20, 'vtable_method_5_001e4c20'),
 ]
 
 for va, name in TARGETS:

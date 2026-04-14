@@ -2904,3 +2904,63 @@ of 16 cells, I'd need to either:
 - Or just run the Z-packet watchpoint plan from iter-145.
   We've burned enough static iterations; runtime data is
   more direct now.
+
+### iter-147 (2026-04-14): vtable methods decompiled; iterator still hidden
+
+Decompiled the vtable methods adjacent to FUN_001e49f0 to
+characterize the carousel cell class:
+
+  - `vtable[+0]`  = FUN_001e489c — constructor: sets `*param_1 =
+    TOC[+0x1404]`, calls FUN_00029270 twice on `param_1[5]` and
+    `param_1[6]`.
+  - `vtable[+8]`  = FUN_001e493c — partial setup; calls two
+    func_0x00012080 with parser fields (similar to FUN_001e49f0
+    but only updates ruler and civ name fields).
+  - `vtable[+10]` = FUN_001e49f0 — full cell init (the iter-146
+    find).
+  - `vtable[+18]` = FUN_001e4a9c — sets `param_1[5,6] = TOC[+0x13e4]
+    + 0x10`, zero-init `param_1[4]`. This looks like a "reset cell
+    to default state" method.
+  - `vtable[+20]` = FUN_001e4b5c — **byte-identical** to
+    FUN_001e4a9c (same instructions). Probably an alias method.
+  - `vtable[+28]` = FUN_001e4c20 — 568 bytes; branches on
+    `param_1 == 1` and `param_2 == 0xffff`. Looks like an input
+    event handler (key-press dispatcher).
+
+The class has fields at offsets +0, +4, +5, +6, +0x10, +0x14
+(rulername FStringA), +0x18 (civname FStringA), +0x20, +0x24.
+This IS a per-cell carousel data structure.
+
+But: **`func_0x00011230` has hundreds of callers** (it's a
+generic helper, not a unique signature), and **the array of
+class instances doesn't have a static address that points to
+0x0188c280** (its sole xref via 32-bit constant). The carousel
+cell-iterator is allocated dynamically and accessed via a
+runtime pointer chain.
+
+**Three options for iter-148:**
+
+  (a) **Z-packet GDB hardware watchpoint** on `*(r2+0x141c)` (the
+      civnames buffer pointer in the TOC). Set it before clicking
+      "Single Player" in the docker korea_play test, then watch
+      which functions read the civnames buffer during civ-select
+      rendering. The first reader after the parser_dispatcher is
+      the carousel iterator. This is the prompt.txt §b path that
+      I've avoided for too long.
+
+  (b) **Static scan for code that does `for (i=0; i<16; i++)
+      cell_array[i].vtable[+0x10]()`** — i.e., a 16-iteration loop
+      that calls a method at fixed offset +0x10 on each element.
+      The signature is `cmpwi rN, 0x10` near a `lwz rN, 0x10(rM);
+      mtctr rN; bctr` virtual-call sequence.
+
+  (c) **Trace from the input handler** — find the function that
+      handles arrow-key navigation in the civ-select screen
+      (probably called from Player 1 Input config dispatcher),
+      walk down to the cell-render code from there.
+
+(a) is the most direct. (b) is feasible from the tools I already
+have. (c) requires tracing input handlers which is similar work
+to (a) without the speed advantage of runtime breakpoints.
+
+iter-148 should commit to one of these and finish DoD item 1.
