@@ -224,6 +224,7 @@ if [ -n "$GAME_FILE" ]; then
     exec xenia \
         --apu=sdl \
         --license_mask=-1 \
+        --protect_zero=false \
         --log_file=/output/xenia.log \
         "$GAME_FILE"
 fi
