@@ -1195,6 +1195,60 @@ v1.0 counters (the only ones that matter for the current scope):
 
 ---
 
+### 2026-04-14 — iter-28..30 (v1.1 polish: Korean city names; docs refresh)
+
+**Status:** v0.9 shipping; v1.1 polish landed on top; **§7.7 STOP persists**
+**Working on:** pure polish items that don't re-open the 17-slot blocker
+
+**Did this iteration batch:**
+1. **iter-28:** refreshed the PRD "Status counters" block. It was
+   stale (showed 0/6 DoD, 0/5 investigations, M0-only). Now
+   reflects v0.9 shipping state: 4/5 DoD, 2/5 investigations,
+   §6.2 6/6, M0-M7+M9 green. Documentation-only commit.
+2. **iter-29:** extended `fpk_byte_patch.py` with 16 in-place
+   byte replacements in `citynames_enu.txt`'s ENGLISH block:
+   London → Seoul (capital), York → Naju, Nottingham → Pyongyang,
+   Hastings → Kaesong, Canterbury → Gyeongju, Coventry → Incheon,
+   Warwick → Kunsan, Newcastle → Gangneung, Oxford → Daegu,
+   Liverpool → Cheongju, Dover → Jeju, Brighton → Ulsan,
+   Norwich → Suwon, Leeds → Iksan, Reading → Gimpo,
+   Birmingham → Chuncheon. Every replacement preserves exact
+   byte length by padding with trailing spaces (the name parser
+   trims them before display, same trick as the Sejong/Elizabeth
+   patch). Verified M6 docker boot test PASS with the new
+   patches applied. Before iter-29 a Korean game's founded
+   cities were named "London"/"York"/etc. which was thematically
+   jarring; now they're Korean. Artifact:
+   `verification/M6_iter29/korea_m6_korea_result.json` +
+   screenshot.
+3. **iter-30:** refreshed README.md to document the iter-29
+   city-name feature, correct the stale EBOOT-patch count
+   (6 patches, not 4), and add `scripts/ghidra_helpers/` to
+   the repo layout block.
+
+**Verification:** M0 static PASS; M6 docker boot test PASS on
+iter-29 (korea slot 15 → in-game HUD, OCR detected Korea on
+civ-select, no crash). M7 50-turn soak scheduled but not yet
+archived — a future iteration should run it and archive the
+founded-Seoul screenshot for visual proof of the city-name
+patch.
+
+**Open blockers:** §9 DoD item 1 remains blocked per iter-11/25/27
+entries. Items 2–5 remain MET. v1.1 polish items added this
+batch do NOT affect DoD compliance either way.
+
+**Next iteration should:**
+- Run `docker_run.sh --headless korea_soak` and archive the
+  founded-Seoul screenshot under `verification/M7_iter30+/`.
+- Consider a separate polish: change the CIV_ENGLAND
+  `console_pediainfo_civilizations.xml` entry to link to
+  LEADER_SEJONG / UNIT_HWACHA placeholders so the in-game
+  civilopedia's "England" entry shows Korea-flavored links.
+- Do NOT retry the 18-entry civnames extension.
+
+**PRD changes made this iteration:** Status counters rewritten
+(iter-28); Progress Log batch entry added (this).
+
 ### 2026-04-14 — iter-27 (§7.7 stop re-affirmed; archive Ghidra helpers)
 
 **Status:** v0.9 shipping state unchanged; **§7.7 STOP persists**
