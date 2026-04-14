@@ -53,10 +53,93 @@ class Patch:
             )
 
 
-# Concrete patch list — empty until §5.1 lands. The structure is here
-# so that future iterations can drop Patch(...) instances into this
-# list without touching the rest of the file.
-PATCHES: list[Patch] = []
+# ---------------------------------------------------------------------------
+# v1.0 patch list — extends the live civ-adjective pointer table from 16 to
+# 17 entries by:
+#
+#   1. Allocating the null-terminated string "Korean\0" in the large
+#      zero-fill padding region at file offset 0x017f4038 (inside a
+#      ~144 KB zero run at 0x017f4036..0x01818036).
+#   2. Writing a new 17-entry pointer table at 0x017f4040 (4-byte
+#      aligned, immediately after the Korean string). Entries 0..15
+#      duplicate the original ADJ_FLAT table; entry 16 points at the
+#      new "Korean" string.
+#   3. Updating the two TOC entries at 0x01938354 and 0x019398b0 —
+#      which both currently hold 0x0195fe28 — to point at the new
+#      table base 0x017f4040.
+#
+# This relocates ADJ_FLAT without touching the original table's bytes,
+# so any stray reader (e.g. a function we haven't yet cataloged) that
+# still sees 0x0195fe28 will read the unchanged 16-entry data.
+#
+# The static 0x194bxxx tables (LDR_TAG, CIV_TAG, ADJ_PAIR, LEADER_NAMES)
+# are confirmed dead rodata (§5.1) and intentionally NOT patched.
+# ---------------------------------------------------------------------------
+
+import struct as _struct
+
+# Original ADJ_FLAT entries (virtual addresses of the 16 adjective strings).
+_ORIG_ADJ_ENTRIES = [
+    0x016a49f8,  # Roman
+    0x016a4a00,  # Egyptian
+    0x016a4a10,  # Greek
+    0x016a4a18,  # Spanish
+    0x016a4a20,  # German
+    0x016a4a28,  # Russian
+    0x016a4a30,  # Chinese
+    0x016a4a38,  # American
+    0x016a4a48,  # Japanese
+    0x016a4a58,  # French
+    0x016a4a60,  # Indian
+    0x016a4a68,  # Arab
+    0x016a4a70,  # Aztec
+    0x016a4a78,  # African
+    0x016a4a80,  # Mongolian
+    0x01692b00,  # English
+]
+
+_KOREAN_STRING_VA  = 0x017f4038   # 8 bytes: "Korean\0\0"
+_NEW_TABLE_VA      = 0x017f4040   # 68 bytes: 17 × 4-byte pointers
+_NEW_ENTRY_KOREAN  = _KOREAN_STRING_VA
+
+# Byte encodings
+_NEW_TABLE_BYTES = b"".join(_struct.pack(">I", p) for p in _ORIG_ADJ_ENTRIES + [_NEW_ENTRY_KOREAN])
+_KOREAN_BYTES    = b"Korean\0\0"
+
+# 32-bit BE pointer encodings of the old and new table base
+_OLD_BASE_BE = _struct.pack(">I", 0x0195fe28)
+_NEW_BASE_BE = _struct.pack(">I", _NEW_TABLE_VA)
+
+PATCHES: list[Patch] = [
+    # (1) Write "Korean\0\0" into the padding region.
+    Patch(
+        offset=_KOREAN_STRING_VA,
+        expected_old=b"\0" * len(_KOREAN_BYTES),
+        new=_KOREAN_BYTES,
+        description='allocate "Korean\\0" string in .rodata padding',
+    ),
+    # (2) Write the 17-entry pointer table.
+    Patch(
+        offset=_NEW_TABLE_VA,
+        expected_old=b"\0" * len(_NEW_TABLE_BYTES),
+        new=_NEW_TABLE_BYTES,
+        description="write extended ADJ_FLAT (17 entries) to .rodata padding",
+    ),
+    # (3a) Redirect TOC entry at 0x01938354 (r2-0x1f34).
+    Patch(
+        offset=0x01938354,
+        expected_old=_OLD_BASE_BE,
+        new=_NEW_BASE_BE,
+        description="redirect TOC entry r2-0x1f34 → new ADJ_FLAT base",
+    ),
+    # (3b) Redirect TOC entry at 0x019398b0 (r2-0x9d8).
+    Patch(
+        offset=0x019398b0,
+        expected_old=_OLD_BASE_BE,
+        new=_NEW_BASE_BE,
+        description="redirect TOC entry r2-0x9d8 → new ADJ_FLAT base",
+    ),
+]
 
 
 def apply_patches(
