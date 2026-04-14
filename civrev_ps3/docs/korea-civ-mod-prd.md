@@ -1297,6 +1297,66 @@ One of five DoD items unmet. The rest ship clean.
 **PRD changes made this iteration:** Progress Log entry added;
 §7.7 stop documented.
 
+### 2026-04-14 — iter-11..17 (RE deep-dive; §9 DoD 1 still blocked)
+
+Seven iterations of RE work targeting the §9 DoD item 1 blocker
+(Korea at slot 17 instead of replacing England at slot 15). All
+experiments documented in detail in
+`civrev_ps3/korea_mod/verification/M2_iter1{2,4,5,6}/`. High-level
+summary:
+
+**Tooling unlocked (iter-14/16):**
+- Ghidra 11.3.1 headless analysis of `civrev_ps3/ghidra/civrev.rep`
+  with custom Jython post-scripts. Enables XREF queries, function
+  enumeration, and decompile printing from the bash harness.
+- RPCS3 GDB stub attach via `gdb_client.py` from inside the docker
+  harness. Captures thread PCs and register state.
+
+**Parser located (iter-14):** The name-file init is `FUN_00a21ce8`
+→ `FUN_00a216d4` (eight calls, one per name file). The parser
+allocates `(count * 12 + 4)` bytes dynamically and writes the
+parsed entries in sequence — correctly scaled by the r5 count
+argument. In `EBOOT_v130_clean.ELF` the two sites are
+`0xa2ee38` (RulerNames_) and `0xa2ee7c` (CivNames_), both
+`li r5, 0x11` → `li r5, 0x12`. Two one-byte patches applied to
+`eboot_patches.py`; dry-run clean; v0.9 still boots with them
+active (no-ops when text files have 17 entries).
+
+**Downstream blocker (iter-14/15):** Bumping the parser count
+alone does NOT unblock civnames/rulernames 18-entry extension.
+RSX init still times out. There's a downstream consumer that
+hardcodes 17 somewhere — a pair-init loop that iterates civ[i]
+and ruler[i] together and writes to a fixed 17-wide table.
+
+**Static search for the downstream (iter-15/17):** Decompiled
+candidate functions that reference struct offsets 0xcd8/0xcdc/
+0xce0 (the name-array pointer fields in iStack_84's struct) and
+searched for ones that ALSO contain `cmpwi rX, 17/16`. **Zero
+hits.** The downstream loop bound isn't a static `cmpwi`
+instruction, or it uses a different struct offset.
+
+**GDB sampling (iter-16):** Attached to RPCS3 at 30s into a
+broken-Pregame boot. Captured 1 thread at PC=0x00c26a40 (inside a
+resource-loading wait loop). By 60s the PPU has zero active
+threads (game has crashed/exited). By 180s the GDB stub itself
+stops responding. The sample time resolution is too coarse to
+catch the exact divergence point between working and broken boot.
+
+**Shipping state unchanged — v0.9 stays green.** iter-14's EBOOT
+patches are harmless when text files stay at 17 entries. All
+§7-tier milestones except §9 DoD item 1 are green.
+
+**Future iteration direction:**
+1. Refine GDB sampling to 1-second intervals between 20s and 60s
+   to catch the exact second when PPU thread count drops to 0,
+   and the last-known PC before death.
+2. Write a Ghidra script to walk BSS/heap allocations for fixed
+   17 × ? byte buffers created by class constructors. Those are
+   the downstream candidates.
+3. Alternatively: open the Ghidra project GUI (not headless) and
+   use "XREF to" manually on the symbolically-named globals near
+   iStack_84's struct.
+
 ### 2026-04-14 — iter-10 (M7 full 50 turns; DoD 17-slot blocker confirmed)
 
 **Status:** v0.9 feature-complete; §9 DoD blocker pinned
