@@ -168,6 +168,49 @@ PATCHES: list[Patch] = [
         description="redirect TOC entry r2-0x9d8 → new ADJ_FLAT base",
     ),
 
+    # ITER-133: HDD EBOOT path discovery, and revert of iter-131/132.
+    #
+    # Critical finding: RPCS3 boots from
+    # `~/.config/rpcs3/dev_hdd0/game/BLUS30130/USRDIR/EBOOT.BIN`,
+    # NOT from `civrev_ps3/modified/PS3_GAME/USRDIR/EBOOT.BIN`. The
+    # disc EBOOT in the modified/ tree is read by entrypoint.sh but
+    # only copied over the disc copy if the DLC EBOOT magic is `7fELF`
+    # — the stock DLC EBOOT is an encrypted SCE SELF, so the copy
+    # is skipped, and RPCS3 prefers the dev_hdd0 EBOOT (the actual
+    # update path) over the disc one anyway.
+    #
+    # Result: every iteration from iter-7 through iter-132 was
+    # patching civrev_ps3/modified/...EBOOT.BIN and verifying nothing.
+    # All "fault silenced / fault returns" results were actually
+    # against a stable, never-modified encrypted SCE EBOOT in
+    # dev_hdd0. The fact that the iter-127 broken_18 fault and the
+    # iter-132 "civ18-only fix" both showed identical crash signatures
+    # was because they were running the SAME unmodified binary.
+    #
+    # iter-133 fix: the build pipeline must install the patched ELF
+    # to BOTH locations (modified/ for git tracking, dev_hdd0/ for
+    # actual RPCS3 boot). The `install_eboot.sh` helper added in
+    # this iteration writes both.
+    #
+    # Re-tested iter-132's `cmpwi cr7, r0, 0` patch with the proper
+    # HDD path: it DOES silence the iter-127 0xc26a00 fault for both
+    # civ18-only and broken_18, BUT also breaks v0.9 booting. v0.9
+    # crashes at 0x0141fa4c (sys_prx libnet stub) reading 0x0,
+    # which means the function `FUN_00c26a00` is NOT a NULL-safe
+    # noop — it's a lazy-init or in-place allocator for unset
+    # FStringAs. Skipping it leaves downstream FStringAs uninitialized
+    # and a later libnet thunk dereferences NULL.
+    #
+    # Conclusion: iter-132 patch reverted. The real fix needs to
+    # let FUN_00c26a00 RUN even when buf == NULL (so it allocates
+    # a buf properly). That requires either:
+    #   (a) understanding the function's allocation path and
+    #       triggering it correctly for the 18th entry slot, or
+    #   (b) chasing the upstream that fails to allocate the
+    #       18th slot's FStringA in the first place.
+    # Both require deeper static analysis of the parser and
+    # the FStringA lifecycle.
+    #
     # ITER-132: null-guard at FUN_00c26a00 (replaces iter-131 wrapper
     # which was aimed at the wrong fault site).
     #
@@ -224,12 +267,10 @@ PATCHES: list[Patch] = [
     # Silences both the civ18-only NULL read AND the both-18 RO
     # write case, since both come from the same tail block that
     # this early-exit skips entirely.
-    Patch(
-        offset=0x00c26a44,
-        expected_old=b"\x7f\x85\x00\x00",  # cmpw cr7, r5, r0
-        new=b"\x2f\x80\x00\x00",            # cmpwi cr7, r0, 0
-        description="iter-132 in-place null-guard for FUN_00c26a00 tail",
-    ),
+    # iter-132 cmpwi patch REMOVED in iter-133: it broke v0.9 booting
+    # because skipping FUN_00c26a00 on NULL-buf prevents the legitimate
+    # buf-allocation path (FUN_00c26a00 is the lazy-init for an unset
+    # FStringA, not a NULL-safe noop).
 ]
 
 
