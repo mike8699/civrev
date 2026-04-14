@@ -2173,3 +2173,69 @@ ABOVE. Wrapper reverted in iter-132.
   pointers via a 3-instruction sequence at 0xc26a40-48
   (clobbers r0/r9 — needs a second patch at 0xc26a4c to bypass
   the broken `mr r3, r9`).
+
+### iter-133 (2026-04-14): HDD EBOOT path discovery — major correction
+
+**The bombshell.** RPCS3 boots from
+`~/.config/rpcs3/dev_hdd0/game/BLUS30130/USRDIR/EBOOT.BIN` (the HDD
+update path), NOT from `civrev_ps3/modified/PS3_GAME/USRDIR/EBOOT.BIN`
+(the disc copy in this repo's tree). The docker entrypoint has a
+fallback that copies an ELF DLC EBOOT over the disc one, but the stock
+DLC EBOOT has the encrypted SCE magic `53434500` (not `7f454c46`), so
+the copy is skipped and the disc EBOOT is left alone. Even if it were
+copied, RPCS3 still prefers the dev_hdd0 binary because that's how PS3
+HDD updates override disc files.
+
+Confirmed in the RPCS3 log:
+```
+SYS: Boot path: /dev_hdd0/game/BLUS30130/
+SYS: Elf path:  /dev_hdd0/game/BLUS30130/USRDIR/EBOOT.BIN
+```
+
+**Implication.** EVERY iteration from iter-7 through iter-132 patched
+the disc EBOOT and verified nothing. RPCS3 was loading the unmodified
+encrypted SCE the whole time. The fact that iter-127's broken_18 fault
+and iter-132's "civ18-only fix" both showed identical signatures was
+because they were running the SAME unmodified binary.
+
+**How I caught it.** Diagnostically patched 0xc26a00 with `blr`
+(function returns immediately). The fault report STILL said "writing
+0x2a12c" with cia=0xc26a00 — impossible if the patch were in effect.
+Copied my patched ELF over the HDD EBOOT and the fault disappeared.
+
+**iter-132 cmpwi patch revisited.** With the patch now actually
+installed at the HDD path, it DOES silence the iter-127 0xc26a00
+fault for both civ18-only and broken_18 — but also breaks v0.9
+booting. v0.9 then crashes at 0x0141fa4c (sys_prx libnet stub)
+reading 0x0. Conclusion: `FUN_00c26a00` is NOT a NULL-safe noop —
+it's the lazy-init or in-place allocator for unset FStringAs.
+Skipping it leaves downstream FStringAs uninitialized and a later
+libnet thunk dereferences NULL.
+
+**iter-132 reverted.** The real fix has to LET FUN_00c26a00 run
+when buf == NULL so it allocates a buf properly. Two paths forward:
+  (a) Understand the function's allocation path and trigger it
+      correctly for the 18th entry slot.
+  (b) Chase the upstream that fails to allocate the 18th slot's
+      FStringA in the first place.
+
+**install_eboot.sh added.** New helper writes the patched ELF to
+BOTH locations (modified/ for git, dev_hdd0/ for actual RPCS3
+boot). The build pipeline must use this from now on or future
+verifications repeat the iter-7..iter-132 invisible-no-op bug.
+The first time it runs, it backs up the encrypted SCE EBOOT to
+`EBOOT.BIN.iter133_sce_bak` so it can be restored later.
+
+**Status reset.**
+  - DoD item 1 (Korea as 17th civ): STILL BLOCKED — broken_18
+    faults at FUN_00c26a00. We now have a real test for fixes.
+  - All claims from iter-7..iter-132 about "this patch silences
+    fault X" should be re-validated against the HDD path. Most
+    will turn out to be illusory.
+  - v0.9 baseline: BOOTS cleanly with iter-14 + iter-4 EBOOT
+    patches installed to both paths. Static M0 green.
+
+**PRD changes:** This entry. Earlier progress entries should be
+considered TENTATIVE pending re-verification against the HDD
+path, but I'm leaving them in place as historical record so
+future iterations can audit which findings actually held up.
