@@ -315,6 +315,21 @@ PATCHES: list[Patch] = [
     # TOC offsets for some OTHER purpose (probably in-game player-info
     # display, diplomacy panels, or pediainfo entries). The vtable at
     # 0x018c9ae0 is not the civ-select carousel cell class.
+
+    # iter-154 DIAG patch REMOVED. Patched FUN_011675d8 entry with `b .`
+    # and ran korea_play — test PASSED again. FUN_011675d8 is also never
+    # called during civ-select. Combined with iter-150's FUN_001e49f0
+    # disproof, **both static consumers of r2+0x141c outside the parser
+    # writer area are NOT the carousel.**
+    #
+    # Conclusion: the carousel reads the civnames buffer via a CACHED
+    # pointer, not via the TOC slot. The buffer pointer is stored in a
+    # long-lived register or struct field after initial init, and
+    # subsequent reads bypass r2+0x141c entirely. Static `lwz rN,
+    # 0x141c(r2)` search cannot find such consumers.
+    #
+    # This makes the iter-141 strategy ("find consumers of TOC parser
+    # output") fundamentally unworkable for the carousel.
 ]
 
 
