@@ -1187,6 +1187,66 @@ v1.0 counters (the only ones that matter for the current scope):
 
 ---
 
+### 2026-04-14 — iter-3 (iOS _NCIV correction + Rosetta Stone pivot)
+
+**Status:** investigating
+**Working on:** §5.1 NCIV references, §5.6 Xbox 360 cross-ref
+
+**Did this iteration:**
+- **§5.1 correction:** revisited iOS cross-ref and found
+  `*(int *)PTR__NCIV_001fc1e0 = 6;` in multiple iOS sites, proving
+  `_NCIV` is the **current game's civ count** (dynamic, per-game),
+  not a compile-time max. Iter-2's "single byte patch to flip 16→17"
+  plan was wrong. Corrected
+  `korea_mod/docs/ncv-references.md` with the right mental model:
+  the real lever is extending the per-civ lookup arrays, not
+  patching `_NCIV`.
+- **§5.6 caveat surfaced:** `civrev_ios/CLAUDE.md` is explicit that
+  the iOS build is a **Nintendo DS lineage** (NDS* class prefix),
+  not the PS3/Xbox 360 lineage. PRD §5.6's Rosetta Stone assumption
+  still holds for engine-level code but is weaker for civ-specific
+  game logic — iOS has 16 civs with "Grey Wolf" as a 17th leader
+  (barbarians), not Korea.
+- **Xbox 360 path evaluated:** the real Rosetta Stone is the 360
+  binary (shares the console C++ codebase with PS3). The repo has
+  xenon_recomp output at
+  `civrev_xbox360/xenon_recomp/work/recomp_output/` (251 `.cpp`
+  files) but it's raw PPC-to-C without string literals, and the
+  XEX itself is compressed so `leaderheads.xml` / `Nationality`
+  / `Caesar` are not findable by a literal search of
+  `extracted/default.xex`. Decompressing the XEX is the missing
+  prerequisite for a string-ref-based pivot to the leaderheads.xml
+  loader function.
+- **False-positive rejection:** re-inspected iter-2's two
+  `lwz r2-off / li 0x10 / stw` candidates (0x359300, 0x95e258).
+  Both are false matches — 0x359300 is a cross-function boundary
+  (the `lwz` is the tail of the previous function, returning via
+  `blr`), and 0x95e258 has an intermediate `li r0, 1` that
+  overwrites `r0=16` before the store. Neither is the `_NCIV`
+  initializer (and after the iter-3 correction, the `_NCIV`
+  initializer isn't even what we should be looking for).
+
+**Verification:** unchanged — M0 static tier still green.
+
+**Open blockers:**
+- Need a decompressed 360 XEX to pivot the Rosetta Stone onto the
+  leaderheads.xml loader function.
+- OR need a live RPCS3 session with GDB to dump the runtime civ
+  table layout directly.
+
+**Next iteration should:**
+- Decompress the 360 XEX (xenon_recomp typically has a
+  `decompress_xex` helper; otherwise use `xextool -u`). Search the
+  result for `leaderheads.xml` / `LeaderHead` / `Nationality` and
+  follow the calling function's cross-refs to identify the live
+  civ-array access pattern in 360 PowerPC code.
+- Pattern-match that function's structure (number of parameters,
+  string-refs, call pattern to the XML parser helpers) against the
+  PS3 Ghidra DB to find the structurally identical function in the
+  PS3 binary. That function's disassembly is the key to §6.2.
+
+**PRD changes made this iteration:** Progress Log entry added.
+
 ### 2026-04-14 — iter-2 (FPK pipeline + eboot dry-run + pediainfo overlays)
 
 **Status:** investigating

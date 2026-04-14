@@ -44,37 +44,100 @@ need to become 0x11, and (4) needs to become `+ 0x44`.
 - The function loading `leaderheads.xml` is a candidate consumer of both
   the leader-display-name array and the civ-internal-tag array.
 
-## iOS cross-reference (the actual answer)
+## iOS cross-reference (CORRECTED understanding)
 
-The iOS binary (`civrev_ios/ghidra_decompiled/`) is symboled and exposes
-`_NCIV` as a single authoritative pointer-to-int global. Ghidra names it
-`PTR__NCIV_001fc1e0` — the address `0x001fc1e0` (iOS ARM32 VA) holds a
-pointer, and the pointer points to a 4-byte int whose value is 16.
+The iOS binary exposes `_NCIV` as `PTR__NCIV_001fc1e0`, referenced
+**286 times** across the symboled Ghidra export. On first read I
+assumed `_NCIV` was a compile-time constant set to 16 and that the
+mod reduced to a single init-site byte patch. **That is wrong.**
 
-Every civ-loop in the iOS binary reads that global indirectly:
+Looking at iOS assignment sites:
 
 ```c
-if (0 < *(int *)PTR__NCIV_001fc1e0) { ... }
-while (iVar77 < *(int *)PTR__NCIV_001fc1e0) { ... }
+// civrev_ios/ghidra_decompiled/CustomMap.c:1048
+*(int *)PTR__NCIV_001fc1e0 = iPositionCount + 1;
+
+// civrev_ios/ghidra_decompiled/_global.c:17875  (and 19941, 31787, 33853)
+*(undefined4 *)PTR__NCIV_001fc1e0 = 6;
 ```
 
-`PTR__NCIV` is referenced **286 times** across the iOS decompile. That
-means the PS3 build — which shares the C++ source — almost certainly
-has the same design: one int global for "number of civs," read
-everywhere, with no inline `0x10` constants at all. **If that holds,
-the entire §6.2 "patch every loop bound" plan collapses to a single
-byte patch**: change the initial value of `_NCIV` from 16 to 17, and
-every `*_NCIV`-reading site picks up the new value for free. No
-per-loop rewrites. No 286-site catalog. Just one store.
+`_NCIV` is the **current game's civ count**, not a compile-time max.
+It's written dynamically based on the number of players in the
+current scenario (commonly 6). The 286 reads are the loops that walk
+"every civ that's in the current game", not "every possible civ".
 
-The task becomes: locate the **initialization** of `_NCIV` in the PS3
-binary. The candidate instruction pattern is a `li rN, 0x10` followed
-by a `stw rN, offset(rPtr)` where `rPtr` was previously loaded
-TOC-relative (typical idiom: `ld rPtr, X(r2); li rVal, 0x10;
-stw rVal, 0(rPtr)`). An unfiltered scan of the PS3 code region finds
-89 `li rN, 0x10 → stw` sequences — too many to test blindly. Pruning
-is required: keep only those where `rPtr` came from a TOC load whose
-target address is near other confirmed civ globals.
+**Consequence for the mod:** patching `_NCIV` from 16 to 17 is the
+wrong lever entirely. A fresh Korea start would set `_NCIV` to
+whatever the player-count dictates, probably 6 or 7 — and if slot 6
+is Korea (nationality=16), the loops will correctly iterate over
+slots 0..6 without any `_NCIV` tweak required.
+
+**What we actually need to patch is the per-civ lookup arrays**: the
+parallel 16-entry pointer tables in rodata (see `civ-record-layout.md`)
+that are indexed by `Nationality` field, not by the loop counter. If
+slot 6's `Nationality == 16` and the leader-name table only has 16
+entries, `leader_names[16]` reads out of bounds regardless of what
+`_NCIV` is set to.
+
+The real §6.2 work is:
+1. Identify how the 5 confirmed parallel arrays in rodata are
+   consumed at runtime. If they're the live lookup tables, extend
+   them to 17 entries. If they're just init-copy sources feeding a
+   heap-allocated runtime array, extend the runtime array instead.
+2. Find any hardcoded `< 16` bound in code that iterates "all
+   possible civs" (as distinct from "all civs in this game"). These
+   are the true upper-limit checks that need to become `< 17`. The
+   iOS build probably has them too — re-grep iOS for raw `0x10`
+   constants in a civ context.
+
+This correction invalidates iter-2's "89 `li 0x10 → stw` candidates"
+hunt and the two false positives at `0x359300` / `0x95e258` — the
+former is a cross-function boundary false match, and the latter has
+an intermediate `li r0, 1` that clobbers the `li r0, 16`. Neither is
+the `_NCIV` initializer, and even if one were, it wouldn't be the
+right thing to patch.
+
+## Important caveat: iOS is NDS lineage, NOT PS3 lineage
+
+`civrev_ios/CLAUDE.md` is explicit: the iOS build was ported from the
+**Nintendo DS** branch of Civilization Revolution, not the PS3/Xbox 360
+branch. The `NDS*` class prefix throughout the iOS binary is the
+tell. PS3 and iOS share only the low-level Firaxis engine (F-classes),
+not the game-logic layer. Class hierarchies, struct layouts, function
+signatures, and globals differ substantially between the two branches.
+
+The iOS build also has **16 civs, not 17** — CivRev 2 (Android Unity)
+added Korea, but iOS predates that. iOS has 17 **leaders** (the 17th is
+"Grey Wolf" for barbarians), which is unrelated to our Korea work.
+
+Concretely, PRD §5.6's "Rosetta Stone" assumption — that the iOS
+symboled binary tells us where PS3 globals live — is weaker than
+advertised for civ-specific code. It still works for engine-level
+globals (PRNG, string pools, IO buffers) but not for civ tables.
+
+## Corrected iter-3 plan (after the iOS caveat)
+
+1. **Use the Xbox 360 binary as the real Rosetta Stone.** Per §5.6,
+   PS3 and Xbox 360 CivRev share the actual game-logic codebase (both
+   compiled from the same Firaxis PPC console branch, unlike iOS).
+   The 360 ISO is at `civrev_xbox360/Sid Meier's Civilization
+   Revolution (USA)...iso` and `civrev_xbox360/xenon_recomp/` can
+   translate the XEX directly to C/C++ — often more readable for
+   data-table consumers than Ghidra's heuristic decomp.
+2. **Locate the leaderheads.xml loader function in the 360 binary**
+   by string-ref to `"leaderheads.xml"` or `"Nationality"`, then
+   find the structurally identical function in the PS3 Ghidra DB
+   (same class hierarchy, same logic, different compiler output).
+   That function is the single best entry point for understanding
+   how the 0x0194bxxx parallel arrays are actually used.
+3. **Fall back to live RPCS3 GDB** if xenon-recomp output is
+   unreadable. The docker harness already exists at
+   `rpcs3_automation/docker_run.sh` and the host has the PS3 game
+   disc staged at `civrev_ps3/modified/`. Attach at main-menu and
+   scan BSS for `int 16` values in the cluster whose TOC entries
+   are read by 20+ functions.
+
+## Iter-1 unaltered dead-end (kept for historical context)
 
 The iOS globals sit in a cluster:
 `PTR__BARB_001fc0b0`, `PTR__War_001fc2b8`, `PTR__Treaty_001fc2a0`,
