@@ -1,0 +1,5 @@
+{
+  "milestone": "iter173_special_units_search",
+  "pass": true,
+  "notes": "Exhaustive byte-grep of EBOOT + Pregame + Common0 for standalone '???' strings. Only 3 candidates in EBOOT; none reachable from civ-select Special Units field. Confirms iter-169 dead-end finding with complete evidence. v1.1 polish territory."
+}

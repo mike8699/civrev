@@ -3590,3 +3590,46 @@ cell ships with "Special Units: ???" — cosmetic only.
 
 The project's current state (iter-168) remains the final
 ship state. iter-169 made no patches.
+
+### iter-173 (2026-04-14): exhaustive `???` byte-grep — Special Units dead end confirmed
+
+Closed the last v1.0 investigation thread with a complete byte
+search. Method: grep the decrypted EBOOT for every `???` sequence,
+filter to standalone `???\0` C-strings, cross-reference against
+`civrev_ps3/extracted/{Common0,Pregame}/`.
+
+**Exactly 3 standalone `???\0` strings exist in the EBOOT:**
+
+| file offset | vaddr | context |
+|---|---|---|
+| `0x16883a8` | `0x16983a8` | `GFX_UnitFlag.gfx` icon-class fallback (in-game unit flag, not civ-select) |
+| `0x16970e3` | `0x16a70e3` | slot 16 era bonus block (**already patched by iter-167**) |
+| `0x174536a` | `0x175536a` | shader-profile option tag list |
+
+None is in the civ-select Special Units code path. The `Special
+Units` label itself lives at vaddr `0x16a7118` (Scaleform field
+name) and vaddr `0x16a7d68` (colon-labelled UI caption), but no
+`???` sits next to either as a default value.
+
+English localization (`str_enu.str`) does not exist in the game
+disc — English strings are all embedded in the EBOOT, and every
+English `???` has been accounted for. The French/German/Spanish/
+Italian `.str` files do contain a standalone `???` length-prefixed
+entry, but it's a grammatical plural-form fallback that follows
+`@UNITNAME__FEMALE_PLURAL0 françaises`, not a Special Units
+default.
+
+**Definitive conclusion:** the slot 16 `Special Units: ???`
+display is not statically patchable. It's either set inside the
+`GFX_StagingScreen.gfx` ActionScript 2 bytecode (compact-opcode
+constant, not in the string pool) or is the AS2 VM's default for
+an unset text field. Unblocking requires JPEXS/ffdec or a runtime
+memory-hook patch. Both remain v1.1 polish.
+
+Findings archived to
+`korea_mod/verification/iter173_special_units_search/findings.md`
+with full grep evidence.
+
+No EBOOT patches added this iteration. 14-patch shipping set from
+iter-167 remains final. Project ships as v1.0 with DoD §9 items
+1–6 all MET/SUBSTANTIALLY MET.
