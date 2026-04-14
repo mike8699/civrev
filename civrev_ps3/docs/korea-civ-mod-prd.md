@@ -2392,3 +2392,86 @@ invalidated. Re-baselined understanding:
   which one triggers the fault.
 - Use Z-packet GDB watchpoints (per prompt.txt §a/b) to catch
   the write that nulls .data 0x18b5a08.
+
+### iter-136 (2026-04-14): the plain ELF itself is broken in RPCS3
+
+Bisected iter-14: built four EBOOTs (iter4-only, iter4+ruler-bump,
+iter4+civ-bump, iter4+both) and tested each against stock
+Pregame.FPK.orig. **All four fault at 0x0141fa4c.** Then tested
+the ABSOLUTELY STOCK `civrev_ps3/EBOOT_v130_clean.ELF` (no patches
+whatsoever) + stock Pregame.FPK.orig. **Also faults at 0x0141fa4c.**
+
+So the fault has nothing to do with our patches — not iter-4, not
+iter-14, not iter-132. The plain ELF of the EBOOT is broken in
+RPCS3 on its own. Iter-127..135's entire "fault chain" was
+chasing this baseline ELF brokenness.
+
+**Why it works for the SCE but not the ELF.** The original
+`/dev_hdd0/.../EBOOT.BIN` is an encrypted SCE SELF (magic
+`53434500`). When RPCS3 loads a SELF, it applies the PS3 SELF
+loader's fixups: relocations, NPDRM key derivation, .data slot
+pre-population, and the `_sys_prx_register_module` fixups that
+populate libnet stub function pointers in .data 0x18b5a00..0x18b5b00.
+
+When iter-133 replaced the HDD EBOOT.BIN with a plain ELF
+extracted from the SELF, RPCS3 used its plain-ELF loader path
+instead. That loader does NOT apply the SELF-specific fixups,
+so .data 0x18b5a08 stays NULL and the libnet stub thunk faults
+the first time it's called.
+
+The iter-127 archived "broken_18 / FUN_00c26a00 fault" was
+running against the SCE (which booted past the libnet area into
+real game code) — but that test's results were also misleading
+because the SCE never received our EBOOT patches. We have always
+been in one of two states: EITHER patches don't apply (SCE) OR
+the ELF is broken (plain ELF). There is no test path where
+patches are applied AND the binary is valid.
+
+**Test matrix from this iteration:**
+
+  | EBOOT                            | Pregame      | Result        |
+  |----------------------------------|--------------|---------------|
+  | EBOOT_v130_clean.ELF (stock)     | stock        | faults @ 0x141fa4c |
+  | iter-4 only ELF                  | stock        | faults @ 0x141fa4c |
+  | iter-4 + ruler-bump ELF          | stock        | faults @ 0x141fa4c |
+  | iter-4 + civ-bump ELF            | stock        | faults @ 0x141fa4c |
+  | iter-4 + both bumps ELF (current)| stock        | faults @ 0x141fa4c |
+  | iter-4 + both bumps ELF          | civ18only    | faults @ 0x141fa4c |
+  | iter-4 + both bumps ELF          | broken_18    | faults @ 0x141fa4c |
+  | (iter-127 SCE)                   | broken_18    | faults @ 0xc26a00  |
+  | original SCE                     | stock orig   | BOOTS (the actual game) |
+
+**Next iteration must solve the EBOOT-loading problem.** Three
+candidate approaches, in order of preference:
+
+  (a) **Patch the SCE in place.** PS3 SELFs are AES-CTR encrypted
+      with a known game key for unsigned games. If we can decrypt
+      the SCE, patch the bytes, re-encrypt, and re-sign with a
+      matching scheme, RPCS3 would load the patched SCE through
+      its normal SELF loader and all the fixups would apply.
+      `civrev_ps3/dlc/make_npdata` is in the repo; not yet built.
+      Investigate whether it can decrypt+re-encrypt EBOOT SELFs.
+
+  (b) **Find the SELF fixup table and replicate it manually**
+      against the plain ELF. The .data slots in 0x18b5a00..0x18b5b00
+      need to be populated with the libnet sprx FDESC pointers.
+      If we can find the relocation table in the original SELF
+      and apply the same edits to the ELF as a static .data
+      patch, the ELF will boot correctly. Risk: any sprx whose
+      load address depends on runtime state (memory layout etc.)
+      will not be representable as a static patch.
+
+  (c) **Use a different SELF→ELF extractor.** The current ELF
+      at `civrev_ps3/EBOOT_v130_clean.ELF` may have been
+      extracted by a tool that strips relocations. Try
+      `scetool` or `RPCS3 --decrypt` to get an ELF that
+      includes the .rela sections. If RPCS3's plain-ELF loader
+      knows how to apply relocations from a complete ELF, the
+      libnet stub fault disappears.
+
+**Status.** Every patch verification claim in iters 7..135
+needs to be re-checked once we have a working ELF or a way to
+patch the SCE. v0.9 status (Korea ships at slot 15 replacing
+England) is also suspect — that was tested against the SCE
+which was never modified. The ACTUAL behavior of v0.9 with
+patches applied is unknown.
