@@ -305,6 +305,16 @@ PATCHES: list[Patch] = [
     # from somewhere else — possibly a runtime-allocated struct
     # populated from civnames/rulernames parser output, or yet
     # another table not yet located.
+
+    # iter-150 DIAG patch REMOVED. Patched FUN_001e49f0 entry with
+    # `b .` (infinite loop). Ran korea_play 0 romans — test PASSED
+    # with M9 in_game_hud=true, slot 0 highlighted_ok=true. That
+    # means FUN_001e49f0 is NEVER CALLED during the entire civ-select
+    # render path — my iter-146 conclusion that this was the "per-cell
+    # carousel data binder" was wrong. The function reads parser
+    # TOC offsets for some OTHER purpose (probably in-game player-info
+    # display, diplomacy panels, or pediainfo entries). The vtable at
+    # 0x018c9ae0 is not the civ-select carousel cell class.
 ]
 
 

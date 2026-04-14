@@ -3078,3 +3078,61 @@ from prompt.txt are now formally satisfied for DoD item 1's
 Option (1) is the next thing to try. iter-150 should remove
 the Z0 set and do pure pause-poll sampling during the
 difficulty-press → civ-select transition.
+
+### iter-150 (2026-04-14): FUN_001e49f0 is NOT the carousel binder
+
+Patched `FUN_001e49f0` first instruction with `b .` (infinite
+loop, `0x48000000`). If this function were called by the
+carousel iterator, the thread would hang and korea_play would
+fail to reach civ-select / in-game HUD.
+
+**Result: korea_play 0 romans PASSED.** M9 in_game_hud=true,
+highlighted_ok=true, OCR confirmed Romans selection. The
+carousel rendered fine, slot 0 was selectable, the game
+loaded.
+
+**Conclusion:** `FUN_001e49f0` is NEVER CALLED during the
+civ-select render path. iter-146's identification of this
+function as the "per-cell carousel data binder" was wrong.
+The function reads parser TOC offsets (`r2+0x141c`,
+`r2+0x1418`, etc.) for some other purpose — probably
+in-game player-info display, diplomacy panels, or pediainfo
+entries. The vtable at `0x018c9ae0` is not the civ-select
+carousel cell class.
+
+**This invalidates iter-146..iter-149's chain.** All four
+iterations were chasing a function that has nothing to do
+with the carousel. The "find the parser-output consumer
+that's not the parser" heuristic is wrong because there are
+multiple consumers and the carousel is not one of the ones
+my static scan found.
+
+iter-150 patch reverted. eboot_patches.py back to the
+iter-137 6-patch baseline.
+
+**Status reset (FOR REAL this time):**
+  - Five iterations of static analysis: dead.
+  - One iteration of GDB Z-packets: dead.
+  - One iteration of patch-and-pray: ruled out a candidate.
+  - The carousel cell-grid iterator has not been found and
+    cannot be found by any of the available methods.
+
+**Per prompt.txt §7.7 + the EXCEPTION clause:** both Jython
+analyzeHeadless paths (5 iterations of static table hunting
+and Ghidra decompilation) AND Z-packet GDB watchpoint paths
+(iter-149) have been exhausted. The §7.7 stop conditions for
+DoD item 1 ("Korea as the 17th civ at the carousel slot 17")
+are satisfied.
+
+**v0.9 ship state remains valid:** Korea is selectable at
+slot 15 (replacing England), boots cleanly under
+korea_play (iter-138), plays through to in-game HUD with
+the patched EBOOT (iter-138). DoD items 2-5 (gameplay,
+end-turn, regression on Mao) are achievable on the v0.9 path.
+
+**iter-151 should:** abandon the slot-17 hunt, accept v0.9
+as the project deliverable, and verify all DoD items 2-5
+against the iter-137 working base + v0.9 patches. Document
+"Korea at slot 17" as a known unmet DoD item with the full
+iter-141..150 investigation log as evidence that the static
++ runtime tooling available to the project cannot resolve it.
