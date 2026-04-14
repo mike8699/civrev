@@ -2734,3 +2734,53 @@ strings (in citynames/rulernames/etc) to Korean equivalents.
 
 **Status:** DoD item 1 path forward is concrete and small.
 Iter-144 should land it.
+
+### iter-144 (2026-04-14): LDR table is NOT the carousel; reverted
+
+Tested iter-143's plan empirically. Patched LDR table slot 16
+(0x01937c84) from `LDR_default.dds` → `LDR_china.dds` and ran
+korea_play to slot 16 with broken_18 Pregame. **Result: no
+visible change.** The "?" silhouette and "Random / Random"
+labels were unchanged.
+
+Then ran a control test: patched slot 0 (0x01937c44) from
+`LDR_rome.dds` → `LDR_china.dds` (Rome → China). Ran korea_play
+to slot 0. **Result: Caesar still rendered with his Roman 3D
+model.** The Romans cell did NOT switch to a Chinese portrait.
+
+**Conclusion:** the LDR_*.dds table at 0x01937c44 is NOT the
+civ-select carousel cell array. Looking at the slot 0 screenshot,
+Caesar is clearly a 3D leader-head model with depth and shading,
+not a flat DDS image. The carousel uses 3D leader-head models
+(LH-* assets — `.gr2`/`.nif` files), and the LDR_*.dds table
+holds flat 2D portraits used elsewhere — diplomacy panels,
+pediainfo entries, save-load screens.
+
+So the carousel's per-cell data lives in a different structure
+that I haven't located yet. Candidate sources:
+  - The LH-* model file table (3D leader heads). Strings like
+    `Camera-CloseupGP01Sci`, `LH-RimLight-Color-%s` were visible
+    in iter-142's pointer-table dump at 0x01937570..01937760 —
+    these may be associated.
+  - A runtime-allocated per-civ struct array populated during
+    civ-select init and indexed by slot 0..16.
+  - The civnames/rulernames parser output (the buffer iter-14
+    bumped to 18 entries) — but iter-138 showed broken_18 doesn't
+    automatically extend the carousel cells, so this is unlikely
+    to be the direct source.
+
+iter-144 patches reverted. eboot_patches.py back to the
+iter-137 6-patch baseline (iter-4 ADJ_FLAT + iter-14 count
+bumps).
+
+**Next iteration should:**
+- Search for LH-* / leader-head model file references in .data.
+  These should also be a 16- or 17-entry pointer table.
+- Or take a totally different angle: set GDB breakpoints on
+  `_press("Right", ...)` keypresses during the docker korea_play
+  test to see which functions are entered when the cursor moves,
+  then walk back from those functions to find the per-cell data.
+- Or: focus on the per-civ data MAP that maps the 16 carousel
+  slots to the parser output. That mapping has to exist somewhere
+  because civnames_enu.txt ordering differs from the carousel
+  ordering (civnames is sorted differently).

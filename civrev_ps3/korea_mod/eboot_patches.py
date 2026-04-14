@@ -289,6 +289,13 @@ PATCHES: list[Patch] = [
     # because skipping FUN_00c26a00 on NULL-buf prevents the legitimate
     # buf-allocation path (FUN_00c26a00 is the lazy-init for an unset
     # FStringA, not a NULL-safe noop).
+
+    # iter-144 BOTH patches REMOVED. Diagnostic test (Rome → China at
+    # slot 0) had zero visible effect on the carousel — Caesar still
+    # rendered. The LDR_*.dds table at 0x01937c44 is NOT the civ-select
+    # carousel cell array. The carousel uses 3D leader-head models
+    # (LH-* assets), not flat DDS portraits. The LDR table is for
+    # diplomacy/pediainfo flat portrait fallbacks.
 ]
 
 
