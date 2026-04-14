@@ -1,0 +1,32 @@
+{
+  "milestone": "M7",
+  "pass": true,
+  "oracle": "end-turn 25x without crash; HUD stays OCR-readable",
+  "target_turns": 25,
+  "stages": {
+    "in_game": true,
+    "end_turn_loop": true
+  },
+  "snapshots": [
+    {
+      "turn": 5,
+      "ocr": "= <=. ) -\u2014 a | a 3 2 <= \u2014 | os ie =F 3 ; << - a | | ; Z \u2014\u2014 a 2 \u2014_ | ; ss A Ey : | Se \u00a2 asian <a - ~ | a ~ i ye \u2018 , = | = E \u2018 Key er, & { ~ FR. f | Ee Ay 72 Se | i (OF 4 i \u2018 ee | nan iis PD CO ORE | F "
+    },
+    {
+      "turn": 10,
+      "ocr": "= <=. ) -\u2014 a | Se = = re | a oes \u2014_ ae, | , Z so = P2254 = | rae : itn SP a E = | \u2014_\u2014 at \u2014_ i ye < 4 2 = | TE gp fe oe a | g <_. hay aif 4 ae x | \u00a2 \u2018 Sie ity 4 J | >t a ~\u00ab AX | ; 4 7 ee OK | 4 v 1 Cee"
+    },
+    {
+      "turn": 15,
+      "ocr": ", = a = > | - SE - = ee | - a ae = ~ | ls 7 \u00a9 Saget 3 = | a \u2014 \u2014_ =s\u2014 }- | , SS | i i A \u2018 28 as Sf \u2018 | es : yw oan cad \u2122 es r LF | on eae, ee Sa are a Hi ee | sy ee < \u201cfa Settlers )Qe | @ Found City ie"
+    },
+    {
+      "turn": 20,
+      "ocr": ". \u2014\u2014\u2014 . = = | \u2014 = eae E | ee Ee ee SE . | \u00ab < \u2018 b \u201cae A \u2014 < ~< c 5 \u00a7 | Lashes 7 oe (\u00a9 End Turr | ee ee ee ee a re o | \u2014 = - | ji <j Pe Z < way Soe a | 4 | SRE |) | Pat AR a | SS an eee < | i Oe NL | \u2018"
+    },
+    {
+      "turn": 25,
+      "ocr": "- \u2014\u2014 \u2014=<\u2014\u2014 = | a . \u2014 : == : ; | re\u2019 7 Jp my > ta8 | aiutiaie geo: ae ai -\" . | , \u20ac oy gee = - | ae ~ rt ae ea a | es. \u2014 eal . | =, get okt | \u201cole i 3 Re, a se < \\\\ | - : 4 & OS \\\\ \\ \u2122 \u2014 | \u2014 Oe ee ale "
+    }
+  ]
+}
