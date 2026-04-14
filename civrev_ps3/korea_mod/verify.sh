@@ -144,6 +144,61 @@ fi
 # M0d — string-key inventory. Only when gfxtext.xml / pedia XMLs land.
 :
 
+# M0e — committed-artifact health. Walks every result.json under
+# verification/ and asserts pass=true. Catches accidental commits of
+# failing runs (e.g. a future M7 v2 run that's archived without
+# inspection). The iter-72 M7 v2 result (pass=false) is excluded
+# because it's an intentionally-archived oracle-validation artifact.
+m0e_log="$VDIR/M0/artifacts_check.json"
+if ! python3 - "$VDIR" "$m0e_log" <<'PY'
+import json, sys
+from pathlib import Path
+
+vdir = Path(sys.argv[1])
+out = Path(sys.argv[2])
+out.parent.mkdir(parents=True, exist_ok=True)
+
+# Subdirs whose result.json is intentionally pass=false because they
+# document a known failure mode (failed sweeps, oracle-validation
+# runs, harness limitations) rather than a shipping run.
+ALLOW_FALSE = {
+    "M2",          # iter-6 failed sweep before iter-8 M2 fix
+    "M2_iter6",    # iter-6 failed sweep, archived to document
+    "M7_iter72",   # iter-72 oracle validation; deliberately pass=false
+}
+
+results = {"checked": 0, "failures": [], "allowed_false": []}
+for p in sorted(vdir.glob("**/result.json")) + sorted(vdir.glob("**/*_result.json")):
+    rel = p.relative_to(vdir)
+    parent = rel.parts[0]
+    # Skip M0's own result.json — it's about to be (re)written by
+    # this very verify.sh run, so its current pass flag reflects the
+    # PREVIOUS run, not the one we're computing right now.
+    if parent == "M0" and rel.name == "result.json":
+        continue
+    try:
+        data = json.loads(p.read_text())
+    except Exception as e:
+        results["failures"].append(f"{rel}: parse error {e}")
+        continue
+    results["checked"] += 1
+    passed = data.get("pass", False)
+    if passed:
+        continue
+    if parent in ALLOW_FALSE:
+        results["allowed_false"].append(str(rel))
+        continue
+    results["failures"].append(f"{rel}: pass={passed!r}")
+
+results["pass"] = not results["failures"]
+out.write_text(json.dumps(results, indent=2))
+sys.exit(0 if results["pass"] else 1)
+PY
+then
+    m0_pass=false
+    m0_notes="committed artifact pass-flag check failed (see verification/M0/artifacts_check.json); $m0_notes"
+fi
+
 if [ "$m0_pass" = true ]; then
     write_result M0 true "overlays well-formed${m0_notes:+; $m0_notes}"
 else
