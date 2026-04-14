@@ -21,6 +21,21 @@ baseline, don't overwrite in place.
 | `M9/` | 4-civ stock regression (PRD §9 DoD 5) | Caesar slot 0, Catherine slot 5, Mao slot 6, Lincoln slot 7 — each with `<name>_result.json` + `<name>_slot<N>_civ_select.png` + `<name>_in_game.png` |
 | `M2_iter12/` .. `M2_iter25_analysis.md` | failed 17-slot extension investigation | iter-12..25 summaries / RPCS3 logs / GDB dumps; none of these represent a shipping state, they document the §7.7 STOP research trail |
 
+## M0e committed-artifact pass-flag check
+
+`verify.sh --tier=static` runs `python3` over every `result.json`
+under this directory and asserts `pass == true`. Three subdirs are
+on an explicit allowlist (their failure is intentional):
+
+- `M2/` — pre-iter-8 failed sweep (`korea_m2_result.json`)
+- `M2_iter6/` — pre-iter-8 failed sweep
+- `M7_iter72/` — iter-34 tightened-oracle validation; deliberately
+  `pass=false` to prove the new rule fires
+
+If you commit a new failing artifact for any other reason, add it
+to the `ALLOW_FALSE` set in `verify.sh`'s M0e block AND document
+the reason in this file.
+
 ## Promotion protocol
 
 When a docker run produces a new pass that should replace an older
