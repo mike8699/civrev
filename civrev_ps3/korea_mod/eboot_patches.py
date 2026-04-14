@@ -424,6 +424,42 @@ PATCHES: list[Patch] = [
     # the cell now displays "Korean / Korean" instead of
     # "Korea / Korea" — at least one of the two required DoD
     # words is now present.
+
+    # ITER-165 DIAG: there are TWO TOC slots both pointing at the
+    # "Korean" string at 0x169d290:
+    #   0x01936d48 (r2-0x3540)
+    #   0x0193aca8 (r2+0xa20)
+    # If theTextArray[16] reads from one and theSubTextArray[16]
+    # reads from the other, redirecting ONE of them to a different
+    # string would change one line. Try:
+    #   1. Write "Sejong\0" in .rodata padding at 0x017f4088
+    #   2. Redirect TOC slot 0x0193aca8 (r2+0xa20) to 0x017f4088
+    # After this, any loader using r2+0xa20 reads "Sejong" instead
+    # of "Korean". If line 2 is the r2+0xa20 reader, it'll show
+    # "Sejong" and the cell will render "Korean / Sejong" —
+    # full DoD item 2 compliance.
+    Patch(
+        offset=0x017f4088,
+        expected_old=b"\x00\x00\x00\x00\x00\x00\x00\x00",
+        new=b"Sejong\x00\x00",
+        description="iter-165: allocate Sejong\\0 in .rodata padding",
+    ),
+    Patch(
+        offset=0x0193aca8,
+        expected_old=b"\x01\x69\xd2\x90",  # ptr to "Korean"
+        new=b"\x01\x7f\x40\x88",            # ptr to new "Sejong"
+        description="iter-165: redirect TOC r2+0xa20 → Sejong",
+    ),
+    # Also redirect TOC r2-0x3540 → the iter-162 "Korean" string.
+    # Since it already points there, no change needed. But we need
+    # to revert the iter-162 direct-string patch to leave 0x169d290
+    # as "Korean" so one TOC slot reads Korean and the other Sejong.
+    # However, iter-162 already wrote "Korean" at 0x169d290. So:
+    #   r2-0x3540 → 0x169d290 → "Korean"
+    #   r2+0xa20  → 0x17f4088 → "Sejong"  (iter-165)
+    # In theory: one line reads Korean, the other reads Sejong.
+    # iter-165 test shows both lines read "Sejong" → both lines
+    # use r2+0xa20 (not r2-0x3540).
 ]
 
 
