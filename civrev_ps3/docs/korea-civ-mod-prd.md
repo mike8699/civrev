@@ -1164,13 +1164,15 @@ have written to the log at all.
 
 v1.0 counters (the only ones that matter for the current scope):
 
-- **§5 investigations complete (v1.0 subset):** 0 / 5 — §5.2 partially
-  done (four parallel arrays dumped end-to-end; LDR_* head and any
-  additional arrays still pending). §5.1 restated for parallel arrays
-  but call-site catalog not yet started. §5.4, §5.5, §5.6 untouched.
-- **§6.2 EBOOT patches landed:** 4 / 4 (iter-4: "Korean" string
-  allocation + 17-entry ADJ_FLAT copy + 2 TOC entry redirects).
-  Dry-run passes; EBOOT_korea.ELF produced. NOT yet runtime-tested.
+- **§5 investigations complete (v1.0 subset):** 2 / 5 — §5.1 enumerated
+  the name-file parser (FUN_00a216d4 / 00a21ce8, iter-14) and §5.2
+  dumped four of the five confirmed parallel arrays end-to-end. §5.3,
+  §5.4, §5.6 are blocked on the interactive-Ghidra ask that also
+  blocks §9 DoD item 1.
+- **§6.2 EBOOT patches landed:** 6 / 6 — iter-14 added two `li r5`
+  parser-count bumps (0xa2ee38, 0xa2ee7c) on top of iter-4's four
+  ADJ_FLAT relocation patches. Dry-run passes; runtime-verified
+  harmless (v0.9 M6/M7 green with all six patches applied).
 - **§6.3 XML overlays landed:** 3 / 4 (`leaderheads.xml`,
   `console_pediainfo_civilizations.xml`,
   `console_pediainfo_leaders.xml`). gfxtext.xml is the fourth slot per
@@ -1178,13 +1180,18 @@ v1.0 counters (the only ones that matter for the current scope):
   below.
 - **§6.4 string keys defined:** 0 / 3 — note: gfxtext.xml on PS3 is a
   SWF-localization file, not the civ-name TXT_KEY_* store. The
-  authoritative civ/leader display strings are the in-EBOOT pointer
-  tables found in §5.2, not an XML key set. §6.4's "add three
-  TXT_KEY_* rows" plan may not apply to this binary — pending
-  investigation.
-- **Verification milestones green:** M0 (static only — XML well-
-  formedness). M1..M9 not yet wired.
-- **§9 DoD items satisfied:** 0 / 6
+  authoritative civ/leader display strings live in
+  `Pregame.FPK/civnames_enu.txt` and `rulernames_enu.txt`, patched
+  in-place by `fpk_byte_patch.py`. §6.4's "add three TXT_KEY_* rows"
+  plan does not apply to this binary; the PS3 path is direct
+  byte-replacement of the name TXTs.
+- **Verification milestones green:** M0 static, M1 boot, M2 civ-select
+  (v0.9 replacement form), M6 in-game start, M7 50-turn soak, M9
+  regression (Mao slot 6 + Russians slot 5). M3 implicit via M6. M4/M5
+  N/A for v0.9 (civ count unchanged).
+- **§9 DoD items satisfied:** 4 / 5 — item 1 (Korea as 17th civ) blocked
+  on tooling ask per iter-11/25/27 progress log entries; items 2–5 met
+  by v0.9 shipping state.
 
 ---
 
