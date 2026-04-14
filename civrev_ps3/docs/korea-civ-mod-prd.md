@@ -2964,3 +2964,55 @@ have. (c) requires tracing input handlers which is similar work
 to (a) without the speed advantage of runtime breakpoints.
 
 iter-148 should commit to one of these and finish DoD item 1.
+
+### iter-148 (2026-04-14): static `cmpwi 16 + vcall` scan; one false positive
+
+Tried iter-147's option (b): scan for `lwz rN, 0x10(rM); mtctr;
+bctr/bctrl` (virtual call to vtable[+0x10]) with a `cmpwi rN,
+0x10` (compare to 16) within ±32 instructions. Variants with
+`cmpwi rN, 0xf` and `cmpwi rN, 0x11` also tried.
+
+Results:
+  - `cmpwi rN, 0xf` (loop bound 15): 0 hits
+  - `cmpwi rN, 0x10` (loop bound 16): **1 hit at 0x00716d78**
+  - `cmpwi rN, 0x11` (loop bound 17): 0 hits
+
+Decompiled the function containing 0x00716d78 (FUN_00716ba0,
+1636 bytes). It's an input/state handler with virtual call
+dispatch but **no 16-iteration cell loop** — the cmpwi 16 and
+the vcall are coincidentally near each other but unrelated.
+False positive.
+
+Confirmed FUN_001e49f0 has **zero direct bl/b callers** — only
+referenced via the FDESC table at 0x018c9af0. The only call
+path is virtual dispatch through the vtable. So the carousel
+iterator does not call FUN_001e49f0 by name; it indexes a
+class instance and invokes vtable[+0x10] dynamically.
+
+Also tried `cmpwi rN, 0x10 + forward conditional branch`
+(generic 16-iter loop pattern, no vcall constraint): 41 hits.
+Manageable in principle but still too many to hand-bisect
+this iteration.
+
+**iter-149 must commit to Z-packet GDB watchpoints.** Five
+iterations of static analysis (LDR, LEADER, parser-consumer,
+vtable-method, vcall+cmpwi scan) have all converged on dead
+ends. The carousel iterator is dynamic and only visible at
+runtime.
+
+The Z-packet watchpoint plan:
+  1. Modify `test_korea_play.py` to attach gdb_client to
+     RPCS3 between the "Single Player" press and the
+     "Choose Civilization" screen render.
+  2. Set a Z2 (write) watchpoint on `*(r2+0x141c)` — the
+     civnames buffer pointer in the TOC. This fires when
+     parser_dispatcher writes the buffer ptr.
+  3. Set a Z2 (read) watchpoint on the loaded civnames
+     buffer address — this fires when the carousel
+     iterator reads it during cell init.
+  4. The PC at the second watchpoint hit is inside the
+     carousel iterator. Walk back to find the function
+     entry and the loop bound.
+
+iter-148 patches: NONE. eboot_patches.py unchanged from
+iter-137 baseline.
