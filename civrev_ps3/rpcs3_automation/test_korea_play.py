@@ -133,10 +133,22 @@ def main():
         # OCR the current selection to confirm
         text = L._ocr_screen(region=(0.0, 0.3, 1.0, 0.85))
         target_keywords = {
-            15: ("Sejong", "Korean", "Korea"),
-            6: ("Mao", "Chinese", "China"),
             0: ("Caesar", "Romans", "Roman"),
-            5: ("Catherine", "Russians"),
+            1: ("Cleopatra", "Egyptians", "Egypt"),
+            2: ("Alexander", "Greeks", "Greek"),
+            3: ("Isabella", "Spanish", "Spain"),
+            4: ("Bismarck", "Germans", "German"),
+            5: ("Catherine", "Russians", "Russia"),
+            6: ("Mao", "Chinese", "China"),
+            7: ("Lincoln", "Americans", "America"),
+            8: ("Tokugawa", "Japanese", "Japan"),
+            9: ("Napoleon", "French", "France"),
+            10: ("Gandhi", "Indians", "India"),
+            11: ("Saladin", "Arabs", "Arabia"),
+            12: ("Montezuma", "Aztecs", "Aztec"),
+            13: ("Shaka", "Zulu", "African"),
+            14: ("Genghis", "Mongols", "Mongolia"),
+            15: ("Sejong", "Korean", "Korea"),
         }.get(slot, ())
         target_on_screen = any(k in text for k in target_keywords)
         result["stages"]["highlighted_ok"] = target_on_screen
