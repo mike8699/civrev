@@ -61,13 +61,17 @@ echo "[verify] M0 static checks"
 m0_pass=true
 m0_notes=""
 
-# M0c — XML well-formedness on every overlay.
+# M0c — XML well-formedness on every overlay. nullglob so an empty
+# overlay set doesn't expand the glob to a literal `*.xml` path that
+# xmllint would then fail on.
+shopt -s nullglob
 for f in "$HERE/xml_overlays"/*.xml; do
     if ! xmllint --noout "$f" 2>/dev/null; then
         m0_pass=false
         m0_notes="xmllint failed on $(basename "$f"); $m0_notes"
     fi
 done
+shopt -u nullglob
 
 # M0a — EBOOT patch dry-run. Fallback when the patcher is not yet wired.
 if [ -f "$HERE/eboot_patches.py" ]; then
