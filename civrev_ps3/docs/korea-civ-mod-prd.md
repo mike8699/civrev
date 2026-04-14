@@ -2853,3 +2853,54 @@ runtime-allocated, not a static table I can grep for.
   (already present per iter-109+) but neither has been used
   against the working-base / patched EBOOT path established
   in iter-137.
+
+### iter-146 (2026-04-14): found the per-cell carousel setup function
+
+After three iterations of dead static tables, pivoted to scanning
+for consumers of the parser_worker output buffers (TOC offsets
+`r2+0x1418` for rulernames, `r2+0x141c` for civnames). Found 6
+loads of each — most are inside parser_worker / dispatcher
+itself, but one consumer outside that area is interesting:
+
+  - **`FUN_001e49f0`** (172 bytes) — reads ALL seven parser-output
+    TOC offsets (0x140c, 0x1410, 0x1414, 0x1418, 0x141c, 0x1420,
+    0x1424) and calls `func_0x00012080(param_1, ..., parser_buf,
+    ...)` four times with different fields. Then calls
+    `func_0x00011230(rulernames_buf, civnames_buf)` to combine
+    ruler+civ names. Sets `*(param_1 + 0x10) = 1` at the end —
+    classic "this cell is initialized" flag.
+
+This IS the per-cell carousel setup function. It takes a
+`param_1` (per-cell context object) as input. The CALLER is the
+carousel cell-grid builder — call this function once per civ
+cell and you've populated the carousel.
+
+**No direct bl xrefs to FUN_001e49f0** — it's a vtable method.
+Looking at .data at 0x018c9ae0 reveals a 20+ entry FDESC table
+where vtable[+0x10] = FUN_001e49f0. The vtable methods are all
+in 0x001e4xxx..0x001e5xxx range — this is a single class
+(probably "CivSelectCellState" or similar) with about 20
+virtual methods. The cell-init method is method 2 (vtable
+offset +0x10).
+
+To find the cell-grid iterator that CALLS this method on each
+of 16 cells, I'd need to either:
+  - Find a function that iterates an array of these class
+    instances and calls `obj->method2()` on each. The instance
+    array might be at vaddr ~0x0188c280 (the sole xref to the
+    vtable base).
+  - Or set a Z-packet GDB watchpoint on `*(r2+0x141c)` (the
+    civnames buffer) at runtime and catch FUN_001e49f0 (or its
+    iterator) when the carousel renders.
+
+**Next iteration should:**
+- Decompile FUN_001e489c, FUN_001e493c, FUN_001e4a9c (the other
+  vtable methods near FUN_001e49f0). One of them is likely the
+  constructor or "build carousel" routine that iterates 16 times.
+- Or chase the .data ref at 0x0188c280 — that's where the
+  vtable pointer is stored, probably inside an instance struct.
+  Tracing back from there should find the instance array OR
+  the constructor that allocates one.
+- Or just run the Z-packet watchpoint plan from iter-145.
+  We've burned enough static iterations; runtime data is
+  more direct now.
