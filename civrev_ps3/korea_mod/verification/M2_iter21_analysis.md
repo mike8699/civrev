@@ -187,3 +187,50 @@ at runtime for on-demand libraries), the crash is still most likely
 in game init code, just not on the CALLER path of the parser.
 
 ## v0.9 remains the shipping state
+
+## iter-25 — target address 0x2a12c is inside std::vector::insert
+
+Decompiled `FUN_00029f18` which contains the instruction at
+0x2a12c: it's a **std::vector::insert / reserve** variant (takes
+container, iterator, count; has the 0x3fffffff size-check and
+calls FUN_00028b68 = copy_n, FUN_00028a70 = construct_range).
+
+The fault write at 0x2a12c isn't doing anything semantic with
+this function — 0x2a12c just happens to be the address of an
+instruction (`or r3, r31, r31` = mr r3, r31) inside its body.
+The faulting STORE (`stb r0, 0(r11)` at 0xc26a98) computed an
+r11 value of 0x2a12c which lands in the std::vector::insert's
+code segment.
+
+`FUN_00029f18` is only referenced via function descriptors at
+`0x18b6a10` / `0x18b6a18`, meaning it's called through function
+pointers (vtable or similar). This confirms it's a shared
+utility, not a civ-specific function.
+
+## Final assessment
+
+Across 25 iterations the crash has been narrowed to:
+- **Faulting function**: FUN at 0xc26a00..0xc26ac4 in v130_clean
+  (a small ~200B string-clear / FStringA::ClearNull utility)
+- **Faulting instruction**: `stb r0, 0(r11)` at 0xc26a98
+- **Computed fault address**: 0x2a12c (inside std::vector::insert)
+- **Corruption origin**: UNKNOWN — an FStringA somewhere in the
+  caller chain has a garbage `buf` field and `*buf-4` ends up
+  such that `buf + length = 0x2a12c`
+
+The ultimate corruption source is somewhere in the game's C++
+runtime state that's sensitive to civnames+rulernames both
+having 18 entries. Static analysis through Ghidra XREFs
+(iter-14..22) and runtime GDB sampling (iter-16..19) and RPCS3
+log inspection (iter-20, 23, 24) have all failed to pinpoint
+the specific allocation.
+
+**The 17-slot extension remains blocked.** Future work requires
+either:
+1. Hardware watchpoint support in gdb_client.py (non-trivial
+   GDB RSP protocol work — Z-packets)
+2. RPCS3 instrumented build with memory-tracing enabled
+3. Interactive Ghidra UI session for manual data-flow tracing
+
+None of these fit in the current bash harness iteration budget.
+v0.9 remains the definitive shipping state.
