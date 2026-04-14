@@ -1,5 +1,5 @@
 {
   "milestone": "M0",
   "pass": true,
-  "notes": "overlays well-formed; eboot_patches.py not implemented yet; "
+  "notes": "overlays well-formed"
 }
