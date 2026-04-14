@@ -46,17 +46,22 @@ need to become 0x11, and (4) needs to become `+ 0x44`.
 
 ## Next concrete steps
 
-1. Grep `civrev_ps3/decompiled_v130/` for references to the confirmed base
-   addresses (`0x194b434`, `0x194b35c`, `0x195fe28`, `0x194b3c8`) and the
-   individual string pointers (`0x16a38a8` for "Caesar" etc.). Every
-   matching function is a loop over the civ set.
-2. For each matching function, read its disassembly and catalog the
-   immediate-0x10 compares. Many will be actual civ-index loops; a few
-   may be unrelated (there are other "16"s in the binary).
-3. Separately, enumerate the `LDR_*` internal tag head (which requires
-   dumping pointers just below `0x0194b340`).
-4. Record all findings in this file, then update the candidate patch
-   list in `addresses.py`.
+1. The bulk Ghidra text export at `civrev_ps3/decompiled_v130/` does NOT
+   resolve raw-address DAT references — grepping the export for
+   `0x194b434` / `DAT_0194b434` returns zero hits across all ~36k function
+   files. §5.1 cannot proceed purely from that export; we need either
+   (a) a fresh headless Ghidra pass that preserves DAT cross-refs, or
+   (b) direct PPC-instruction scanning of the EBOOT binary for the
+   LIS/ADDI pair that encodes each confirmed array base.
+2. Option (b) is the faster path for iteration 2: walk the text segment,
+   decode every LIS/ADDI pair, compute the resulting immediate, and
+   collect all sites whose immediate falls inside one of the array
+   ranges. Then for each hit, search outward for the nearest
+   `cmpwi rN, 0x10` to catalog the loop bound patch site.
+3. Separately, confirm there are no additional parallel arrays we missed
+   by scanning for 64-byte (16 × 4-byte) pointer blocks anywhere in the
+   data segment whose 16 pointers all land in a known civ-string range
+   (adjectives, city names, asset prefixes, etc.).
 
 ## Why this is strictly harder than the PRD expected
 

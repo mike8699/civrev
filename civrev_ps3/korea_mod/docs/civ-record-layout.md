@@ -27,13 +27,13 @@ This changes the §6.2 implementation strategy materially:
 | Civ internal tags (`CIV_Rome`, ...)     | `0x0194b35c`| 4      | 16      | confirmed |
 | Civ adjective (flat, one entry per civ) | `0x0195fe28`| 4      | 16      | confirmed |
 | Civ adjective+plural pair (interleaved) | `0x0194b3c8`| varies | ~26     | confirmed |
-| Leader internal tags (`LDR_rome`, ...)  | ?           | 4      | 16      | partial   |
+| Leader internal tags (`LDR_rome`, ...)  | `0x0194b318`| 4      | 16      | confirmed |
 
-The leader-internal-tag array is visually confirmed at its tail
-(`0x0194b340..0x0194b358` covers `LDR_india`..`LDR_england`, 6 entries) but
-its head has not been dumped yet. It almost certainly occupies
-`0x0194b318..0x0194b358` (6 × 4 = 0x18 bytes for the visible tail plus
-0x28 bytes for the invisible head = 16 × 4 bytes).
+The leader-internal-tag array is confirmed end-to-end at `0x0194b318` ..
+`0x0194b354` (16 × 4 bytes). A 4-byte filler word at `0x0194b358`
+(pointer-shaped, points into the text segment at `0xa2b7c0` — likely a
+vtable or initializer) separates it from the adjacent `CIV_*` internal
+tag array at `0x0194b35c`.
 
 Verification dump of the confirmed tables — see the appendix at the bottom of
 this file for the raw pointer→string mapping.
@@ -138,6 +138,26 @@ Civ internal tag table (`0x0194b35c`, stride 4, 16 entries):
 [13] 0x194b390 -> 0x16edf90 'CIV_Africa'
 [14] 0x194b394 -> 0x16edfa0 'CIV_Mongolia'
 [15] 0x194b398 -> 0x16edfb0 'CIV_England'
+```
+
+Leader internal tag table (`0x0194b318`, stride 4, 16 entries):
+```
+[ 0] 0x194b318 -> 0x16eddc0 'LDR_rome'
+[ 1] 0x194b31c -> 0x16eddd0 'LDR_egypt'
+[ 2] 0x194b320 -> 0x16edde0 'LDR_greece'
+[ 3] 0x194b324 -> 0x16eddf0 'LDR_spain'
+[ 4] 0x194b328 -> 0x16ede00 'LDR_germany'
+[ 5] 0x194b32c -> 0x16ede10 'LDR_russia'
+[ 6] 0x194b330 -> 0x16ede20 'LDR_china'
+[ 7] 0x194b334 -> 0x16ede30 'LDR_america'
+[ 8] 0x194b338 -> 0x16ede40 'LDR_japan'
+[ 9] 0x194b33c -> 0x16ede50 'LDR_france'
+[10] 0x194b340 -> 0x16ede60 'LDR_india'
+[11] 0x194b344 -> 0x16ede70 'LDR_arabia'
+[12] 0x194b348 -> 0x16ede80 'LDR_aztec'
+[13] 0x194b34c -> 0x16ede90 'LDR_africa'
+[14] 0x194b350 -> 0x16edea0 'LDR_mongolia'
+[15] 0x194b354 -> 0x16edeb0 'LDR_england'
 ```
 
 Civ adjective table (`0x0195fe28`, stride 4, 16 entries):

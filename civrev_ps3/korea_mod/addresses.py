@@ -27,10 +27,10 @@ so file offsets in EBOOT_v130_clean.ELF equal virtual addresses directly.
 # CcCiv enum order derived from leaderheads.xml.
 KOREA_MOD_CIV_TAG_ARRAY           = 0x0194b35c  # 16 × 4 bytes
 
-# Internal leader tag strings (e.g. "LDR_rome", "LDR_egypt"). Sits immediately
-# before CIV_TAG_ARRAY. Only the tail of this array is visually confirmed
-# (LDR_india .. LDR_england); the head must be re-scanned once needed.
-KOREA_MOD_LDR_TAG_ARRAY           = None        # §5.2 follow-up
+# Internal leader tag strings ("LDR_rome", "LDR_egypt", ..., "LDR_england").
+# 16 × 4 bytes, adjacent to CIV_TAG_ARRAY (which starts at +0x44 past this
+# array's end, with one 4-byte filler/vtable word at 0x194b358).
+KOREA_MOD_LDR_TAG_ARRAY           = 0x0194b318  # 16 × 4 bytes
 
 # English-facing leader names as displayed in menus:
 # "Caesar", "Cleopatra", "Alexander", "Isabella", "Bismarck", "Catherine",
