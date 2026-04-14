@@ -33,7 +33,8 @@ stage_fpk() {
     cp -r "$src" "$dst"
 
     local applied=0
-    for overlay in "$OVERLAYS"/*.xml; do
+    for overlay in "$OVERLAYS"/*.xml "$OVERLAYS"/*.ini; do
+        [ -f "$overlay" ] || continue
         local base
         base="$(basename "$overlay")"
         local target="$dst/$base"

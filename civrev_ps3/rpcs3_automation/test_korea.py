@@ -102,10 +102,15 @@ def main():
         _press("X", 5)
         _shot("04_after_difficulty")
 
-        # Civ-select: scroll RIGHT 25 times, capturing+OCR each
-        # We don't normalize to leftmost first because that risks infinite
-        # loop on a 17-civ list; instead we start wherever the cursor lands
-        # and sweep right. 25 > 17 guarantees we visit every slot.
+        # Civ-select: the cursor starts on a RANDOM civ. Normalize first
+        # by pressing Left 20 times — per launch.py:557 the carousel wraps
+        # on a 16-civ layout (16 Lefts wraps to Romans); 20 is safe for a
+        # 17-slot layout too. Then sweep Right 25 times capturing each.
+        print("Normalizing cursor to leftmost (20 Left presses)")
+        for _ in range(20):
+            _press("Left", 0.2)
+        _shot("06_normalized_left")
+
         print("Sweeping civ-select with 25 rights")
         for i in range(25):
             _press("Right", 0.35)
