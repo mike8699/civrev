@@ -2550,3 +2550,52 @@ or the broken plain ELF (iter-133..136).
   base. The "broken_18 fault" theory may finally be testable
   for real.
 - Drop addresses.py's "vaddr == file offset" claim.
+
+### iter-140 (2026-04-14): iter-139 correction — slot 16 is the existing Random cell
+
+iter-139 claimed "the cursor naturally extends to a new 17th civ
+slot when broken_18 + iter-14 are in place." Re-reading the
+verification screenshot more carefully: the "?" cell IS the
+existing **Random** cell (`This will randomly choose a
+civilization` in the description box, ruler shown as
+`Random / Random`), not a new Korea slot. iter-139 misread it
+as a new uninitialized civ.
+
+What's actually happening:
+  - Parser reads 18 civnames + 18 rulernames (iter-14 patches work)
+  - Carousel display layout still uses the original 17 cells
+    (16 civs + 1 Random)
+  - Pressing Right 16× from slot 0 goes through civs 0..15 (English)
+    then to slot 16 = Random
+  - Korea (parsed at index 16 in civnames) is NEVER displayed in
+    the carousel because the carousel's per-cell loader doesn't
+    iterate the parser output past 16
+
+So the cursor clamp DOES still need finding and bumping. It's
+inside the cell-grid builder, not the input handler.
+
+**Status:**
+  - DoD item 1 (Korea as 17th civ): still BLOCKED, but at least
+    we now know exactly what's blocking it: extending the
+    carousel cell-grid from 17 cells (16 civs + Random) to 18
+    (17 civs + Random) and populating per-civ data tables for
+    the new slot.
+  - DoD item 2-5 (gameplay): would need the per-civ data tables
+    populated first.
+  - All other infrastructure (decrypted base, dual-path install,
+    eboot_patches.py vaddr translation, broken_18 boot, korea_play
+    M6/M9 verification) is solid.
+
+**Next iteration should:**
+- Search the EBOOT for xrefs to the "Random" string at vaddr
+  0x168ef7d. These are computed via lis/addi pairs, so a
+  straight 32-bit-constant search returns zero hits. Need a
+  Ghidra script that walks references via the analyzer's
+  reference manager.
+- The xref lands inside the cell-grid builder. Look for a
+  `cmpwi rN, 16` or `cmplwi rN, 16` near it that bounds the
+  civ cell loop (cells 0..15 are populated from the parser
+  output, cell 16 is the Random fallback).
+- Bump the cell-loop bound from 16 to 17 and provide per-civ
+  data for slot 16 (probably copying slot 6's China data
+  per the v1.0 spec in §9).
