@@ -343,15 +343,43 @@ PATCHES: list[Patch] = [
     # carousel reads its display text from RUNTIME PARSER OUTPUT
     # BUFFERS (heap memory populated from rulernames_enu.txt /
     # civnames_enu.txt at boot), NOT from static EBOOT strings.
+
+    # ITER-159: partial DoD item 1 progress.
     #
-    # v0.9's fpk_byte_patch.py approach (Elizabeth → Sejong in the
-    # Pregame.FPK file directly) is the ONLY way to control the
-    # carousel display text, because it modifies the source bytes
-    # that the parser reads. There is no static EBOOT patch that can
-    # intercept the displayed text.
+    # The civ-select carousel slot 16 (the Random cell) shows three
+    # text fields: title row 1 ("Random"), title row 2 ("Random"),
+    # and a description box ("This will randomly choose a
+    # civilization"). The two title rows come from a runtime/dynamic
+    # source I cannot patch via static EBOOT edits — tested both
+    # 0x016a3500 ("Random Civilization") and 0x0168ef7d ("Random\0
+    # PS3 Profi") with no visible effect.
     #
-    # iter-156 patches reverted. eboot_patches.py back to iter-137
-    # 6-patch baseline.
+    # **The DESCRIPTION box DOES read from the static EBOOT string
+    # at 0x016a70e8.** Patching it from "This will randomly choose
+    # a civilization" to "An ancient kingdom on the Korean peninsu"
+    # changes what the slot 16 cell displays in its Ancient era
+    # bonus area.
+    #
+    # Visual effect (verified iter-159, broken_18 Pregame, slot 16):
+    #   ┌─────────────────────────────────────────────────────────┐
+    #   │   ?    Random        ?                                   │
+    #   │        Random                                            │
+    #   │ Ancient: An ancient kingdom on the Korean peninsu        │
+    #   │ Medieval: ???                                            │
+    #   │ Industrial: ???                                          │
+    #   │ Modern: ???                                              │
+    #   │              Special Units: ???                          │
+    #   └─────────────────────────────────────────────────────────┘
+    #
+    # Not full DoD item 1 (Korea is still labeled "Random / Random"
+    # in the title), but this IS the first non-zero static edit that
+    # propagates to the carousel. It's a small but real improvement.
+    Patch(
+        offset=0x016a70e8,
+        expected_old=b"This will randomly choose a civilization",
+        new=b"An ancient kingdom on the Korean peninsu",
+        description="iter-159: slot 16 description box → Korean text",
+    ),
 ]
 
 
