@@ -1,0 +1,32 @@
+{
+  "stages": {},
+  "threads": [],
+  "samples": [
+    {
+      "t": 30,
+      "threads": [
+        {
+          "tid": "0000000001000000l",
+          "pc": 12741120,
+          "lr": 0
+        }
+      ]
+    },
+    {
+      "t": 60,
+      "threads": []
+    },
+    {
+      "t": 120,
+      "threads": []
+    },
+    {
+      "t": 180,
+      "error": "timed out"
+    },
+    {
+      "t": 240,
+      "error": "timed out"
+    }
+  ]
+}

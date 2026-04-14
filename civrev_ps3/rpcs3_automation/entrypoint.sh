@@ -268,6 +268,9 @@ elif [ "${1:-}" = "korea_play" ]; then
 elif [ "${1:-}" = "korea_soak" ]; then
     shift
     exec python3 test_korea_soak.py "$@"
+elif [ "${1:-}" = "korea_gdb" ]; then
+    shift
+    exec python3 test_korea_gdb.py "$@"
 else
     exec python3 test_map.py "$@"
 fi
