@@ -1188,6 +1188,56 @@ v1.0 counters (the only ones that matter for the current scope):
 
 ---
 
+### 2026-04-14 — iter-5 (M1 pass, M2 fail, Random-slot discovery)
+
+**Status:** M1 green; M2 fail (surmountable)
+**Working on:** §7 verification, §6.2 refinement
+
+**Did this iteration:**
+- Fixed `build.sh` to run `eboot_patches.py` for real (not just
+  dry-run) so `_build/EBOOT_korea.ELF` is always produced.
+- Ran `docker_run.sh --headless` (default test_map.py flow) against
+  the patched EBOOT + modded Common0.FPK: **M1 green**. The game
+  boots, navigates to civ-select, selects Russians, enters the
+  in-game world. No regression on the 16 stock civs. Artifacts
+  committed to `korea_mod/verification/M1/`.
+- Wrote `civrev_ps3/rpcs3_automation/test_korea.py` — a Korea-
+  specific test that drives the main-menu → scenario → difficulty
+  → civ-select flow and sweeps Right across all carousel slots,
+  OCR-ing each to look for Korea / Korean / Sejong.
+- **M2 FAIL with a critical discovery:** the civ-select screen is
+  natively 17-slot, not 16. The game has 16 civs (slots 0..15) + a
+  "Random" slot at index 16 (question-mark silhouette, "randomly
+  choose a civilization"). The cursor clamps at Random — pressing
+  Right is a no-op from there. Our `Nationality="16"` leaderheads.xml
+  entry collides with the Random slot and Sejong never renders.
+  Screenshots in `korea_mod/verification/M2/`.
+
+**Verification:**
+- `korea_mod/verification/M1/result.json` → pass
+- `korea_mod/verification/M2/korea_m2_result.json` → fail
+
+**Open blockers:**
+- Korea needs to live at a different slot than Random. Two options:
+  (a) Reindex Korea to `Nationality="17"` and extend ADJ_FLAT to 18
+  entries, OR (b) find the civ-select upper-bound code and push
+  Random to slot 17, putting Korea at 16. Option (b) requires more
+  RE but is more cosmetically clean.
+- The fact that Random already lives at slot 16 strongly suggests
+  the civ-select loop already handles >16 slots — which is
+  promising. The slot-limit constant is somewhere patchable.
+
+**Next iteration should:**
+1. Grep the decompressed 360 image for "Random" string ref, find
+   the function that populates the carousel, and map it to PS3.
+2. Locate the civ-select slot-count constant (likely 17 somewhere,
+   possibly as a hardcoded `< 0x11` compare near the carousel
+   input handler).
+3. Decide between option (a) and (b) based on complexity.
+4. Re-run `docker_run.sh --headless korea` with the updated mod.
+
+**PRD changes made this iteration:** Progress Log entry added.
+
 ### 2026-04-14 — iter-4 (XEX decompression + first real EBOOT patch)
 
 **Status:** implementing
