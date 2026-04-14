@@ -12,5 +12,12 @@ investigation. Run via `analyzeHeadless` against `civrev.gpr`.
 - `FindCityInit.py` — scans for the city-init consumer of
   `RulerNames_`. Iter-22 tool; came up empty (consumer path doesn't
   match static cmpwi-17 pattern).
+- `TraceCallers.py` — for each candidate "fault-site" address in
+  v130_clean, walks reference-to chains up to depth 5 looking for
+  any caller that connects back to a known init function entry.
+  Iter-26 tool; came up empty (the v130_clean caller graph doesn't
+  reach the init code path via static call references — the link
+  must be via function-pointer / vtable indirection that Ghidra's
+  static refs miss).
 
 Jython 2.7 — use `%`-formatting, never f-strings.
