@@ -1,0 +1,109 @@
+{
+  "milestone": "M2",
+  "pass": false,
+  "oracle": "OCR {'Korea','Korean','Sejong'} on civ-select carousel during a 25-right sweep",
+  "observations": [
+    {
+      "i": 0,
+      "text": "oe x I Voi = lide | \u2014_ >; lll \u2014=k EE i Yo Oe | Tokugawa Napoleon Gandhi Py aoe \u2018 Montezuma Shaka Genghis | Japanese French Indians , = \\ Aztecs Zulu Khan | [AD Pm TE ara: cS : 2 a a Site SH 4 A | LD V"
+    },
+    {
+      "i": 1,
+      "text": "_  \u2014 = Aes i | Napoleon Gandhi Saladin \u00a9 noe A te Shaka Genghis Elizabett | French Indians Arabs = a \\g Ne Zulu Khan English | [Ag Pm TS a | A ] ( SO i Sogs R | i \u2014_~- \u00bb 1 2A LON | \u2018> ee Montezuma ac "
+    },
+    {
+      "i": 2,
+      "text": "ee eee \" Bi Oty he ya a \u2014- | Gandhi Saladin Montezuma \u201coy | \u2018all aa > Genghis Elizabeth Random | Indians Arabs Aztecs me y y Khan English Random | k / \u2018 yy . \u2122~ f - ee * ee aA y 7] | i ; . \\ i ~~ n | "
+    },
+    {
+      "i": 3,
+      "text": "come = ni =\u2014 lee wh SC SD \u00ab~ Qa = | \u2014 |). mt Wo ppp. \u2014\u2122 \u2014 | Saladin Montezuma Shaka at \\ \u201chy = Elizabeth Random | Arabs Aztecs Zulu icone ao al English Random | [At Pm amas \\|ae 4 -m\u2122 ee oi 9 CO ar | "
+    },
+    {
+      "i": 4,
+      "text": "pumimeeeeoess/ jj. \\smmmmesieeees/ #\u00a7 \\qummenemmmed/ aes. p/ \u00bb \\ \u2014\u2014 | | Kontezuma Shaka Genghis | Random | Aztecs Zulu Khan r \u00bb Random | [AL Pm TN amr: val (sa SH A | i -_~ \u00bb ler \u2014 see =<\" eee \u2014 eee J"
+    },
+    {
+      "i": 5,
+      "text": "eemeieciems) qj. \\qmmmemes/ \\immiee | f | Shaka Genghis Elizabeth a | Zulu Khan English , | j ; ry = ~ if ; ry * 7\" 'g ll X\\ id \u2014 jh | tA \u201d ; .* \\ \u2014\u2014 eerereeterrreeresersiamatamettatcasaaaiitianiacmsi"
+    },
+    {
+      "i": 6,
+      "text": "pumice) .\u00a7 \\qumuememes/ (hmmm | f | Shaka Genghis Elizabeth a | Zulu Khan English , | y CoN T ; ry * 7 'g ll X fh *-) jh | tA \u201d ; * \\ eet eeseersiemeatemeaitiatcasaaaiitiarinmmsiy inmiibaaammmearen ac"
+    },
+    {
+      "i": 7,
+      "text": "pumice) 4. \\qummememes/ \u00a9 (hemes | f | Shaka Genghis Elizabeth a | Zulu Khan English , | y CoN T ; ry * 7 'g ll X fh *-) jh | tA \u201d ; * \\ reer eeaeaesiameatameaiatcaaaaaititicinemmsiy wine ammmmmearea "
+    },
+    {
+      "i": 8,
+      "text": "pumice) qj. \\qummemmes/ | (hemes | f | Shaka Genghis Elizabeth a | Zulu Khan English , | y CoN T ; ry * 7 'g ll X fh *-) jh | tA \u201d ; * \\ errata ereeeesiameaaemeaiatcaamaaaiininiammmmsiy meinem aceamee"
+    },
+    {
+      "i": 9,
+      "text": "pumice) .\u00a7 \\qumuememes/ hemes | f | Shaka Genghis Elizabeth a | Zulu Khan English , | y CoN T ; ry * 7 'g ll X fh *-) jh | tA \u201d ; * \\ \u2014\u2014 rreeetererreensserniameatemeaiaatcaaaaaitirinemsiy inmeiibamamm"
+    },
+    {
+      "i": 10,
+      "text": "pemeiicniemes) q.\u00a7 \\qumuems/ hmmm | f | Shaka Genghis Elizabeth a | Zulu Khan English , | y CoN T ; ry * 7 'g ll X fh *-) jh | tA \u201d ; * \\ \u2014\u2014 rreerterraeeseaeniamaaemeaitiatcasaaaitininmmmmciy winesiib"
+    },
+    {
+      "i": 11,
+      "text": "pumniicciomes) j.\u00a7 \\qummememes/ hemes | f | Shaka Genghis Elizabeth a | Zulu Khan English , | y CoN T ; ry * 7 'g ll X fh *-) jh | tA \u201d ; * \\ reer eeesaesiamatemeaiatcaaaaaiitiinmmsiy wearers een mema"
+    },
+    {
+      "i": 12,
+      "text": "pumice) jj. \\qmmmenes (hice | f | Shaka Genghis Elizabeth a | Zulu Khan English , | y CoN T ; ry * 7 'g ll X fh *-) jh | tA \u201d ; * \\ reer eeseeesiameatemeatiatcaamaaaiitirinemmsiy wieeiibamammeammnaren"
+    },
+    {
+      "i": 13,
+      "text": "pumice) qj. \\qmmmemes/ \u00a9 \\hemmiemee | f | Shaka Genghis Elizabeth a | Zulu Khan English , | y CoN T ; ry * 7 'g ll X fh *-) jh | tA \u201d ; * \\ \u2014\u2014 rreerterrraeeeseesiammatemeaitatcasaaaitiarinmmmmsiy inee"
+    },
+    {
+      "i": 14,
+      "text": "Se eee eee | f | Shaka Genghis Elizabeth a | Zulu Khan English , | y CoN T ; ry * 7 'g ll X fh *-) jh | tA \u201d ; * \\ \u2014\u2014 rereetererrereeseeesiameatameiaateaamaaaiitiarinmmsiy inesitibaammmmeaea aceasta m"
+    },
+    {
+      "i": 15,
+      "text": "Se ee ee | f | Shaka Genghis Elizabeth a | Zulu Khan English , | y CoN T ; ry * 7 'g ll X fh *-) jh | tA \u201d ; * \\ errant ereeersiameatemeitiatcaamaaaititiarincmmsiy iam aes emai memantine u a \u2018 A >\u2019 \\ "
+    },
+    {
+      "i": 16,
+      "text": "peices) j.\u00a7 \\qmmmenes) hee | f | Shaka Genghis Elizabeth a | Zulu Khan English , | y CoN T ; ry * 7 'g ll X fh *-) jh | tA \u201d ; * \\ \u2014\u2014 rreertererreeresersiameatemeaiiatcaamaaaititearincmmmsiy ieee amar"
+    },
+    {
+      "i": 17,
+      "text": "SS ee eee | f | Shaka Genghis Elizabeth a | Zulu Khan English , | y CoN T ; ry * 7 'g ll X fh *-) jh | tA \u201d ; * \\ \u2014\u2014 rereetererrereeseeesiameatemeitiaatcasmaaaiitiarincmmsiy miami eeaas emai mama anil"
+    },
+    {
+      "i": 18,
+      "text": "peices) 4. \\qmmmenees) (hee | f | Shaka Genghis Elizabeth a | Zulu Khan English , | y CoN T ; ry * 7 'g ll X fh *-) jh | tA \u201d ; * \\ reer ersseesiammatemeaiatcaeaaaitininmmsiy ineeiibamammmmmaarca aces"
+    },
+    {
+      "i": 19,
+      "text": "Se ee ee | f | Shaka Genghis Elizabeth a | Zulu Khan English , | y CoN T ; ry * 7 'g ll X fh *-) jh | tA \u201d ; * \\ reer eeseersiameatemeaiatcaaaaaiitirinamciy ieee aces emmmmamnimmmm memantine u a \u2018 A >"
+    },
+    {
+      "i": 20,
+      "text": "peices) qq. \\qummenes \u00a9 (hemes | f | Shaka Genghis Elizabeth a | Zulu Khan English , | y CoN T ; ry * 7 'g ll X fh *-) jh | tA \u201d ; * \\ rere eeseersiamnatmeitiaataaamaapiiterinmmmmsiy ieee amare emmani"
+    },
+    {
+      "i": 21,
+      "text": "pumice) .\u00a7 \\qummenees/ \u00a9 \\hemiceees | f | Shaka Genghis Elizabeth a | Zulu Khan English , | y CoN T ; ry * 7 'g ll X fh *-) jh | tA \u201d ; * \\ \u2014\u2014 erereertererreeeeseersiameatemeitiateaaaaaiitiarincmmsiy "
+    },
+    {
+      "i": 22,
+      "text": "peices) j.\u00a7.\u00a7 \\qemmemes) (heen | f | Shaka Genghis Elizabeth a | Zulu Khan English , | y CoN T ; ry * 7 'g ll X fh *-) jh | tA \u201d ; * \\ reer eresasiameatemeaiatcaaaaaiitininmmciy nines emma mame iiaaai"
+    },
+    {
+      "i": 23,
+      "text": "peices) j.\u00a7. \\qmmmenemes/ \u00a9 \\hiceeees | f | Shaka Genghis Elizabeth a | Zulu Khan English , | y CoN T ; ry * 7 'g ll X fh *-) jh | tA \u201d ; * \\ \u2014\u2014 erereetererrereeesersiameatemeiaatcaamaaaiitiarinmmsiy "
+    },
+    {
+      "i": 24,
+      "text": "Se eee eee | f | Shaka Genghis Elizabeth a | Zulu Khan English , | y CoN T ; ry * 7 'g ll X fh *-) jh | tA \u201d ; * \\ \u2014\u2014 reertererreereeersiaammaaemeaiiatcaaaaaiitianiammmmciy ieee aceasta memantine u a "
+    }
+  ],
+  "korea_seen": false,
+  "korea_at_slot": null
+}

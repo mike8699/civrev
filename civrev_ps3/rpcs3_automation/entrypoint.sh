@@ -259,6 +259,9 @@ if [ "${1:-}" = "autoplay" ]; then
 elif [ "${1:-}" = "multiplayer" ]; then
     shift
     exec python3 test_multiplayer.py "$@"
+elif [ "${1:-}" = "korea" ]; then
+    shift
+    exec python3 test_korea.py "$@"
 else
     exec python3 test_map.py "$@"
 fi
