@@ -55,8 +55,9 @@ RUN cd /tmp && \
     ln -sf ${GHIDRA_HOME}/support/analyzeHeadless /usr/local/bin/analyzeHeadless
 
 # ---- XEXLoaderWV (Xbox 360 XEX file loader for Ghidra) ----
+# Note: XEXLoaderWV release dates differ from Ghidra release dates
 RUN cd /tmp && \
-    wget -q "https://github.com/zeroKilo/XEXLoaderWV/releases/download/ghidra_${GHIDRA_VERSION}_PUBLIC_${GHIDRA_DATE}/ghidra_${GHIDRA_VERSION}_PUBLIC_${GHIDRA_DATE}_XEXLoaderWV.zip" \
+    wget -q "https://github.com/zeroKilo/XEXLoaderWV/releases/download/${GHIDRA_VERSION}/ghidra_${GHIDRA_VERSION}_PUBLIC_20260329_XEXLoaderWV.zip" \
          -O XEXLoaderWV.zip && \
     mkdir -p ${GHIDRA_HOME}/Ghidra/Extensions && \
     unzip -q XEXLoaderWV.zip -d ${GHIDRA_HOME}/Ghidra/Extensions/ && \
