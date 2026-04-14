@@ -54,3 +54,41 @@ that constructs an FStringA from the parsed name data and assumes a
 Identifying WHICH caller, and WHICH downstream allocation is 17-wide,
 still requires further RE. But the crash is now pinpointed to a specific
 instruction pattern in a specific small function.
+
+## iter-22 follow-up — call chain doesn't reach init
+
+Traced each of the 5 bl 0xc26a00 caller functions upward 5 levels
+via Ghidra's reference database. **None reach FUN_0002fb78,
+FUN_00a21ce8, FUN_00010ef0, FUN_00010590, or FUN_009dca5c** (the
+known civ-name init chain or the big class-method that reads 0xd00).
+
+| site | caller | d1..d5 n |
+|---|---|---|
+| 0xc26c4c | FUN_00c26bf4 | 3,3,2,1,2 |
+| 0xc43fe4 | FUN_00c43fd8 | (no callers) |
+| 0xc4a330 | FUN_00c4a31c | 1,1,1,1,1 |
+| 0xc4a884 | FUN_00c4a83c | 2,3,3,3,7 |
+| 0xc4b18c | FUN_00c4b0e8 | 2,2,4,3,3 |
+
+This suggests the fault instruction chain reported by RPCS3 is
+**NOT on the civ-name direct init path**. The crash is in some
+downstream code path that reads a corrupted data structure
+AFTER the civ-name init completes — the corruption happens during
+init (extending civnames+rulernames to 18 triggers an OOB write
+somewhere that doesn't immediately crash), and then 11.6s later a
+DIFFERENT piece of code trips over the corrupted memory.
+
+## Conclusion
+
+The §9 DoD item 1 blocker is a **delayed heap corruption** bug,
+not a direct fault at the init site. Static analysis cannot easily
+find it because:
+1. The OOB write during init might not itself trigger RPCS3's VM
+   protection (it writes to valid heap, just the wrong object)
+2. The later fault site (11.6s into boot) is in code unrelated to
+   civ-name handling
+3. Bisecting which init-time write causes the later fault requires
+   watchpoint-based debugging (set a hardware breakpoint on write to
+   the address that eventually lands at 0x2a12c after corruption)
+
+v0.9 remains the shipping state.
