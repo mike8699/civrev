@@ -1188,6 +1188,56 @@ v1.0 counters (the only ones that matter for the current scope):
 
 ---
 
+### 2026-04-14 — iter-27 (§7.7 stop re-affirmed; archive Ghidra helpers)
+
+**Status:** v0.9 shipping state unchanged; **§7.7 STOP persists**
+**Working on:** hygiene only — no RE progress possible in this harness
+
+**Did this iteration:**
+1. Re-oriented: `git log --oneline` shows 26 prior iterations all
+   green at M0 static; `verify.sh --tier=static` → PASS.
+2. Inventoried stock `civnames_enu.txt` / `rulernames_enu.txt`: both
+   files have **17 data rows** (16 civs + "Barbarians" at index 16),
+   plus a `;Civ Names` header comment, for 18 total lines. This
+   confirms the parser's `li r5, 0x11` = 17 matches the data and
+   means Korea would have to be inserted as **index 17 after
+   Barbarians**, not in place of it — pushing the civ enum one past
+   the existing barbarian canary and requiring matching extensions in
+   every parallel array in §5.2.
+3. Relocated leftover iter-22/23/25 Jython helper scripts from
+   `korea_mod/docs/` to `korea_mod/scripts/ghidra/` with a README,
+   so a future interactive-Ghidra session has a starting toolkit.
+4. Did NOT retry the 18-entry extension: the same
+   `0x2a12c stb r0, 0(r11)` signature has now fired across
+   iter-7 / iter-10 / iter-11 / iter-12 / iter-14 / iter-16..24.
+   Per PRD §7.7 (3-consecutive-fails-same-signature stop rule), this
+   work item is out of scope for the bash-only harness. The only
+   unblockers are (a) a Ghidra UI session with interactive XREF
+   search on `0x194b648` and friends, (b) a GDB Z-packet hardware
+   watchpoint implementation in `rpcs3_automation/gdb_client.py`
+   that can trigger on writes into the specific FStringA buffer
+   (address currently unknown), or (c) an instrumented RPCS3 build
+   with a memory-write tracer. None of those fit a single iteration
+   of this loop.
+
+**Verification:** `./korea_mod/verify.sh --tier=static` → PASS.
+Full tier would need a docker run; skipped because no binary content
+changed this iteration.
+
+**Open blockers:** §9 DoD item 1 (Korea as 17th civ, not a
+replacement) still gated on the items above. Items 2–5 remain MET
+by v0.9.
+
+**Next iteration should:** NOT retry the 18-entry extension in this
+harness. Either wait for an interactive-Ghidra / instrumented-RPCS3
+session, or pursue an unrelated v1.1 polish item (Korean-language
+strings, a Korea-specific civilopedia edit at slot 15, etc.). The
+ralph loop should pick one of those next time rather than spinning
+on the blocked lever again.
+
+**PRD changes made this iteration:** Progress Log entry added;
+§7.7 stop status re-affirmed.
+
 ### 2026-04-14 — iter-11 (M9 Mao regression green; §7.7 stop on 17-slot block)
 
 **Status:** v0.9 feature-complete, verification-complete; **§7.7 STOP**
