@@ -101,7 +101,9 @@ done
 civrev_ps3/rpcs3_automation/docker_run.sh --headless korea_play     # M6: select Korea, reach in-game HUD
 civrev_ps3/rpcs3_automation/docker_run.sh --headless korea_soak     # M7: 50-turn end-turn soak
 civrev_ps3/rpcs3_automation/docker_run.sh --headless korea          # M2: sweep civ-select for Sejong/Koreans
-civrev_ps3/rpcs3_automation/docker_run.sh --headless korea_play 6 mao  # M9: regress Mao (slot 6)
+civrev_ps3/rpcs3_automation/docker_run.sh --headless korea_play 0 caesar     # M9: regress Caesar (slot 0)
+civrev_ps3/rpcs3_automation/docker_run.sh --headless korea_play 5 catherine  # M9: regress Catherine (slot 5)
+civrev_ps3/rpcs3_automation/docker_run.sh --headless korea_play 6 mao        # M9: regress Mao (slot 6)
 ```
 
 All result JSONs land under
@@ -121,7 +123,7 @@ verification artifacts are committed to
 | M5 civ-table[16] | N/A | v0.9 reuses slot 15 |
 | M6 in-game start | green | `verification/M6/in_game_settlers.png` |
 | M7 50-turn soak | green | `verification/M7/turn50_900bc.png` |
-| M9 stock regression | green | `verification/M9/mao_slot6_civ_select.png` |
+| M9 stock regression | green | Mao slot 6, Caesar slot 0, Catherine slot 5 under `verification/M9/` (each has `<name>_result.json` + civ-select + in-game screenshots) |
 
 §9 DoD: 4 of 5 items met (1 is the 17-slot blocker).
 
