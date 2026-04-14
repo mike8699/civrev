@@ -50,7 +50,7 @@ with open(path, "wb") as f:
 print(f"civnames_enu.txt: inserted '{new_line}' (added {len(insertion)} bytes)")
 PY
 
-python3 - "$STAGE/rulernames_enu.txt" "Sejong   " <<'PY'
+python3 - "$STAGE/rulernames_enu.txt" "Sejong, M" <<'PY'
 import sys
 path, new_line = sys.argv[1], sys.argv[2]
 with open(path, "rb") as f:
