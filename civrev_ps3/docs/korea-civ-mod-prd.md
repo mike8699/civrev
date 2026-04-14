@@ -2599,3 +2599,74 @@ inside the cell-grid builder, not the input handler.
 - Bump the cell-loop bound from 16 to 17 and provide per-civ
   data for slot 16 (probably copying slot 6's China data
   per the v1.0 spec in §9).
+
+### iter-142 (2026-04-14): found the LDR_*.dds civ-select pointer table
+
+After the iter-141 "Random" string xref hunt found nothing
+useful, switched to scanning .data for runs of consecutive
+pointers into the civ-string area (`0x169c000..0x169ff00`).
+
+Found a 42-entry run at vaddr `0x01937c00`:
+
+  | Index | Vaddr      | String                  |
+  |-------|-----------|--------------------------|
+  | 0..16 | 01937c00  | LDR_Lrg_*.dds (alphabetical, 17 large portraits) |
+  | 17    | 01937c44  | LDR_rome.dds             |
+  | 18    | 01937c48  | LDR_egypt.dds            |
+  | 19    | 01937c4c  | LDR_greece.dds           |
+  | 20    | 01937c50  | LDR_spain.dds            |
+  | 21    | 01937c54  | LDR_germany.dds          |
+  | 22    | 01937c58  | LDR_russia.dds           |
+  | 23    | 01937c5c  | LDR_china.dds            |
+  | 24    | 01937c60  | LDR_america.dds          |
+  | 25    | 01937c64  | LDR_japan.dds            |
+  | 26    | 01937c68  | LDR_france.dds           |
+  | 27    | 01937c6c  | LDR_india.dds            |
+  | 28    | 01937c70  | LDR_arabia.dds           |
+  | 29    | 01937c74  | LDR_aztecs.dds           |
+  | 30    | 01937c78  | LDR_africa.dds           |
+  | 31    | 01937c7c  | LDR_mongol.dds           |
+  | 32    | 01937c80  | LDR_england.dds          |
+  | 33    | 01937c84  | LDR_default.dds          |
+  | 34..41|           | unrelated GFX_*.dds      |
+
+**Entries 17..32 are the civ-select carousel cell array, in
+exact grid order** (slot 0 = Romans → slot 15 = English). This
+matches the v0.9 mod's slot-15 replacement pattern. Entry 33
+is the "default" portrait used for Random.
+
+The sub-table at `0x01937c44` is 17 × 4 bytes = 68 bytes. To
+add Korea as a 17th civ at slot 16 (per iter-138/139), the
+plan is:
+  1. Allocate a NEW 18-entry table in `.rodata` padding (same
+     pattern as iter-4's ADJ_FLAT relocation), with entries
+     0..15 copied from the original sub-table, entry 16 set
+     to point at "LDR_china.dds" (per v1.0 spec — Korea reuses
+     China's portrait), and entry 17 set to LDR_default.dds.
+  2. Find the consumer code that iterates `0x01937c44 + i*4`
+     for `i in 0..16` and bump it to `i in 0..17`.
+  3. Find the TOC slot pointing to `0x01937c00` or `0x01937c44`
+     and redirect to the new table.
+
+iter-142 didn't find the consumer (no aligned 32-bit refs to
+`0x01937c44`; the table is loaded via `lwz rN, X(r2)` against
+TOC offset `r2 - 0x2644` since `0x01937c44 - 0x193a288 =
+-0x2644`, but no such load was found by the static scan).
+
+**Next iteration should:**
+- Use Ghidra's reference manager (which DOES handle TOC
+  offsets) to find xrefs to the table base. Force-create a
+  Data label at `0x01937c44` first so Ghidra picks it up.
+- Or write a Jython script that scans for `lwz rN, -0x2644(r2)`
+  / `addi rN, r2, -0x2644` / `ld rN, ?(r2)` where the loaded
+  value is `0x01937c44`.
+- Once the consumer is found, look for the `cmpwi rN, 0x10`
+  or `cmpwi rN, 0xf` that bounds the cell loop. Bump it.
+- Build the iter-4-style relocation patch for the LDR table.
+
+This iteration also dumped the 18-entry CIV_*.dds table at
+`0x01937d38` (CIV_Spain..CIV_Africa) — alphabetical, NOT
+civ-select grid order, so it's a different consumer (probably
+the civ-icon HUD or a load-screen). Not directly relevant to
+DoD item 1 but may be needed for slot 16 to render its
+in-game icon correctly.
