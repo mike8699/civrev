@@ -14,6 +14,10 @@ still comes from England — only the display strings are Korean.
 - Selecting the slot loads a normal single-player game as Korea.
 - 50-turn end-turn soak runs cleanly (tested 4000 BC → 900 BC,
   multiple cities founded, no crashes).
+- Founded cities use Korean names (Seoul, Pyongyang, Gyeongju,
+  Kaesong, Incheon, Daegu, Cheongju, Jeju, Ulsan, Suwon, Gimpo,
+  Chuncheon, Naju, Kunsan, Gangneung, Iksan) instead of the stock
+  English set (London, York, Nottingham, ...).
 - All 15 other stock civs remain at their original slots and work
   normally (Mao/China regression-tested; Russians implicit via the
   original test_map.py flow).
@@ -49,20 +53,27 @@ cd civrev_ps3/korea_mod
 
 Build steps:
 1. `xml_overlays/*.xml` are validated and staged.
-2. `eboot_patches.py` applies a 4-site 78-byte patch to
-   EBOOT_v130_clean.ELF (extends the civ-adjective table to 17
-   entries + 2 TOC redirects — a vestige of an earlier approach;
-   harmless on the current v0.9 path).
+2. `eboot_patches.py` applies 6 patches to EBOOT_v130_clean.ELF:
+   two `li r5, 0x11 → 0x12` parser-count bumps (iter-14, for the
+   deferred 17-slot extension), a 17-entry ADJ_FLAT relocation,
+   and 2 TOC redirects (iter-4). All six patches are harmless
+   no-ops on v0.9's shipping path — the civnames/rulernames files
+   still have 17 entries so the parser stops at EOF regardless,
+   and the new ADJ_FLAT table is loaded by nothing live.
 3. `pack_korea.sh`:
    - Repacks `extracted/Common0/` + the XML overlays into
      `Common0_korea.FPK` via `fpk.py`.
    - Runs `fpk_byte_patch.py` against the stock `Pregame.FPK` to
-     produce `Pregame_korea.FPK` with two byte-level edits:
-     `rulernames_enu.txt` slot 15 `Elizabeth` → `Sejong   `, and
-     `civnames_enu.txt` slot 15 `English` → `Koreans`. This
-     preserves Pregame.FPK's internal alignment padding byte-for-
-     byte (fpk.py's repack path is unsafe for content edits in
-     Pregame — iter-7 proved it).
+     produce `Pregame_korea.FPK` with 18 byte-level edits:
+     `rulernames_enu.txt` slot 15 `Elizabeth` → `Sejong   `,
+     `civnames_enu.txt` slot 15 `English` → `Koreans`, and 16
+     city-name replacements in `citynames_enu.txt`'s ENGLISH block
+     (London → Seoul, York → Naju, ..., Birmingham → Chuncheon).
+     Every patch preserves exact byte length by padding Korean
+     names with trailing spaces (the name parser trims them before
+     display). This preserves Pregame.FPK's internal alignment
+     padding byte-for-byte (fpk.py's repack path is unsafe for
+     content edits in Pregame — iter-7 proved it).
 
 ## Install
 
@@ -123,7 +134,8 @@ korea_mod/
   install.sh                 # stage into civrev_ps3/modified/...
   verify.sh                  # run verification tiers
   pack_korea.sh              # Common0 repack + Pregame byte-patch
-  eboot_patches.py           # 78-byte EBOOT binary patch (dry-run + apply)
+  eboot_patches.py           # EBOOT binary patcher (dry-run + apply)
+  scripts/ghidra_helpers/    # Jython post-scripts for headless Ghidra
   fpk_byte_patch.py          # in-place Pregame.FPK byte-level patcher
   addresses.py               # confirmed EBOOT addresses (from §5 RE)
   xml_overlays/
