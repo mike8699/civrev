@@ -144,3 +144,46 @@ To test: repack UNMODIFIED Pregame.FPK via fpk.py (proven to
 boot in iter-10) but install it 10 times and check consistency.
 If it's flaky the same way, the civnames change isn't the
 cause.
+
+## iter-24 — fpk.py repack is deterministic; civnames IS the trigger
+
+Ran M6 boot test **twice** with UNMODIFIED Pregame.FPK repacked via
+fpk.py (iter-10's `/tmp/pregame_repack_test.FPK`). Both runs passed:
+
+- Run 1: M6 PASS, in-game HUD detected on poll 0
+- Run 2: M6 PASS, in-game HUD detected on poll 0
+
+**fpk.py's Pregame repack IS deterministic on unmodified input.**
+iter-23's theory that fpk.py non-determinism was the root cause is
+FALSIFIED. The flakiness iter-12 observed with `civnames+1 alone`
+must have been from something else (RPCS3 cache state, prior
+installed content, etc.).
+
+This confirms the ORIGINAL hypothesis: extended civnames +
+rulernames deterministically triggers the 0x2a12c fault. The civ
+name data IS the cause; some downstream consumer OOBs on the 18th
+entry.
+
+## Remaining mystery: static init vs civnames parser timing
+
+The fault happens at ~11.6s during system library loading (liblv2
+modules being loaded). The civnames parser (`FUN_00a216d4`) is
+called later from game-init `FUN_0002fb78`. So how does civnames
+content affect a crash that happens BEFORE the parser runs?
+
+Possibilities:
+1. There's ANOTHER civnames reader during static init that we
+   haven't found (pre-main global constructor reading FPK).
+2. The FPK's internal offset table is read during static init and
+   the shifted offsets after civnames_enu.txt cause a downstream
+   file's offset to be misread.
+3. The crash site (PC 0xc26a00) is not actually in static init
+   but in a game-init function, and the ~11.6s timing is
+   coincidental (the "library loads" entries at 11.506s could be
+   from dynamic module loading mid-game-init).
+
+Given option 3 is most plausible (some games do `sys_prx_load_module`
+at runtime for on-demand libraries), the crash is still most likely
+in game init code, just not on the CALLER path of the parser.
+
+## v0.9 remains the shipping state
