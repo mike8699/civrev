@@ -2784,3 +2784,72 @@ bumps).
   slots to the parser output. That mapping has to exist somewhere
   because civnames_enu.txt ordering differs from the carousel
   ordering (civnames is sorted differently).
+
+### iter-145 (2026-04-14): LEADER name table at 0x0194b434 is also dead rodata
+
+After iter-144 ruled out the LDR_*.dds table, hunted for the
+carousel name source via leader-name strings. Found a 16-entry
+table at vaddr `0x0194b434` containing pointers to "Caesar",
+"Cleopatra", ..., "Elizabeth" in EXACT carousel order:
+
+  | Slot | Vaddr      | Leader        |
+  |------|-----------|---------------|
+  | 0    | 0194b434  | Caesar        |
+  | 1    | 0194b438  | Cleopatra     |
+  | 2    | 0194b43c  | Alexander     |
+  | 3    | 0194b440  | Isabella      |
+  | 4    | 0194b444  | Bismarck      |
+  | 5    | 0194b448  | Catherine     |
+  | 6    | 0194b44c  | Mao           |
+  | 7    | 0194b450  | Lincoln       |
+  | 8    | 0194b454  | Tokugawa      |
+  | 9    | 0194b458  | Napoleon      |
+  | 10   | 0194b45c  | Gandhi        |
+  | 11   | 0194b460  | Saladin       |
+  | 12   | 0194b464  | Montezuma     |
+  | 13   | 0194b468  | Shaka         |
+  | 14   | 0194b46c  | Genghis Khan  |
+  | 15   | 0194b470  | Elizabeth     |
+
+This matches exactly what iter-4's PRD note called the
+LEADER_NAMES static rodata table. Tested whether it drives the
+carousel by patching slot 0 (Caesar → Elizabeth's string) and
+running korea_play to slot 0. **Result: Romans cell still
+rendered "Caesar / Romans".** iter-4 was right — this table
+is dead rodata. The carousel reads its display names from
+somewhere else.
+
+The two functions iter-145 found that access all 16 LEADER
+entries via TOC offsets `r2-0x130..-0xf4`:
+  - `FUN_0019fe90` (7196 bytes) — turns out to be a 3D animation
+    setup that calls `func_0x00011660(idx, slot, anim_id)`
+    hundreds of times to bind animation tracks. Not the carousel.
+  - `FUN_00a087bc` (72 bytes) — a 323-case jump-table dispatcher.
+    Each case might touch a leader entry, but it's not iterating.
+
+Both LDR_*.dds (iter-144) and LEADER_*.* (iter-145) tables turn
+out to be flat preloaded asset metadata, not the carousel cell
+data. The carousel must populate its render data at runtime
+from something like the civnames/rulernames parser output OR a
+table I still haven't located.
+
+**Status:** the carousel-name-source hunt has burned three
+iterations with three null results. The static-only approach is
+fundamentally limited because the carousel data appears to be
+runtime-allocated, not a static table I can grep for.
+
+**Next iteration should pivot:**
+- Use Z-packet GDB watchpoints (per prompt.txt §b) to set a
+  watchpoint on the civnames buffer (the parser_worker output
+  at the address stored in `*(r2+0x141c)` — TOC offset 0x141c
+  per iter-141 dispatcher decomp). When the carousel reads it
+  during civ-select rendering, the watchpoint fires and we
+  see exactly which function does the read.
+- OR set a code breakpoint at `_press("Right")` keypresses
+  during korea_play. The cursor-move handler is the entry
+  point; walk down from there to find the cell-render code
+  and the per-civ data.
+- Both approaches require `gdb_client.py` Z-packet support
+  (already present per iter-109+) but neither has been used
+  against the working-base / patched EBOOT path established
+  in iter-137.

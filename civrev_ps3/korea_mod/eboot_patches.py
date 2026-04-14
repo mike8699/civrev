@@ -296,6 +296,15 @@ PATCHES: list[Patch] = [
     # carousel cell array. The carousel uses 3D leader-head models
     # (LH-* assets), not flat DDS portraits. The LDR table is for
     # diplomacy/pediainfo flat portrait fallbacks.
+
+    # iter-145 DIAG patch REMOVED. Test (Caesar → Elizabeth at slot 0
+    # in the LEADER table at 0x0194b434) had zero visible effect on
+    # the carousel — Caesar still rendered with "Caesar / Romans"
+    # labels. iter-4's PRD note was correct: this 16-entry LEADER
+    # table is dead rodata. The carousel reads its display names
+    # from somewhere else — possibly a runtime-allocated struct
+    # populated from civnames/rulernames parser output, or yet
+    # another table not yet located.
 ]
 
 
