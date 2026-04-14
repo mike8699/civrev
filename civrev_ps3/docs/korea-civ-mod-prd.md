@@ -1168,8 +1168,9 @@ v1.0 counters (the only ones that matter for the current scope):
   done (four parallel arrays dumped end-to-end; LDR_* head and any
   additional arrays still pending). §5.1 restated for parallel arrays
   but call-site catalog not yet started. §5.4, §5.5, §5.6 untouched.
-- **§6.2 EBOOT patches landed:** 0 / 4 (under the revised model: per-
-  array relocation + loop-bound rewrites + pointer-write at slot 16).
+- **§6.2 EBOOT patches landed:** 4 / 4 (iter-4: "Korean" string
+  allocation + 17-entry ADJ_FLAT copy + 2 TOC entry redirects).
+  Dry-run passes; EBOOT_korea.ELF produced. NOT yet runtime-tested.
 - **§6.3 XML overlays landed:** 3 / 4 (`leaderheads.xml`,
   `console_pediainfo_civilizations.xml`,
   `console_pediainfo_leaders.xml`). gfxtext.xml is the fourth slot per
@@ -1186,6 +1187,72 @@ v1.0 counters (the only ones that matter for the current scope):
 - **§9 DoD items satisfied:** 0 / 6
 
 ---
+
+### 2026-04-14 — iter-4 (XEX decompression + first real EBOOT patch)
+
+**Status:** implementing
+**Working on:** §5.1 final enumeration, §6.2 EBOOT patches, §5.6 360 Rosetta Stone
+
+**Did this iteration:**
+- **§5.6:** built `civrev_xbox360/xenon_recomp/tools/dump_xex_image.cpp`
+  and `build_and_dump.sh` to link against libXenonUtils.a inside the
+  civrev-xenonrecomp Docker image. Produces the decompressed 360
+  image at `work/extracted/default_decompressed.bin` (18.8 MB, base
+  0x82000000). XEX decompression pipeline now reproducible.
+- **§5.6:** located the 360 civ adjective pointer table at VA
+  `0x82f5a2e8` (structurally identical to PS3's 0x0195fe28 — 16 × 4
+  byte pointers to "Roman"..."English"). Identified a 360 consumer
+  (`sub_82538478` in `ppc_recomp.90.cpp`) whose inline `lis -32251 +
+  addi -23832` pair loads exactly that base.
+- **§5.1 BREAKTHROUGH:** scanned PS3 code for TOC-relative `lwz rN,
+  offset(r2)` loads targeting 0x0195fe28 and found **9 call sites**
+  at offsets -0x1f34 (0x1938354) and -0x9d8 (0x19398b0) from
+  r2=0x0193a288. Logged in `addresses.py` as
+  `KOREA_MOD_ADJ_FLAT_CALLSITES`.
+- **§5.1 SIMPLIFICATION:** verified that of the five rodata tables
+  mapped in §5.2, **only ADJ_FLAT is live**. The other four
+  (LDR_TAG, CIV_TAG, ADJ_PAIR, LEADER_NAMES) have ZERO 32-bit or
+  64-bit references anywhere in the 26 MB binary — they're C++
+  static-init rodata that the runtime code path never touches. This
+  collapses the §6.2 patch scope from "extend 5 parallel arrays"
+  to "extend 1 array + redirect 2 TOC entries".
+- **§6.2 SHIPPED:** first real EBOOT patch list in
+  `eboot_patches.py`. Four patches:
+  1. Allocate `Korean\0\0` at 0x017f4038 (in a 144 KB zero-fill
+     padding region at 0x017f4036..0x01818036).
+  2. Write a 17-entry extended ADJ_FLAT copy at 0x017f4040.
+  3. Redirect TOC entry at 0x01938354 → 0x017f4040.
+  4. Redirect TOC entry at 0x019398b0 → 0x017f4040.
+  All 4 sites pass dry-run's expected-old-bytes gate; produces
+  EBOOT_korea.ELF with exactly 78 bytes of difference from the
+  clean base, every patched offset inside a valid PT_LOAD segment.
+- **Scanned for bounds checks**: no `cmpi rN, 0x10` within ±20
+  instructions of any of the 9 ADJ_FLAT call sites. The code does
+  not bounds-check civ indices at these sites, so a 17th entry is
+  safe without any additional loop-bound rewrites.
+
+**Verification:** `./korea_mod/verify.sh --tier=static` → PASS.
+
+**Open blockers:**
+- **EBOOT patch is not runtime-tested.** The byte-level changes are
+  correct but we haven't yet booted the patched EBOOT in RPCS3 to
+  confirm the relocated table is actually read by the 9 call sites.
+- `install.sh` still staged with the unpatched EBOOT — next iteration
+  should rebuild with `eboot_patches.py`'s output and install.
+
+**Next iteration should:**
+1. Run `./korea_mod/build.sh` end-to-end (now that
+   `eboot_patches.py` produces a real EBOOT) and `./install.sh` to
+   stage the patched EBOOT + modded Common0.FPK into the docker
+   disc image.
+2. Boot via `civrev_ps3/rpcs3_automation/docker_run.sh` and capture
+   M1 (cold-boot-to-main-menu) artifacts. If M1 passes, drive the
+   menu to the civ-select screen and check M2.
+3. If M2 shows Korea (17th slot) with "Korean" as the adjective, the
+   core mod is functionally complete — move to M6/M7 for the full
+   gameplay oracles.
+
+**PRD changes made this iteration:** Progress Log entry added.
 
 ### 2026-04-14 — iter-3 (iOS _NCIV correction + Rosetta Stone pivot)
 
