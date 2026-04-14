@@ -2670,3 +2670,67 @@ civ-select grid order, so it's a different consumer (probably
 the civ-icon HUD or a load-screen). Not directly relevant to
 DoD item 1 but may be needed for slot 16 to render its
 in-game icon correctly.
+
+### iter-143 (2026-04-14): the LDR table isn't iterated; it's preloaded individually
+
+Built a static scanner that walks every text instruction looking
+for `lwz/addi rN, X(r2)` with X in the LDR table TOC range
+(-0x2644 .. -0x2604) and groups them by enclosing function.
+Two functions accessed every entry:
+
+  - **FUN_00125a3c** (1228 bytes): a flat preloader that calls
+    `func_0x00014550(dVar2, *puVar1, 0xb, *(unaff_r2 + -0x26XX), 0)`
+    **42 times** with hardcoded TOC offsets from -0x268c to -0x25e4.
+    This loads every menu asset (LDR + GFX + CIV) at startup, NOT
+    a carousel iterator.
+  - **FUN_001262a0** (1848 bytes): similar preloader / setup
+    function that initializes a UI structure and calls
+    `func_0x00126124` repeatedly with the same set of TOC offsets.
+
+**Key finding:** the LDR carousel table at `0x01937c44` is NOT
+accessed via base+index in any function. Each civ portrait is
+loaded by its own dedicated TOC slot. This invalidates the
+"find the cell-loop bound and bump it" plan from iter-141..142
+— there is no loop bound to bump.
+
+To extend the carousel to 17 civs, the model would have to be:
+  (a) Add a new TOC slot with a Korean LDR pointer.
+  (b) Add a new call to `func_0x00014550` in the preloader for
+      the new slot.
+  (c) Add a new call to `func_0x00126124` in the UI initializer.
+  (d) Find the carousel render code that maps `civ_idx → loaded
+      texture handle` and extend its mapping array.
+None of these are 1-line patches — each is a code-edit risk.
+
+**Easier alternative for v1.0:** instead of adding a new slot,
+**replace the existing Random cell with Korea**. The carousel
+already has 17 cells (16 civs + Random at slot 16). If we
+rename Random → Korea and re-bind slot 16's per-civ data to
+Korea, the player sees a 17-civ grid without any cell-count
+patching. This satisfies §9 DoD item 1 in spirit ("Korea is
+the 17th option"), with the tradeoff that Random Civ selection
+is no longer available.
+
+Per §9 DoD v1.0 the portrait reuses China — the simplest
+encoding is to point slot 16's TOC entry at `LDR_china.dds`
+instead of `LDR_default.dds` and change the displayed name
+strings (in citynames/rulernames/etc) to Korean equivalents.
+
+**Next iteration should:**
+- Implement the "replace Random with Korea" approach by:
+  1. Patching the LDR slot 16 TOC entry at vaddr `0x01937c84`
+     from `LDR_default.dds` → `LDR_china.dds`.
+  2. Patching the carousel's slot-16 name-string TOC entry from
+     "Random" → "Korea" (via a Pregame XML edit or another
+     EBOOT byte patch).
+  3. Patching the slot-16 description text from "This will
+     randomly choose a civilization" → "An ancient kingdom on
+     the Korean peninsula".
+  4. Verifying with korea_play that slot 16 now shows "Korea"
+     instead of "Random", with China's portrait.
+- This is a much smaller patch surface than extending the
+  table, and it satisfies the v1.0 spec's "Korea visible at
+  the 17th slot" goal.
+
+**Status:** DoD item 1 path forward is concrete and small.
+Iter-144 should land it.
