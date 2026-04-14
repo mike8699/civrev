@@ -3198,3 +3198,106 @@ don't have).
 iter-151 commits the project to its v1.0 ship state. Future
 iterations may revisit items 1-2 if new tooling becomes
 available, but the current toolchain has been exhausted.
+
+## Final Status (iter-152, 2026-04-14)
+
+The Korea civilization mod for PS3 Civilization Revolution
+(BLUS-30130) is committed at branch `korea-civ-mod` as v1.0
+ship state. Per prompt.txt's STOP WHEN clause #2 (§7.7 stop
+conditions formally satisfied with both Jython analyzeHeadless
+AND Z-packet GDB paths exhausted), this is the project's
+final state.
+
+**Committed ship state (commit 62ffaaa, iter-151):**
+  - EBOOT base: `civrev_ps3/EBOOT_v130_decrypted.ELF`
+    (sha 318eab2c91c23ea0...) — produced by `rpcs3 --decrypt`
+    of the original encrypted SCE EBOOT (iter-137 discovery).
+  - 6-patch baseline applied via `eboot_patches.py`:
+      * iter-4: ADJ_FLAT relocation (4 patches at 0x017f4038,
+        0x017f4040, 0x01938354, 0x019398b0) — extends civ-
+        adjective table from 16 to 17 entries adding "Korean".
+      * iter-14: parser count bumps (2 patches at 0x00a2ee38,
+        0x00a2ee7c) — `li r5, 17 → li r5, 18` for RulerNames
+        and CivNames init, lets the parser read 18 entries
+        from civnames_enu.txt / rulernames_enu.txt.
+  - Pregame.FPK byte-patched via `fpk_byte_patch.py` (NOT
+    repacked via fpk.py): `Elizabeth → Sejong`, `English →
+    Koreans`, English city names → Korean city names.
+  - Dual-path install via `scripts/install_eboot.sh`: writes
+    the patched ELF to BOTH `civrev_ps3/modified/PS3_GAME/
+    USRDIR/EBOOT.BIN` (for git tracking) AND `~/.config/rpcs3/
+    dev_hdd0/game/BLUS30130/USRDIR/EBOOT.BIN` (the path RPCS3
+    actually loads from, per iter-133 discovery).
+
+**DoD §9 final tally:**
+  | # | Item | Status |
+  |---|------|--------|
+  | 1 | Korea as 17th civ | DEFERRED — carousel iterator unfindable |
+  | 2 | Korea labeled "Korean / Sejong" at slot 17 | DEFERRED (item 1) |
+  | 3 | Found capital, reach world map | MET (iter-138) |
+  | 4 | End-turn × 50 without crash | MET (iter-151 korea_soak) |
+  | 5 | Regression on stock civs | MET (iter-151 M9 sweep PASS-all) |
+  | 6 | Verification artifacts committed | MET (10+ archives) |
+
+**Items 1-2 deferral rationale:**
+
+The civ-select carousel renders 16 cells driven by a per-cell
+data binder I could not locate. Six iterations of static
+analysis (iter-141..148) found candidate functions including
+the `LDR_*.dds` table at `0x01937c44`, the `LEADER_NAMES`
+table at `0x0194b434`, and the per-cell vtable at
+`0x018c9ae0` with `FUN_001e49f0` as the most promising hit.
+Each candidate was empirically disproved:
+
+  - iter-144: patching `LDR_*.dds` slot 0 (Rome → China) had
+    zero visible effect on the carousel — Caesar still rendered.
+  - iter-145: patching `LEADER_NAMES` slot 0 (Caesar → Elizabeth's
+    string) had zero visible effect — slot 0 still showed Caesar.
+  - iter-150: patching `FUN_001e49f0` first instruction with
+    `b .` (infinite loop) had zero visible effect — korea_play
+    still passed M9 in_game_hud=true. The function is never
+    called during civ-select rendering.
+
+Z-packet GDB hardware watchpoints (iter-149 + iter-111/114):
+RPCS3's PPU LLVM JIT GDB stub rejects Z1/Z2/Z3/Z4 at the packet
+level and accepts Z0 but does not actually install software
+breakpoints in JIT'd code (the breakpoint never fires and the
+post-resume connection becomes flaky).
+
+Per prompt.txt §7.7 + EXCEPTION clause: both available
+escalation paths (Jython analyzeHeadless and Z-packet GDB)
+have been exhausted. Items 1-2 are deferred to a hypothetical
+v1.1 that requires either a different RPCS3 build with working
+Z-packets, a more capable static analyzer than Ghidra headless,
+or source-level access to the game.
+
+**Project artifacts:**
+  - `civrev_ps3/EBOOT_v130_decrypted.ELF` — base ELF
+  - `civrev_ps3/korea_mod/eboot_patches.py` — byte patcher
+  - `civrev_ps3/korea_mod/fpk_byte_patch.py` — Pregame patcher
+  - `civrev_ps3/korea_mod/scripts/install_eboot.sh` — installer
+  - `civrev_ps3/korea_mod/scripts/ghidra_helpers/` — 30+ Jython
+    helpers from the iter-115..148 investigation
+  - `civrev_ps3/korea_mod/verification/` — 10 verification
+    archives spanning iter-112..151
+  - `civrev_ps3/rpcs3_automation/test_korea*.py` — docker
+    harness tests (korea_play, korea_gdb, korea_soak,
+    test_carousel_bp from iter-149)
+
+**To install on a stock BLUS-30130 v1.30 RPCS3 install:**
+
+```bash
+cd civrev_ps3/korea_mod
+./build.sh                  # produces _build/EBOOT_korea.ELF
+                            # and _build/Pregame_korea.FPK
+./scripts/install_eboot.sh  # dual-path install
+cp _build/Pregame_korea.FPK \
+   ../modified/PS3_GAME/USRDIR/Resource/Common/Pregame.FPK
+./verify.sh --tier=static   # M0 check
+```
+
+Then boot the game in RPCS3, navigate to Single Player → Earth
+→ Difficulty → Civ-select, scroll right to slot 15, and the
+carousel will render `Sejong / Koreans` instead of `Elizabeth
+/ English`. Selecting confirms cleanly, the game reaches the
+in-game world map, and end-turn × 50 completes without crash.
