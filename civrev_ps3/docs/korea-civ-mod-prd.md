@@ -3301,3 +3301,67 @@ Then boot the game in RPCS3, navigate to Single Player → Earth
 carousel will render `Sejong / Koreans` instead of `Elizabeth
 / English`. Selecting confirms cleanly, the game reaches the
 in-game world map, and end-turn × 50 completes without crash.
+
+### iter-153 (2026-04-14): one more table check; still not the carousel
+
+The autonomous loop fired again after the iter-152 final
+summary. Took one more concrete shot at finding the carousel
+data source: dumped the 15-entry table at vaddr `0x01938638`
+that iter-145's pointer-table scan briefly noted (starting
+with `rom_caesar.xml`).
+
+Full dump:
+
+  | Idx | Vaddr      | XML file              |
+  |-----|-----------|----------------------|
+  | 0   | 01938638  | rom_caesar.xml       |
+  | 1   | 0193863c  | gre_alexander.xml    |
+  | 2   | 01938640  | spa_isabella.xml     |
+  | 3   | 01938644  | ger_bismark.xml      |
+  | 4   | 01938648  | rus_catherine.xml    |
+  | 5   | 0193864c  | chi_mao.xml          |
+  | 6   | 01938650  | ame_lincoln.xml      |
+  | 7   | 01938654  | jap_tokugawa.xml     |
+  | 8   | 01938658  | fra_napoleon.xml     |
+  | 9   | 0193865c  | ind_gandhi.xml       |
+  | 10  | 01938660  | azt_montezuma.xml    |
+  | 11  | 01938664  | ara_saladin.xml      |
+  | 12  | 01938668  | eng_elizabeth.xml    |
+  | 13  | 0193866c  | mal_mandela.xml      |
+  | 14  | 01938670  | mon_khan.xml         |
+
+This table is **15 entries** (not 16), is in a **different
+order** from the v0.9 carousel (Egypt is missing entirely), and
+has `mal_mandela.xml` instead of `afr_shaka.xml`. The actual
+egy_cleopatra.xml string exists at `0x016a3890` but is NOT in
+this table.
+
+This is some other 15-civ subset — possibly an older draft of
+the game's civ list, a per-scenario subset, or a different
+mode. It's not the carousel cell table.
+
+Counted exhaustively: at this point I've enumerated and ruled
+out every static "16- or 17-entry pointer table containing
+civ-related strings" in the binary that I can find. The
+LDR_*.dds carousel-order table (0x01937c44), the LEADER_NAMES
+alphabetical table (0x0194b434), and now this 15-entry XML
+table (0x01938638) are all dead from the carousel's
+perspective.
+
+**The §7.7 stop conditions remain formally satisfied.** Both
+prompt.txt §b escalation paths (Jython analyzeHeadless across
+~30 ghidra_helpers scripts and Z-packet GDB across 4 attempts)
+have been exhausted. The carousel cell-grid iterator is not
+findable with the current toolchain.
+
+Per prompt.txt STOP WHEN clause #2 ("§7.7 stop condition fires
+AFTER both Jython and Z-packet paths have been exhausted...
+Write the blocker to the PRD and exit"), the project formally
+exits at iter-152's v1.0 ship state. Future iterations cannot
+make further progress on items 1-2 without one of:
+  - A different RPCS3 build with working Z-packet support,
+  - A more capable static analyzer than Ghidra headless,
+  - Source-level access to the game (none available).
+
+iter-153 made no patches and changed no committed state beyond
+this PRD entry.
