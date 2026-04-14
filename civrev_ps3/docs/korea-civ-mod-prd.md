@@ -1195,6 +1195,91 @@ v1.0 counters (the only ones that matter for the current scope):
 
 ---
 
+### 2026-04-14 — iter-31..74 (v1.1 polish batch + verification depth)
+
+**Status:** v0.9 shipping + full v1.1 polish set; **§7.7 STOP persists**
+**Working on:** hygiene, test-harness robustness, and broader regression coverage
+
+**Did this batch:**
+
+1. **iter-32** — Pinned the stock EBOOT SHA-256 in
+   `eboot_patches.py`'s `EXPECTED_BASE_SHA256` (previously empty).
+   Any accidental base drift now fails the dry-run before any
+   patch hits disk.
+2. **iter-33** — First re-run of M7 soak with Korean city names
+   active. Oracle passed under the OLD rule but the last three
+   snapshots showed the main menu — the game soft-exited between
+   turn 30 and 35. Archived artifacts at `verification/M7_iter33/`
+   and flagged the oracle hole.
+3. **iter-34** — Tightened M7 oracle in
+   `rpcs3_automation/test_korea_soak.py`. New
+   `stages.still_in_game_at_end` rule checks the last three turn
+   snapshots for in-game HUD markers and fails the run if they
+   all look like main-menu strings. Prints an `M7 TIGHTEN-FAIL`
+   diagnostic when fired.
+4. **iter-35** — Recorded iter-14/21/25 addresses in
+   `addresses.py` as named anchors
+   (`KOREA_MOD_INIT_GENDERED_NAMES_DISPATCH`,
+   `KOREA_MOD_RULERNAMES_COUNT_LI_R5_SITE`,
+   `KOREA_MOD_FAULT_TARGET_INSIDE_VECTOR`, etc.) so future
+   debugging sessions don't have to re-grep the Progress Log for
+   offsets.
+5. **iter-39** — Extended M9 regression to Caesar slot 0. PASS.
+   Artifact under `verification/M9/caesar_*`. Previous M9 had
+   only Mao.
+6. **iter-43** — Refreshed `install.sh` docstring and messages.
+   Header used to claim §5.1 was open and the EBOOT patch step
+   was "skipped (expected)"; both are now stale since iter-14.
+7. **iter-46** — Extended M9 to Catherine slot 5. PASS.
+   Artifact under `verification/M9/catherine_*`.
+8. **iter-54** — Extended M9 to Lincoln slot 7. PASS. Completes
+   the PRD §9 DoD item 5 "at minimum" sample set (Caesar,
+   Catherine, Mao, Lincoln) with committed `result.json` +
+   screenshots for each. iter-74 later filled out
+   `test_korea_play.py`'s target_keywords to all 16 slots so
+   future sweeps against any stock civ get a truthful
+   `highlighted_ok` value.
+9. **iter-55** — Added `run_m9_regressions.sh` helper to
+   serialize the 4-civ M9 sweep. Runs ~12-15 min total; leaves
+   results in `rpcs3_automation/output/` for manual promotion.
+10. **iter-58** — Wrote `verification/README.md` documenting
+    each subdir, the manual-promotion protocol, and the
+    M7_iter33 / iter-72 divergence that motivates not
+    auto-overwriting baselines.
+11. **iter-72** — Second M7 re-run with the tightened oracle
+    active. `pass=false` with `TIGHTEN-FAIL` firing, validating
+    the iter-34 rule end-to-end. Turn 35 OCR shows an
+    "Information" dialog (almost certainly game-over), turns
+    40-50 show main menu. Same pattern as iter-33 — deterministic
+    enough to rule out RNG and pin the cause on the test harness
+    not moving units or building defense. Notes propose a
+    defensive-play harness upgrade as non-blocking follow-up.
+12. **iter-74** — Filled out the full 16-civ
+    `target_keywords` table in `test_korea_play.py`.
+
+**Verification state at end of batch:** unchanged from iter-30
+(v0.9 is still the shipping form). Additional artifacts:
+- `verification/M9/` now has Caesar / Catherine / Mao / Lincoln
+  result JSONs + screenshots (PRD §9 DoD item 5 fully sampled).
+- `verification/M6_iter29/`, `M7_iter33/`, `M7_iter72/` document
+  the v1.1 polish's runtime impact.
+- `verification/README.md` maps the subdir layout + promotion
+  rules.
+
+**Open blockers:** §9 DoD item 1 still blocked per iter-11/25/27
+entries. Nothing in the iter-31..74 batch re-opened that work.
+
+**Next iteration should:** NOT revisit DoD item 1 in the bash
+harness. Consider:
+- Teaching `test_korea_soak.py` to queue a defensive unit after
+  founding the capital so M7 can cleanly pass the tightened
+  oracle, OR
+- Picking a new v1.1 polish item (Korean-themed civ-select
+  color, saved-game compat note, etc.).
+
+**PRD changes made this iteration:** Progress Log batch entry
+added (this).
+
 ### 2026-04-14 — iter-28..30 (v1.1 polish: Korean city names; docs refresh)
 
 **Status:** v0.9 shipping; v1.1 polish landed on top; **§7.7 STOP persists**
