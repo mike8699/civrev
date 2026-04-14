@@ -1170,8 +1170,11 @@ v1.0 counters (the only ones that matter for the current scope):
   but call-site catalog not yet started. §5.4, §5.5, §5.6 untouched.
 - **§6.2 EBOOT patches landed:** 0 / 4 (under the revised model: per-
   array relocation + loop-bound rewrites + pointer-write at slot 16).
-- **§6.3 XML overlays landed:** 1 / 4 (`leaderheads.xml` with 17th
-  entry reusing China's Mao assets; pediainfo and gfxtext pending).
+- **§6.3 XML overlays landed:** 3 / 4 (`leaderheads.xml`,
+  `console_pediainfo_civilizations.xml`,
+  `console_pediainfo_leaders.xml`). gfxtext.xml is the fourth slot per
+  the PRD but is not semantically applicable on PS3 — see §6.4 note
+  below.
 - **§6.4 string keys defined:** 0 / 3 — note: gfxtext.xml on PS3 is a
   SWF-localization file, not the civ-name TXT_KEY_* store. The
   authoritative civ/leader display strings are the in-EBOOT pointer
@@ -1183,6 +1186,57 @@ v1.0 counters (the only ones that matter for the current scope):
 - **§9 DoD items satisfied:** 0 / 6
 
 ---
+
+### 2026-04-14 — iter-2 (FPK pipeline + eboot dry-run + pediainfo overlays)
+
+**Status:** investigating
+**Working on:** §5.1 NCIV init-site hunt, §6.3 overlay set, §5.5 harness
+
+**Did this iteration:**
+- **§6.3:** `pack_korea.sh` now stages `extracted/Common0/` +
+  `extracted/Pregame/`, applies every `xml_overlays/*.xml` in place,
+  and repacks via `civrev_ps3/fpk.py`. Replace-only by design.
+- **§7.1:** M0b reimplemented as a content-level round-trip oracle —
+  SHA match against the stock FPK is infeasible because `fpk.py`
+  strips the original's alignment padding (~273KB smaller output from
+  identical entries), so M0b now extracts the modded FPK and
+  byte-compares every entry against the staging tree.
+- **§6.3:** `console_pediainfo_civilizations.xml` +
+  `console_pediainfo_leaders.xml` overlays land; both reuse Mao /
+  China pedia string keys and DDS assets (no new files shipped).
+- **§6.2:** `eboot_patches.py --dry-run` scaffolded with empty PATCHES
+  list; M0a wired end-to-end and exits 0.
+- **§5.1:** iOS cross-ref finding committed — iOS Ghidra exports show
+  `PTR__NCIV_001fc1e0` referenced 286 times as a single global. If PS3
+  mirrors that design the loop-bound patch catalog collapses to one
+  initialization-site byte patch. Static instruction scan for `li rN,
+  0x10; stw rN, *(rPtr)` yields 89 candidates — too many without a
+  TOC-prefilter.
+- **§5.2:** `LDR_*` leader internal tag array confirmed end-to-end at
+  `0x0194b318` (5 parallel arrays now fully mapped).
+
+**Verification:** `./korea_mod/verify.sh --tier=static` → PASS
+(xmllint + M0b 9632 file content checks + eboot dry-run zero
+mismatch).
+
+**Open blockers:**
+- `_NCIV` init-site not yet identified. Needed before the patch list
+  in `eboot_patches.py` can become non-empty.
+- No live-runtime access to the game — M1+ tiers still not wired.
+
+**Next iteration should:**
+- Either: decode PS3 TOC-relative `ld rN, offset(r2)` pointer loads
+  (TOC base at `0x0193a288`) and filter the 89 `li 0x10; stw`
+  candidates down to the ones where the target pointer came from the
+  data-segment region where `_NCIV` would live, OR boot
+  RPCS3 via `rpcs3_automation/docker_run.sh` and GDB-scan the live
+  game's memory for an int-16 in the cluster near other civ globals.
+- Wire M1/M2 harness entry points in `verify.sh --tier=fast` so we
+  can prove the menu shows 17 civs (or, failingly, show precisely
+  what goes wrong when the 17th entry is dropped).
+
+**PRD changes made this iteration:** Progress Log entry; status
+counters updated.
 
 ### 2026-04-13 — iter-1 (scaffold + §5.2 kickoff)
 
