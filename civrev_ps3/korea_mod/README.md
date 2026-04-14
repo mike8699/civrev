@@ -142,9 +142,8 @@ korea_mod/
   fpk_byte_patch.py          # in-place Pregame.FPK byte-level patcher
   addresses.py               # confirmed EBOOT addresses (from §5 RE)
   xml_overlays/
-    leaderheads.xml                         # replacement (17th entry ships harmlessly)
-    console_pediainfo_civilizations.xml     # CIV_KOREA civilopedia entry
-    console_pediainfo_leaders.xml           # LEADER_SEJONG civilopedia entry
+    console_pediainfo_civilizations.xml     # CIV_KOREA civilopedia entry (dead in v0.9 replacement mode)
+    console_pediainfo_leaders.xml           # LEADER_SEJONG civilopedia entry (dead in v0.9)
   docs/
     civ-record-layout.md     # §5.2 RE notes
     ncv-references.md        # §5.1 / 17-slot blocker analysis
