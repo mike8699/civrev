@@ -1,28 +1,16 @@
 #!/usr/bin/env python3
-"""iter-108: Z-packet breakpoint infrastructure smoke test.
+"""iter-108/109: Z-packet breakpoint infrastructure smoke test.
 
-Boots RPCS3 with the CURRENT v0.9 Pregame (known-good 17-entry
-state) and exercises the iter-105 Z-packet helpers by:
+Drives the game through Main Menu -> Single Player -> Earth ->
+Difficulty -> civ-select (no confirm yet), then attaches GDB,
+sets a Z0 breakpoint at the name-file init dispatcher entry
+(0x00a21ce8), then sends the civ-confirm X press and waits for
+the breakpoint hit.
 
-  1. Attaching the GDB stub at 127.0.0.1:2345.
-  2. Setting a Z0 (software breakpoint) at the name-file init
-     dispatcher entry 0x00a21ce8 — called once during game boot,
-     so the breakpoint should fire exactly once.
-  3. Resuming and waiting for the hit via continue_until_stop().
-  4. Reading r3 (this pointer / iStack_84) and the 8 name-file
-     param struct pointers at *(r3 + 0xcc0..0xcdc).
-  5. Writing the results as JSON to /output/korea_bp_probe.json.
-
-Success criteria:
-  * stages.gdb_attach is True
-  * stages.bp_set is True
-  * stages.bp_hit is True
-  * stages.registers_read is True
-  * result_json has the 8 name-file pointer values
-
-If all four stages are green, the iter-105 Z-packet path works
-end-to-end and iter-109 can use it to set a breakpoint at the
-real fault site 0xc26a98 against a broken 18-entry Pregame.
+FUN_0002fb78 (the scenario init that calls the dispatcher via the
+TOC stub at 0x10ef0) only runs AFTER civ confirmation — setting
+the breakpoint at boot won't fire. This test parks the game at
+civ-select, arms the breakpoint, then triggers the init.
 """
 
 import json
@@ -33,11 +21,16 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 import launch as L  # noqa: E402
-from config import RPCS3_BIN  # noqa: E402
+from config import RPCS3_BIN, RPCS3_BOOT_TIMEOUT  # noqa: E402
 from gdb_client import GDBClient  # noqa: E402
 
 
 DISPATCHER_ENTRY = 0x00a21ce8
+
+
+def _press(button, delay=0.5):
+    L._send_ps3_button(button)
+    time.sleep(delay)
 
 
 def main() -> int:
@@ -51,15 +44,15 @@ def main() -> int:
     )
 
     result = {
-        "milestone": "iter-108-bp-probe",
+        "milestone": "iter-109-bp-probe",
         "pass": False,
         "oracle": (
-            f"set Z0 at 0x{DISPATCHER_ENTRY:x}, resume, confirm the "
-            "breakpoint fires once and r3 points at the name-file "
-            "manager state struct"
+            f"drive game to civ-select, set Z0 at 0x{DISPATCHER_ENTRY:x}, "
+            "confirm civ, wait for dispatcher breakpoint to fire"
         ),
         "stages": {
             "rpcs3_launched": True,
+            "drove_to_civ_select": False,
             "gdb_attach": False,
             "bp_set": False,
             "bp_hit": False,
@@ -69,27 +62,50 @@ def main() -> int:
     }
 
     try:
-        # Wait for RPCS3 to boot the PPU enough that the GDB stub
-        # is accepting connections.
-        for attempt in range(30):
-            time.sleep(1)
-            try:
-                gdb = GDBClient("127.0.0.1", 2345, timeout=5)
-                gdb.connect()
+        time.sleep(2)
+        if not L._is_rpcs3_alive(rpcs3):
+            raise RuntimeError("RPCS3 exited")
+        print("Waiting for RSX...")
+        if not L._wait_for_rsx(
+            rpcs3, timeout=RPCS3_BOOT_TIMEOUT, launch_time=launch_time
+        ):
+            raise RuntimeError("RSX did not come up")
+
+        # Drive through menu to civ-select (same sequence as
+        # test_korea_play.py), but stop BEFORE the confirm press.
+        L._navigate_startup_to_main_menu(rpcs3)
+        _press("Down", 0.5)  # SP
+        _press("X", 3)
+        _press("Down", 0.5)  # Play Scenario (3 downs)
+        _press("Down", 0.5)
+        _press("Down", 0.5)
+        _press("X", 3)
+        # Scroll to Earth
+        for a in range(30):
+            t = L._ocr_screen()
+            if "earth" in t.lower():
                 break
-            except OSError:
-                if attempt == 29:
-                    raise
-                continue
-        else:
-            raise RuntimeError("gdb stub never came up")
+            _press("Down", 0.4)
+        _press("X", 3)
+        # Difficulty: 4 Down + X for Deity
+        for _ in range(4):
+            _press("Down", 0.3)
+        _press("X", 5)
+        # Normalize to leftmost (Romans)
+        for _ in range(20):
+            _press("Left", 0.25)
+        time.sleep(0.5)
+        print(f"[{int(time.time()-launch_time)}s] parked at civ-select")
+        result["stages"]["drove_to_civ_select"] = True
+
+        gdb = GDBClient("127.0.0.1", 2345, timeout=5)
+        gdb.connect()
         print(f"[{int(time.time()-launch_time)}s] attached GDB stub")
         result["stages"]["gdb_attach"] = True
 
-        # Pause the target. The stub may need a moment after first
-        # connection to return control.
+        # Pause the target.
         gdb.pause()
-        time.sleep(0.2)
+        time.sleep(0.3)
 
         # Set the breakpoint at the dispatcher entry.
         if not gdb.set_breakpoint(DISPATCHER_ENTRY, kind=4):
@@ -97,9 +113,24 @@ def main() -> int:
         print(f"set Z0 at 0x{DISPATCHER_ENTRY:x}")
         result["stages"]["bp_set"] = True
 
-        # Continue the target and wait for the hit.
-        print("continuing until breakpoint hits...")
-        stop = gdb.continue_until_stop(timeout=60)
+        # Resume and drive the civ-confirm press. Manually send 'c'
+        # then drive input and wait for the stop reply — can't use
+        # continue_until_stop() because it blocks before the input
+        # can go out.
+        checksum = sum(ord(c) for c in "c") & 0xFF
+        gdb._send_raw(f"$c#{checksum:02x}".encode())
+        time.sleep(0.3)
+        print("sending civ-confirm press")
+        _press("Return", 0.1)  # X = confirm
+
+        print("waiting for breakpoint hit (up to 60s)...")
+        try:
+            payload = gdb._recv_packet(timeout=60)
+        except Exception as e:
+            raise TimeoutError(f"recv error after civ-confirm: {e}")
+        if not payload:
+            raise TimeoutError("empty stop reply")
+        stop = gdb._parse_stop_reply(payload)
         result["hit"] = stop
         print(f"stop reply: {stop}")
         if stop.get("reason") in ("swbreak", "hwbreak"):
@@ -109,34 +140,45 @@ def main() -> int:
         threads = gdb.inspect_all_threads()
         regs = {}
         if threads:
+            # Pick the thread whose PC is near the dispatcher
+            # — if the stop reply gave us a specific thread, use it,
+            # otherwise use thread 0.
             gdb.select_thread(threads[0]["tid"])
-            # r3..r12 (PPC calling convention first 10 GPRs)
             for rn in range(3, 13):
-                regs[f"r{rn}"] = gdb.read_register(rn)
-            regs["pc"] = gdb.get_pc()
-            regs["lr"] = gdb.get_lr()
+                regs[f"r{rn}"] = hex(gdb.read_register(rn))
+            regs["pc"] = hex(gdb.get_pc())
+            regs["lr"] = hex(gdb.get_lr())
         result["regs"] = regs
         if regs:
             result["stages"]["registers_read"] = True
 
-        # If we have r3, dump *(r3 + 0xcc0..0xcdc) — the 8 name-file
-        # param struct pointers the iter-106 decompile identified.
+        # Dump iStack_84 + 0xcc0..0xcdc equivalents via the function
+        # body: the dispatcher loads iStack_84 from some TOC slot.
+        # For this smoke test we just prove we can read a few words
+        # at the dispatcher's likely 'this' pointer.
         if regs.get("r3"):
-            r3 = regs["r3"] & 0xFFFFFFFF
-            param_ptrs = {}
+            r3 = int(regs["r3"], 16) & 0xFFFFFFFF
+            name_file_ptrs = {}
             for off in range(0xcc0, 0xce0, 4):
-                val = gdb.read_u32(r3 + off)
-                param_ptrs[f"+0x{off:03x}"] = hex(val)
-            result["name_file_param_ptrs"] = param_ptrs
+                try:
+                    val = gdb.read_u32(r3 + off)
+                except Exception:
+                    val = 0
+                name_file_ptrs[f"+0x{off:03x}"] = hex(val)
+            result["name_file_param_ptrs"] = name_file_ptrs
 
-        # Clear the breakpoint before leaving.
         gdb.clear_breakpoint(DISPATCHER_ENTRY, kind=4)
         gdb.close()
 
-        # Overall pass: all 4 stages true.
         result["pass"] = all(
-            result["stages"][k] for k in
-            ("gdb_attach", "bp_set", "bp_hit", "registers_read")
+            result["stages"][k]
+            for k in (
+                "drove_to_civ_select",
+                "gdb_attach",
+                "bp_set",
+                "bp_hit",
+                "registers_read",
+            )
         )
     except Exception as e:
         import traceback
