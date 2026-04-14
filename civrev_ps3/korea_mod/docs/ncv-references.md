@@ -44,6 +44,53 @@ need to become 0x11, and (4) needs to become `+ 0x44`.
 - The function loading `leaderheads.xml` is a candidate consumer of both
   the leader-display-name array and the civ-internal-tag array.
 
+## iOS cross-reference (the actual answer)
+
+The iOS binary (`civrev_ios/ghidra_decompiled/`) is symboled and exposes
+`_NCIV` as a single authoritative pointer-to-int global. Ghidra names it
+`PTR__NCIV_001fc1e0` — the address `0x001fc1e0` (iOS ARM32 VA) holds a
+pointer, and the pointer points to a 4-byte int whose value is 16.
+
+Every civ-loop in the iOS binary reads that global indirectly:
+
+```c
+if (0 < *(int *)PTR__NCIV_001fc1e0) { ... }
+while (iVar77 < *(int *)PTR__NCIV_001fc1e0) { ... }
+```
+
+`PTR__NCIV` is referenced **286 times** across the iOS decompile. That
+means the PS3 build — which shares the C++ source — almost certainly
+has the same design: one int global for "number of civs," read
+everywhere, with no inline `0x10` constants at all. **If that holds,
+the entire §6.2 "patch every loop bound" plan collapses to a single
+byte patch**: change the initial value of `_NCIV` from 16 to 17, and
+every `*_NCIV`-reading site picks up the new value for free. No
+per-loop rewrites. No 286-site catalog. Just one store.
+
+The task becomes: locate the **initialization** of `_NCIV` in the PS3
+binary. The candidate instruction pattern is a `li rN, 0x10` followed
+by a `stw rN, offset(rPtr)` where `rPtr` was previously loaded
+TOC-relative (typical idiom: `ld rPtr, X(r2); li rVal, 0x10;
+stw rVal, 0(rPtr)`). An unfiltered scan of the PS3 code region finds
+89 `li rN, 0x10 → stw` sequences — too many to test blindly. Pruning
+is required: keep only those where `rPtr` came from a TOC load whose
+target address is near other confirmed civ globals.
+
+The iOS globals sit in a cluster:
+`PTR__BARB_001fc0b0`, `PTR__War_001fc2b8`, `PTR__Treaty_001fc2a0`,
+`PTR__Turn_001fc2a4`, `PTR__Govt_001fc24c`, `PTR__Diplomacy_001fc22c`,
+`PTR__NRes_001fc268`, `PTR__NCIV_001fc1e0`, `PTR__who_001fc328`,
+`PTR__work_001fc330`. They're all within `0x001fc0b0..0x001fc330`.
+**This is the iOS "game globals pointer table" — `_NCIV` lives in it.**
+
+The PS3 equivalent is a same-shaped region somewhere in the data
+segment. The existing `docs/debug-mode.md` already identified
+`PTR_DAT_01929e14` as a "debug config" pointer in the same style, so
+at least one global pointer lives at `0x01929e14`. The civ-system
+globals table is probably adjacent — a structured scan of
+`0x0192xxxx..0x0193xxxx` for a block of pointer-typed globals would
+localize it.
+
 ## Iteration 1 dead-end (documented for iter-2)
 
 Both static approaches tried this iteration failed to surface a single
