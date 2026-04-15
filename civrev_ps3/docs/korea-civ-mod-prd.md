@@ -8113,3 +8113,53 @@ is now at "polish only" maintenance mode.
 **PRD changes made this iteration:** Progress Log entry added.
 verify.sh tier wiring + verification artifact. Net shipping
 state unchanged.
+
+### iter-228 (2026-04-15): repo polish — README + orphan Ghidra scripts
+
+Small polish iteration. Two changes:
+
+1. **Committed two orphan Ghidra helper scripts** that had been
+   sitting untracked in `korea_mod/scripts/ghidra_helpers/` from
+   earlier iterations:
+   - `DecompDispatcher.py` — finds callers of the
+     civnames/rulernames parser_worker (`FUN_00a2e640`) and the
+     count argument they pass. Used during the iter-14
+     parser-bump bisect.
+   - `DecompFn2fb78.py` — decompiles `FUN_002fb78` (one of the
+     ChooseCiv panel-loader candidates from the iter-205..211
+     `li r8` consumer hunt).
+   Both pre-date iter-227; they're committed as-is to keep the
+   `ghidra_helpers/` directory consistent with what's actually
+   present.
+
+2. **Updated `korea_mod/README.md`** verification section:
+   - Listed `iter222_common0_unused/`, `iter224_lean_m9_sweep/`,
+     and `iter227_verify_tiers/` as recent verification entries.
+   - Replaced the lone `./verify.sh --tier=static` line with all
+     three tier invocations and their wall-clock budgets, since
+     iter-227 wired fast/full to the docker harness.
+   - Tweaked the M9 line to mention iter-224's lean-install
+     refresh alongside iter-216's original 6-civ sweep.
+
+No code changes. No verification re-runs needed (orphan scripts
+don't ship; README is a doc edit).
+
+**§9 DoD status (unchanged):**
+
+| # | item | status |
+|---|------|--------|
+| 1 | install.sh works | **MET** |
+| 2 | Korea visible at slot 16 in carousel | **OPEN — STRUCTURALLY BLOCKED** (§9.X) |
+| 3 | Found capital with Korea | **BLOCKED on item 2** |
+| 4 | 50-turn soak as Korea | **BLOCKED on item 2** |
+| 5 | Stock regression (6 civs) | **MET** |
+| 6 | Verification artifacts committed | **MET** |
+
+**iter-229 plan:** the loop is now in maintenance polish mode.
+Every concrete v1.0 work item is closed; every v1.1 work item
+is explicitly deferred. Remaining options: more PRD/README
+polish, formal closeout commit, or v1.1 reach-in (out of scope).
+
+**PRD changes made this iteration:** Progress Log entry added.
+README polish + 2 orphan Ghidra scripts committed. Net shipping
+state unchanged.

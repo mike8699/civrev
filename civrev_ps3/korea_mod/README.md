@@ -157,15 +157,27 @@ dated per-iteration subdirectories. Key results:
 - `M0/` — static M0 GREEN: xmllint + FPK round-trip + eboot
   dry-run + committed-artifact health (10,216 files checked,
   0 mismatches as of iter-216)
-- `M9/` — iter-216 6-civ regression sweep, 6/6 PASS
+- `M9/` — iter-216 6-civ regression sweep + iter-224 6/6
+  PASS against the lean iter-223 install
 - `iter198_18row_boot_safe/` — iter-198's first-time
   18-row civnames boot
 - `iter203_civs_dump/` — runtime memory dump of both parser
   buffers proving Korea/Sejong are at index 16
 - `iter212_*` (implicit via PRD §9.X) — structural blocker
   documentation
+- `iter222_common0_unused/` — empirical proof that
+  `Common0.FPK` is never opened at runtime; 7 of 12 disc
+  FPKs are dead carry-over
+- `iter224_lean_m9_sweep/` — 6-civ regression refresh
+  against the iter-223 lean install
+- `iter227_verify_tiers/` — `verify.sh` fast/full tiers
+  wired to the docker harness
 
-Run `./verify.sh --tier=static` for a green M0 signoff.
+```bash
+./verify.sh --tier=static  # M0 only, <30 seconds
+./verify.sh --tier=fast    # M0 + Caesar M9 smoke, ~5 min
+./verify.sh --tier=full    # M0 + 6-civ M9 sweep, ~25 min
+```
 
 ## Architecture notes
 
