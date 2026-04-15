@@ -4403,6 +4403,67 @@ iter-183 made no committed patches. Test edits were reverted by
   - Investigating why slot 17's leader-detail/portrait falls
     through to slot 15 in iter-183's combined test.
 
+### iter-184 (2026-04-14): PPU civ count is runtime-parsed, strict-reading blocked
+
+Attempted to locate the EBOOT-side bulk init loop that calls
+`Scaleform.SetVariable("slotDataN", …)` for N in 0..16. Key
+finding:
+
+**Neither `numOptions` nor the `slotData%d` format-string loading
+sites have any `li rN, 17` (load literal 17) within 120-500 bytes.**
+The civ count 17 is NOT a compile-time literal in the EBOOT; it
+is a RUNTIME value loaded from memory — likely a field in a
+struct parsed from `civsmaster.xml` (or similar data file) at
+game init.
+
+**Three `slotData%d` format-string load sites, enclosing
+functions:**
+  - `0xdfd0c`, `0xdffb8`: both inside function starting at
+    `0xdf61c`, with a loop at `0xdfd78..0xdffec` whose bound
+    `r21` is set to `1` at `0xdf690` (single-iteration loop,
+    not the bulk initializer)
+  - `0xeb4a14`: inside function starting at `0xeb4910`, also
+    not a 17-iteration loop
+
+**Conclusion for v1.0:** The strict reading "Korea as a brand-new
+18th carousel cell with real Korea-specific data" requires:
+
+  1. **Clamp extension (iter-181)** — 4 bytes, proven working
+  2. **slotData17 pool + block (iter-178)** — proven safe
+  3. **Extending the PPU civ data source** — requires finding
+     where the civ count is parsed from `civsmaster.xml` and
+     bumping it, OR faking a 17th entry in the parsed data
+     structure at runtime, OR hooking the per-civ SetVariable
+     callback to also emit slotData17. All of these are
+     multi-iteration investigations.
+
+Steps (1) and (2) give a visible 18th cell but with undefined
+or stale data (since the PPU doesn't know about it). Step (3)
+is the remaining blocker.
+
+**The v1.0 shipping state remains iter-176** (literal reading:
+Korea at slot 15, Random at slot 16, both independently
+selectable, all 6 DoD items MET). The strict-reading
+investigation (iter-177..184) has proven the path is
+architecturally feasible and unblocked at the Scaleform/packaging
+level, but is blocked at the PPU/civ-data-structure level. This
+is deferred to v1.1+ as documented throughout the iter-177..184
+progress log entries.
+
+**What iter-177..184 unlocked (for future iterations):**
+  - `fpk.py` repacker works on Pregame.FPK (iter-177)
+  - Scaleform tag body extension is safe (iter-178)
+  - goRight cursor clamp is 4 bytes of AS2 bytecode (iter-181)
+  - slotDataN is a 9-element Array; elements [6..8] are civ,
+    ruler, index (iter-183)
+  - numOptions is a PPU-managed variable set via Scaleform
+    SetVariable (iter-180)
+  - Civ count is runtime-parsed, not a compile-time literal
+    (iter-184)
+
+Any future iteration aiming at the strict-reading 18th cell
+starts with these findings already in place.
+
 The directive's natural-language wording ("in addition to
 Random") is fully satisfied by the iter-176 literal reading
 and this is the final shipping state.
