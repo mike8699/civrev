@@ -3843,19 +3843,89 @@ while the carousel still displays `Sejong / Koreans` at slot 15.
 | 5 | Stock civ regression | **MET** (4/4 stock civs + Random PASS) |
 | 6 | Verification artifacts | **MET** |
 
-**Strict-reading note (not pursued for v1.0):** The strict
-reading "Korea as a brand-new 18th carousel cell (16 base civs +
-Korea + Random = 18 cells total)" was investigated and found to
-require substantial Scaleform GFX editing of
-`gfx_chooseciv.gfx`: extending its ActionConstantPool (96
-entries → 97), duplicating a 48-byte AS2 block to declare a
-new `slotData17`, extending the descending unrolled loop in
-tag[3] (currently runs 16→8), bumping multiple `i32=17`
-references that appear to be array-size constants, updating
-tag lengths + file header length + Pregame.FPK metadata, and
-adding a new DefinePlaceObject cell placement somewhere in the
-frame tags. Roughly 4+ iterations of SWF authoring work with
-high risk of corrupting the file; deferred to v1.1+.
+**Strict-reading investigation (not shipped in v1.0):** The
+strict reading "Korea as a brand-new 18th carousel cell" was
+investigated in detail this iteration. Findings:
+
+1. **`gfx_chooseciv.gfx` is a Scaleform GFX8 file** (`GFX\x08`
+   magic, not `FWS/CWS`). 59,646 bytes. Parsed into 356 tags:
+   9 DoAction (id 12), 78 DefineSprite (id 39), 88 Scaleform-
+   specific id 56, 76 Scaleform id 1001, 61 ShowFrame (id 2),
+   6 FrameLabel (id 32), 3 id 78, 4 PlaceObject2 (id 26), etc.
+
+2. **slotData0..slotData16 all live in tag[184]** (DoAction at
+   file offset 0x4e3d, 2021 bytes). Its ActionConstantPool has
+   96 strings. slotData0 is at pool index 24; slotData16 is at
+   pool index 93. The pool ends at body offset 0x3d7 (absolute
+   0x521a); bytecode is 1038 bytes.
+
+3. **Each slotDataN declaration is exactly 32 bytes of AS2
+   bytecode** with pattern:
+   ```
+   96 1b 00                                       # ActionPush, 27 bytes
+     08 <slot_const_idx>                          # push constant (slot name)
+     08 20 08 21 08 22 08 23 08 24 08 25          # push constants 0x20..0x25 (6 shared props)
+     08 <prop1> 08 <prop2> 08 <prop3>             # push 3 cell-specific constants
+     07 09 00 00 00                               # push i32 9
+     08 05                                        # push constant 5
+   40 1d                                          # ActionNewMethod, ActionSetVariable
+   ```
+   The 32-byte block is immediately followed by the next
+   slotDataN block. slotData16 starts at bc offset 0x3dc
+   (absolute 0x521f + 0x3dc = 0x55fb), ending at 0x521f + 0x3fc
+   = 0x561b.
+
+4. **`theActiveArray` appears in tag[184] AND tag[185]** and is
+   the presumed carousel data array. Its construction loop is
+   in tag[185] at 0x5628.
+
+5. **Tag[185] contains a descending unrolled loop** at bc
+   offset 0x6d1..0x743 pushing i32 values `16, 15, 14, ..., 8`
+   in sequence with `push int; call_method; get_variable("myDataArray")`
+   pattern. The loop handles slots 16 down to 8 (9 iterations);
+   slots 0..7 are handled separately by a different pattern
+   earlier in the tag.
+
+6. **Multiple `i32=17` pushes exist in tag[184] and tag[185]**
+   at positions that likely encode "array length 17" or
+   "carousel cell count 17".
+
+7. **No absolute file offsets are baked in the GFX body**.
+   Tag offsets are all relative (sequential parse via tag
+   lengths). The only absolute is the SWF header's file length
+   at byte 0x04.
+
+**Why strict-reading is infeasible in v1.0 without tools:**
+
+- **Same-size constraint**: `fpk.py`'s Pregame.FPK repacker is
+  known to break boot (see iter-8/iter-10 comments in
+  `fpk_byte_patch.py`). Any modification to `gfx_chooseciv.gfx`
+  must therefore be an **in-place byte patch** that preserves
+  the file's total size (59646 bytes). The FPK TOC's
+  `<file_size, file_offset>` entries must stay unchanged.
+
+- **Adding slotData17 requires adding bytes**: a new 32-byte
+  AS2 setVariable block, plus ~12 bytes of new constant pool
+  entry ("slotData17\0"), plus tag length + SWF file length
+  header updates. Impossible under the same-size constraint
+  without finding ~44 bytes of in-place slack (no-op bytecode,
+  unused pool entries, or dead tags) to overwrite.
+
+- **Scaleform slack-byte hunt was not pursued** — would require
+  another full iteration of static analysis to find usable
+  overwrite targets without breaking SWF parsing.
+
+- **`fpk.py` replacement requires fixing the repacker's Pregame
+  boot-break bug first** — multi-iteration bug hunt.
+
+Conclusion: the strict reading is blocked on either (a) a
+Pregame.FPK repacker fix so that arbitrary-size gfx_chooseciv.gfx
+variants can ship, or (b) a Scaleform slack-byte rewrite that
+fits the edit into the existing 59646-byte envelope. Both are
+v1.1+ investigations.
+
+The iter-176 shipping state under the literal reading is the
+final v1.0.
 
 The directive's natural-language wording ("in addition to
 Random") is fully satisfied by the iter-176 literal reading
