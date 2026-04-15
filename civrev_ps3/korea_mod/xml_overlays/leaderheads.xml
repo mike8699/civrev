@@ -1,0 +1,21 @@
+<Leaders>
+	<DOF Dist="170" Range="250" />
+	<!-- Note: Nationality is based on the "Civs" enum in CcCiv. If that changes, this list must be updated. -->
+	<LeaderHead Nationality="0" Text="Caesar" File="GLrom_Caesar.xml" TexName="GLrom_Caesar_" />
+	<LeaderHead Nationality="1" Text="Cleopatra" File="GLegy_cleopatra.xml" TexName="GLegy_Cleopatra_" />
+	<LeaderHead Nationality="2" Text="Alexander" File="GLgre_Alexander.xml" TexName="GLgre_Alexander_" />
+	<LeaderHead Nationality="3" Text="Isabella" File="GLspa_Isabella.xml" TexName="GLspa_Isabella_" />
+	<LeaderHead Nationality="4" Text="Bismarck" File="GLger_Bismarck.xml" TexName="GLger_Bismarck_" />
+	<LeaderHead Nationality="5" Text="Catherine" File="GLrus_Catherine.xml" TexName="GLrus_Catherine_" />
+	<LeaderHead Nationality="6" Text="Mao" File="GLchi_Mao.xml" TexName="GLchi_Mao_" />
+	<LeaderHead Nationality="7" Text="Lincoln" File="GLame_Lincoln.xml" TexName="GLame_Lincoln_" />
+	<LeaderHead Nationality="8" Text="Tokugawa" File="GLjap_Tokugawa.xml" TexName="GLjap_Tokugawa_" />
+ 	<LeaderHead Nationality="9" Text="Napoleon" File="GLfra_Napoleon.xml" TexName="GLfra_Napoleon_" />
+	<LeaderHead Nationality="10" Text="Gandhi" File="GLind_Gandhi.xml" TexName="GLind_Gandhi_" />
+	<LeaderHead Nationality="11" Text="Saladin" File="GLara_Saladin.xml" TexName="GLara_Saladin_" />
+	<LeaderHead Nationality="12" Text="Montezuma" File="GLazt_Montezuma.xml" TexName="GLazt_Montezuma_" />
+	<LeaderHead Nationality="13" Text="Shaka Zulu" File="GLmal_Shaka.xml" TexName="GLmal_Shaka_" />
+	<LeaderHead Nationality="14" Text="Genghis Khan" File="GLmon_Khan.xml" TexName="GLmon_Khan_" />
+	<LeaderHead Nationality="15" Text="Elizabeth" File="GLeng_Elizabeth.xml" TexName="GLeng_Elizabeth_" />
+	<LeaderHead Nationality="16" Text="Sejong" File="GLchi_Mao.xml" TexName="GLchi_Mao_" />
+</Leaders>

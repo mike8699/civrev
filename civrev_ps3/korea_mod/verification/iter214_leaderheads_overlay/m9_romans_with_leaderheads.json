@@ -1,0 +1,14 @@
+{
+  "milestone": "M9",
+  "slot": 0,
+  "label": "romans",
+  "pass": true,
+  "oracle": "OCR in-game HUD after selecting slot 0 (romans)",
+  "stages": {
+    "main_menu": true,
+    "difficulty_selected": true,
+    "highlighted_ok": true,
+    "in_game_hud": true
+  },
+  "select_ocr": "\u2014 er aig @ ~\u2014 \u2014\u2014 7) {a Py \\cuntieeeeenes | \u00e9 B /}) Cleopatra Alexander Isabella | \u00abs ~~ \u2014\u2014 V4 Egyptians Greeks Spanish | lt Sa | fT jt Gun er er * DS ; Wh on SH LA Lo | \u2018i ~ * \u00bb ; a \u2014 eg \u2014 lay janetc "
+}

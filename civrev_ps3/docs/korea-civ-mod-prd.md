@@ -6967,3 +6967,61 @@ cheapest one to advance.
 
 **PRD changes made this iteration:** Progress Log entry added.
 Documentation-only iteration; no shipping state change.
+
+### iter-214 (2026-04-15): §6.3 leaderheads.xml overlay shipped + §6.4 closed as N/A
+
+Walked the PRD §6 for unfinished implementation work.
+`xml_overlays/` was missing two files the PRD spec called out:
+`leaderheads.xml` (§6.3 item 1) and `gfxtext.xml` (§6.4).
+
+**§6.3 leaderheads.xml — SHIPPED.** Created
+`korea_mod/xml_overlays/leaderheads.xml` by inserting a 17th
+`<LeaderHead Nationality="16" Text="Sejong" File="GLchi_Mao.xml"
+TexName="GLchi_Mao_" />` entry between Elizabeth and the closing
+`</Leaders>` tag. Per PRD §6.3 item 1, the entry reuses the
+existing Mao leaderhead assets — no new binary assets ship.
+xmllint validates clean. Common0_korea.FPK SHA changes from
+`88b5bbeb...` to `6dfba344...` confirming the overlay landed.
+**Romans M9 PASS** with the new overlay — 17th LeaderHead entry
+doesn't break boot, parser, or carousel.
+
+**§6.4 gfxtext.xml — CLOSED as N/A.** Inspection of stock
+`gfxtext.xml` shows it's a Scaleform variable→text
+localization file (mapping `theMenu.t0_txt` etc. to display
+strings, organized per `swf=` panel), NOT a `TXT_KEY_*`
+lookup table. The PRD §6.4 spec assumed the wrong file format.
+The "Korean" / "Sejong" display strings come from the
+`civnames_enu.txt` / `rulernames_enu.txt` overlays already
+shipping since iter-198, which is the actual mechanism the
+PS3 binary uses. §6.4 is satisfied by §6.3 / iter-198
+mechanism, not the spec'd gfxtext.xml mechanism. No
+gfxtext.xml overlay needs to ship.
+
+**§6.3 is now fully shipping.** All 4 XML overlays per spec
+(leaderheads + 2 pediainfos + new leaderheads) are in
+`xml_overlays/`. The 17th LeaderHead entry is registered with
+the game's leaderhead loader.
+
+**Cumulative shipping state** (after iter-214):
+
+`korea_mod/xml_overlays/`:
+- `civnames_enu.txt` (iter-198)
+- `rulernames_enu.txt` (iter-198)
+- `console_pediainfo_civilizations.xml`
+- `console_pediainfo_leaders.xml`
+- `leaderheads.xml` (NEW iter-214)
+
+`korea_mod/eboot_patches.py`:
+- iter-4: ADJ_FLAT pointer table extension (16→17)
+- iter-14: parser-count `li r5, 0x11→0x12` at `0xa2ee38`/`0xa2ee7c`
+
+**Verification artifacts:**
+- `korea_mod/verification/iter214_leaderheads_overlay/findings.md`
+- `.../m9_romans_with_leaderheads.json`
+
+**iter-215 plan:** walk §7 verification milestones to identify
+which can be advanced without unblocking the carousel.
+
+**PRD changes made this iteration:** Progress Log entry added.
+**Net shipping state change**: `leaderheads.xml` overlay added
+to the build pipeline. EBOOT unchanged.
