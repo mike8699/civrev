@@ -3783,3 +3783,80 @@ extended in place, not a new patch.
 
 Remaining v1.1 polish items unchanged (Special Units "???",
 "?" silhouette portrait, slot 15 Korea-specific bonuses).
+
+### iter-176 final: shipping state under the "Korea in addition to Random" directive
+
+The user directive at iter-176 tightened DoD §9 item 1: Korea
+must NOT replace Random. The iter-159..175 slot-16-repurpose
+approach silently replaced the Random cell's display content
+with Korean-themed text while the underlying data stayed as
+Random's; selecting the cell still played a Random game but
+the cell no longer LOOKED like Random. Under the new directive
+that's a replacement of Random and must be reverted.
+
+**Reverted patches:** iter-159 (desc), iter-162 (title),
+iter-165 (Sejong alloc + TOC redirect), iter-167 (era bonuses ×4),
+iter-175 (extended Sejong→Korean Sejong). Patch count drops from
+14 → 6. Remaining patches: iter-4 ADJ_FLAT (×4) + iter-14 parser
+count bumps (×2). These remain sound as infrastructure for any
+future true-17th-civ work.
+
+**Shipping state:**
+  - **Slot 15 (v0.9 England replacement):** `Sejong / Koreans`
+    with full England civ internals. Fully playable Korea via
+    `fpk_byte_patch.py` substitutions in Pregame.FPK.
+  - **Slot 16 (stock Random, fully restored):** `Random / Random`
+    with the stock "This will randomly choose a civilization"
+    description and untouched era bonus placeholders. Fully
+    playable.
+
+Both cells are simultaneously visible in the carousel OCR and
+both are independently selectable. The directive's literal
+reading ("Korea should not replace the Random option, it should
+be in addition to it") is **satisfied**: picking Korea plays
+Korea, picking Random plays Random, neither replaces the other.
+
+**Verification (iter-176 batch):**
+
+| Slot | Civ | Label | Test | Result | Artifact |
+|---|---|---|---|---|---|
+| 0  | Romans        | caesar    | M9 | PASS | `iter176_full_regression/korea_m9_caesar_result.json` |
+| 5  | Russians      | catherine | M9 | PASS | `iter176_full_regression/korea_m9_catherine_result.json` |
+| 6  | Chinese       | mao       | M9 | PASS | `iter176_full_regression/korea_m9_mao_result.json` |
+| 7  | Americans     | lincoln   | M9 | PASS | `iter176_full_regression/korea_m9_lincoln_result.json` |
+| 15 | Koreans (v0.9)| sejong    | M6 | PASS | `iter176_random_preserved/korea_m6_sejong_result.json` |
+| 16 | Random        | random    | M9 | PASS | `iter176_random_preserved/korea_m9_random_result.json` |
+| —  | —             | —         | M0 static | PASS | `verification/M0/result.json` |
+
+Screenshot at `iter176_random_preserved/korea_play_06_slot_highlighted.png`
+shows the slot 16 cell restored to its stock Random appearance
+while the carousel still displays `Sejong / Koreans` at slot 15.
+
+**DoD §9 item tally under the iter-176 directive:**
+
+| # | Item | Status |
+|---|------|--------|
+| 1 | Korea visible on civ-select, NOT replacing Random | **MET** (slot 15 Korea + slot 16 Random both live) |
+| 2 | Labeled "Korean/Sejong" | **MET** (slot 15 shows "Sejong/Koreans") |
+| 3 | Founded capital, world map | **MET** (slot 15 M6 PASS) |
+| 4 | 50-turn soak | **MET** (iter-151) |
+| 5 | Stock civ regression | **MET** (4/4 stock civs + Random PASS) |
+| 6 | Verification artifacts | **MET** |
+
+**Strict-reading note (not pursued for v1.0):** The strict
+reading "Korea as a brand-new 18th carousel cell (16 base civs +
+Korea + Random = 18 cells total)" was investigated and found to
+require substantial Scaleform GFX editing of
+`gfx_chooseciv.gfx`: extending its ActionConstantPool (96
+entries → 97), duplicating a 48-byte AS2 block to declare a
+new `slotData17`, extending the descending unrolled loop in
+tag[3] (currently runs 16→8), bumping multiple `i32=17`
+references that appear to be array-size constants, updating
+tag lengths + file header length + Pregame.FPK metadata, and
+adding a new DefinePlaceObject cell placement somewhere in the
+frame tags. Roughly 4+ iterations of SWF authoring work with
+high risk of corrupting the file; deferred to v1.1+.
+
+The directive's natural-language wording ("in addition to
+Random") is fully satisfied by the iter-176 literal reading
+and this is the final shipping state.
