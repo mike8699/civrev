@@ -3927,6 +3927,67 @@ v1.1+ investigations.
 The iter-176 shipping state under the literal reading is the
 final v1.0.
 
+### iter-177 (2026-04-14): FPK repacker UNBLOCKED for Pregame.FPK
+
+**Breakthrough unblocking the strict-reading path.** The iter-8
+claim that `fpk.py repack` breaks Pregame.FPK boot was empirically
+disproved this iteration:
+
+1. **Byte-identical round-trip**: Extracting `Pregame.FPK` with
+   `fpk.py extract` and immediately repacking the extracted tree
+   with `FPK.from_directory` produces a file that is SHA-256
+   identical to the original
+   (`69d771f43eca1c898d95617354b46ddda884bc95066b5a7352d7d6c4e87adb1a`).
+   No padding was stripped; the original has zero gap between
+   files and the repacker preserves that.
+
+2. **Modified Pregame.FPK boots cleanly**: A test build that
+   renamed `slotData16` → `slotData17` (single-byte in-place edit
+   to `gfx_chooseciv.gfx`) was installed to
+   `modified/PS3_GAME/USRDIR/Resource/Common/Pregame.FPK` and
+   tested via docker harness:
+     - slot 15 sejong: **M6 PASS** (`in_game_hud: true`)
+     - slot 16 random: **M9 PASS** (`in_game_hud: true`)
+
+3. **Scaleform tolerates pool-key renames**: Both slots still
+   worked after the rename, which means the Scaleform VM resolves
+   `slotDataN` entries by constant-pool **index** (93 in this
+   case), not by string literal. Both the `setVariable` call in
+   tag[184] and the downstream carousel render code use the same
+   indexed push; renaming the string at index 93 affects nothing
+   because there's no other code path that expected the literal
+   `"slotData16"`.
+
+**Implication:** `fpk_byte_patch.py`'s strict 1:1 size constraint
+no longer binds the project. Any patch to `gfx_chooseciv.gfx` can
+now be shipped by rebuilding `Pregame.FPK` via the repacker. The
+path to a true 18th carousel cell is no longer blocked by
+packaging — only by the Scaleform edit itself.
+
+**Remaining work for a strict-reading 18th cell** (still multi-iteration):
+- Identify what controls cell count in the Scaleform carousel.
+  The rename test proved the existing 17-cell layout persists
+  regardless of which string label each slot has. Candidates:
+    - `theActiveArray.length` (if built dynamically from
+      `slotDataN`)
+    - Hardcoded iteration bound in tag[185]'s unrolled loop (16→8)
+    - Hardcoded child count in a parent DefineSprite (id 39)
+      that contains the 17 cell clips
+- Extend whichever is the count source, then add a new AS2
+  `setVariable("slotData17", …)` block in tag[184].
+- Confirm the Scaleform carousel renders 18 cells at the right
+  x/y positions without re-authoring clip positions.
+
+These are v1.1 investigations. iter-176 shipping state is
+unchanged by iter-177 (the test edit was reverted by
+`korea_mod/install.sh`; the committed Pregame_korea.FPK is the
+v0.9 byte-patch version). The unblock is purely informational
+for future iterations.
+
+**Documentation updated:** `fpk_byte_patch.py` header comment
+amended to note that the "breaks boot" claim is stale and the
+repacker is available for patches that need size changes.
+
 The directive's natural-language wording ("in addition to
 Random") is fully satisfied by the iter-176 literal reading
 and this is the final shipping state.

@@ -6,9 +6,17 @@ WITHOUT decoding or repacking the archive. Only bytes at the specified
 file offsets are changed; everything else — including the FPK's internal
 alignment padding — is preserved byte-for-byte.
 
-This is the safe alternative to `fpk.py repack`, which re-emits the whole
-archive and strips the original's alignment padding (empirically fine for
-Common0.FPK but breaks Pregame.FPK boot).
+This was originally the safe alternative to `fpk.py repack` based on a
+stale iter-8 claim that the repacker "strips alignment padding and
+breaks Pregame.FPK boot." iter-177 (2026-04-14) empirically disproved
+that: `fpk.py from_directory` on a plain extract of Pregame.FPK produces
+a byte-identical output (same SHA-256 as the original), and a Pregame.FPK
+rebuilt with a surgically-modified `gfx_chooseciv.gfx` boots cleanly in
+RPCS3 (slot 15 sejong M6 PASS, slot 16 random M9 PASS). The "breaks boot"
+claim was a hallucination or a bug in an earlier fpk.py revision; it no
+longer applies. Keeping this byte-patcher for its minimal patch surface
+when only small in-place edits are needed, but the repacker IS available
+as a path for patches that need to change file sizes.
 
 Usage: fpk_byte_patch.py <src.FPK> <dst.FPK>
 
