@@ -80,94 +80,30 @@ PATCHES: list[BytePatch] = [
 
 
 def _build_patches(src_bytes: bytes) -> list[BytePatch]:
-    patches: list[BytePatch] = []
-
-    # rulernames_enu.txt region
-    ruler_off = 0x14af8
-    ruler_sz = 0xe2
-    ruler = src_bytes[ruler_off : ruler_off + ruler_sz]
-    eliz_rel = ruler.find(b"Elizabeth")
-    if eliz_rel < 0:
-        raise RuntimeError("Elizabeth not found in rulernames_enu.txt slot")
-    # "Sejong" is 6 chars; pad with 3 trailing spaces to match "Elizabeth"'s
-    # 9-char slot so we don't shift the rest of the file. The text parser
-    # trims trailing whitespace inside a field, so the displayed name is
-    # still "Sejong". Verified by iter-8 boot with "SejongTst" (9 chars).
-    patches.append(
-        BytePatch(
-            offset=ruler_off + eliz_rel,
-            expected_old=b"Elizabeth",
-            new=b"Sejong   ",
-            description='rulernames_enu: "Elizabeth" → "Sejong   " (9 bytes)',
-        )
-    )
-
-    # civnames_enu.txt region
-    civ_off = 0x14bda
-    civ_sz = 0xe9
-    civ = src_bytes[civ_off : civ_off + civ_sz]
-    eng_rel = civ.find(b"English")
-    if eng_rel < 0:
-        raise RuntimeError("English not found in civnames_enu.txt slot")
-    patches.append(
-        BytePatch(
-            offset=civ_off + eng_rel,
-            expected_old=b"English",
-            new=b"Koreans",
-            description='civnames_enu: "English" → "Koreans" (7 bytes)',
-        )
-    )
-
-    # citynames_enu.txt — replace the 16 English city names with Korean
-    # ones. Each replacement is exact byte length; trailing spaces get
-    # trimmed by the name parser (proven by the Sejong/Elizabeth patch).
-    # The ';ENGLISH:' block is unique in the file so we can key off
-    # "London, M" for the block anchor.
-    english_block = b";ENGLISH:\r\nLondon, M\r\n"
-    block_rel = src_bytes.find(english_block)
-    if block_rel < 0:
-        raise RuntimeError("citynames_enu.txt ';ENGLISH:' block not found")
-    # English cities in order, with Korean replacements of identical
-    # byte length. First entry is the capital.
-    city_substitutions = [
-        (b"London",     b"Seoul "),       # 6 — capital
-        (b"York",       b"Naju"),         # 4
-        (b"Nottingham", b"Pyongyang "),   # 10
-        (b"Hastings",   b"Kaesong "),     # 8
-        (b"Canterbury", b"Gyeongju  "),   # 10
-        (b"Coventry",   b"Incheon "),     # 8
-        (b"Warwick",    b"Kunsan "),      # 7
-        (b"Newcastle",  b"Gangneung"),    # 9
-        (b"Oxford",     b"Daegu "),       # 6
-        (b"Liverpool",  b"Cheongju "),    # 9
-        (b"Dover",      b"Jeju "),        # 5
-        (b"Brighton",   b"Ulsan   "),     # 8
-        (b"Norwich",    b"Suwon  "),      # 7
-        (b"Leeds",      b"Iksan"),        # 5
-        (b"Reading",    b"Gimpo  "),      # 7
-        (b"Birmingham", b"Chuncheon "),   # 10
-    ]
-    # Find each city name, scanning forward from the block start, so we
-    # never match an identical city name from an earlier civ's block.
-    cursor = block_rel
-    for old, new in city_substitutions:
-        # Each entry line is "<name>, M\r\n" — searching for "<name>, M"
-        # guarantees we match the English block's own instance.
-        needle = old + b", M"
-        pos = src_bytes.find(needle, cursor)
-        if pos < 0:
-            raise RuntimeError(
-                f"citynames_enu.txt: {old!r} not found after offset {cursor:#x}"
-            )
-        patches.append(
-            BytePatch(
-                offset=pos,
-                expected_old=old,
-                new=new,
-                description=f'citynames_enu (English→Korean): {old.decode()} → {new.decode().rstrip()!r}',
-            )
-        )
-        cursor = pos + len(old)
+    # iter-190 (2026-04-15): ALL v0.9 substitutions REMOVED.
+    #
+    # Per iter-189's STRICT reading directive, Korea must be a brand-new
+    # 17th civ at its own slot, not a rename of England at slot 15. The
+    # v0.9 substitutions (Elizabeth→Sejong, English→Koreans, 16 English
+    # city names → Korean city names) are a REJECTED approach — they
+    # silently overwrite Elizabeth/England and cause §9 item 5 (stock civ
+    # regression must include Elizabeth at slot 15) to fail.
+    #
+    # This function now returns an empty patch list, so the output FPK
+    # is byte-identical to the stock Pregame.FPK. That keeps England
+    # fully intact as Elizabeth/English at slot 15.
+    #
+    # Korea-specific data for the future 18th carousel cell must come
+    # from Scaleform gfx_chooseciv.gfx edits plus PPU SetVariable calls,
+    # not from in-place English→Korean byte substitution. See PRD §9
+    # item 2 and iter-189 progress log entry for the 6-step plan.
+    #
+    # The file parsing code above is still kept intact in case any
+    # future caller wants to do real byte-surgery on Pregame.FPK via
+    # this module's `BytePatch` mechanism, but the patch list is
+    # currently empty.
+    _ = src_bytes  # unused — no patches derived from the input anymore
+    return []
 
     # iter-160 attempted: gfx_chooseciv.gfx has a hardcoded
     # slotData16 fallback string "RANDOM" at FPK offset 0x117010c.

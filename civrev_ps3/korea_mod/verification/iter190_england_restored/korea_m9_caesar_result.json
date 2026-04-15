@@ -1,0 +1,14 @@
+{
+  "milestone": "M9",
+  "slot": 0,
+  "label": "caesar",
+  "pass": true,
+  "oracle": "OCR in-game HUD after selecting slot 0 (caesar)",
+  "stages": {
+    "main_menu": true,
+    "difficulty_selected": true,
+    "highlighted_ok": true,
+    "in_game_hud": true
+  },
+  "select_ocr": "aot a SS | , ye Cleopatra Alexander Isabella | \u2014\u2014 1 Egyptians Greeks Spanish | LT jt a aren \u00ab = SS Gi pn SH Re | tf ~ / * \u00bb ; a \u2014 cee \u2014 ay jacana tana eatatamaal es \u2014 alii \u2014 neat 1 = 4 A >\u201d \\ | uP <2 "
+}

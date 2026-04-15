@@ -148,7 +148,15 @@ def main():
             12: ("Montezuma", "Aztecs", "Aztec"),
             13: ("Shaka", "Zulu", "African"),
             14: ("Genghis", "Mongols", "Mongolia"),
-            15: ("Sejong", "Korean", "Korea"),
+            15: ("Elizabeth", "English", "England"),
+            16: ("Random",),
+            # Under the iter-189 strict reading, slot 17 is the
+            # brand-new Korea 18th-cell. It doesn't yet exist —
+            # future iterations will add it via gfx_chooseciv.gfx
+            # carousel extension. Keyword set is added here now so
+            # the test harness can OCR-verify reachability once
+            # the cell lands.
+            17: ("Sejong", "Korean", "Korea", "KOREA18"),
         }.get(slot, ())
         target_on_screen = any(k in text for k in target_keywords)
         result["stages"]["highlighted_ok"] = target_on_screen
