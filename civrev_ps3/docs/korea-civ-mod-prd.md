@@ -6202,3 +6202,76 @@ stub-calling sites is a potential civnames reader.
 
 **PRD changes made this iteration:** Progress Log entry added.
 Static analysis only — no shipping changes.
+
+### iter-206 (2026-04-15): top 10 `bl 0x12080` consumers decompiled; both candidates B . ruled out
+
+**Python scan:** 139 `bl 0x12080` callers across 50 unique
+functions. Top 10 clustered in `0x1d0xxx..0x1e5xxx` plus one
+outlier at `0x224668`. All decompiled via new
+`Iter206TopConsumers.py`.
+
+**Decomp result:** every one of the top-count functions has the
+same unrolled "registration with callback object" shape as
+`FUN_001dc0d8`:
+
+```c
+puVar4 = *(r2 + OFFSET_A);
+uVar2 = func_0x00011230(*puVar4, *(r2 + OFFSET_B));
+func_0x00012080(param_1, *(r2 + O1), *(r2 + O2), uVar2);
+// ... repeat with iter_idx 0, 1, 2, 3 ...
+```
+
+None of them are carousel iterators. `FUN_001ded48` is a
+switch/case dispatcher on an enum (values 7, 14, 18, 24, 37).
+`FUN_001db4e8` iterates 9 fields. `FUN_001dde84` iterates with
+discontinuous indices. All are init/registration/serialization
+shapes, not per-frame renderers.
+
+**Diagnostic `b .` test:** planted infinite-loop traps at the
+entry of BOTH `FUN_001dc0d8` and `FUN_0x111dd70` simultaneously
+via temporary eboot_patches.py entries, built, and ran
+`korea_play 0 romans`. **Romans M9 slot 0 PASS**: boot reached
+main menu, navigated through scenario and difficulty, opened
+civ-select with Romans highlighted, game started, in-game HUD
+confirmed by OCR.
+
+**Both functions are NOT called on the boot-to-civ-select-to-
+in-game path.** They join iter-150 (`FUN_001e49f0`) and
+iter-154 (`FUN_011675d8`) on the "civnames consumer but off
+the carousel path" exclusion list. Traps removed; iter-198
+baseline restored.
+
+**Conclusion:** the carousel render path is NOT inside the
+iter-204/205 candidate set. The class whose first field is
+`&civs_holder = 0x1ac93b8` is used for some OTHER system
+(serialization / inter-system registration), not civ-select UI.
+The carousel must access civnames via a different class
+instance, a cached pointer in a heap object created at
+civ-select init, or a completely separate data source entirely.
+
+**iter-207 plan:** switch tactics entirely. Options:
+
+1. **Stub-level Z0 trace.** Set Z0 at `0x12080` (the TOC-switch
+   stub entry) AFTER boot reaches civ-select, then poll. Every
+   subsequent `bl 0x12080` call hits the Z0. Walk back one
+   frame to see which function called it during civ-select.
+2. **Revisit the iter-193 panel-loader** at `0xf07078`/`0xf070a0`
+   with the CORRECT TOC base. iter-193 mapped the panel-loader
+   chain but used the wrong `r2 = 0x193a288` — with the
+   iter-202 `0x194a1f8` correction, the decomp may read very
+   differently. This is the cheapest next step.
+3. **Fix the `test_civs_dump.py` navigator** (PSN-popup
+   dismissal, per-step timeouts, stdout flushing) and run a
+   real 2-phase scan catching civ-select-time cache copies.
+
+Option 2 is first — lowest cost, highest potential insight.
+
+**Verification artifacts:**
+- `korea_mod/verification/iter206_top_consumers/findings.md`
+- `.../jython_dump.txt` (849 lines)
+- `.../m9_romans_both_traps_pass.json` (diagnostic trap result)
+- `Iter206TopConsumers.py` under `scripts/ghidra_helpers/`
+
+**PRD changes made this iteration:** Progress Log entry added.
+Net EBOOT state unchanged — diagnostic traps applied and
+reverted within the iteration, iter-198 baseline restored.

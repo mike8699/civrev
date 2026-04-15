@@ -1,0 +1,849 @@
+INFO  Using log config file: jar:file:/home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Framework/Generic/lib/Generic.jar!/generic.log4j.xml (LoggingInitialization)  
+INFO  Using log file: /home/mike/.config/ghidra/ghidra_11.3.1_PUBLIC/application.log (LoggingInitialization)  
+INFO  Loading user preferences: /home/mike/.config/ghidra/ghidra_11.3.1_PUBLIC/preferences (Preferences)  
+INFO  Loading previous preferences: /home/mike/.ghidra/.ghidra_11.0.3_PUBLIC/preferences (Preferences)  
+INFO  Searching for classes... (ClassSearcher)  
+INFO  Class search complete (550 ms) (ClassSearcher)  
+INFO  Initializing SSL Context (SSLContextInitializer)  
+INFO  Initializing Random Number Generator... (SecureRandomFactory)  
+INFO  Random Number Generator initialization complete: NativePRNGNonBlocking (SecureRandomFactory)  
+INFO  Trust manager disabled, cacerts have not been set (ApplicationTrustManagerFactory)  
+INFO  Headless startup complete (1323 ms) (AnalyzeHeadless)  
+INFO  Class searcher loaded 57 extension points (18 false positives) (ClassSearcher)  
+INFO  HEADLESS Script Paths:
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Processors/PIC/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Debug/Debugger/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/PyGhidra/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Processors/8051/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/SystemEmulation/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/GnuDemangler/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Processors/Atmel/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/BytePatterns/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/Decompiler/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/WildcardAssembler/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Processors/DATA/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/FileFormats/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/Jython/ghidra_scripts
+    /home/mike/.config/ghidra/ghidra_11.3.1_PUBLIC/Extensions/Ps3GhidraScripts/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/Base/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Processors/JVM/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/BSim/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/FunctionID/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Debug/Debugger-rmi-trace/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/VersionTracking/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/SwiftDemangler/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/DecompilerDependent/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/PDB/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/MicrosoftCodeAnalyzer/ghidra_scripts (HeadlessAnalyzer)  
+INFO  HEADLESS: execution starts (HeadlessAnalyzer)  
+INFO  Opening existing project: /home/mike/Desktop/civrev/civrev_ps3/ghidra_v130/v130 (HeadlessAnalyzer)  
+INFO  Opening project: /home/mike/Desktop/civrev/civrev_ps3/ghidra_v130/v130 (HeadlessProject)  
+INFO  REPORT: Processing project file: /EBOOT_v130_clean.ELF (HeadlessAnalyzer)  
+INFO  SCRIPT: /home/mike/Desktop/civrev/civrev_ps3/korea_mod/scripts/ghidra_helpers/Iter206TopConsumers.py (HeadlessAnalyzer)  
+
+##############################################################################
+# iter-206: top bl 0x12080 consumer functions
+##############################################################################
+
+# ==== function 0x1db4e8 (9 bl 0x12080 calls) ====
+INFO  Disassembled  1 K (ConsoleTaskMonitor)  
+INFO  Function FUN_001db4e8 (ConsoleTaskMonitor)  
+==============================================================================
+top 1/10  FUN_001db4e8 (size=904)
+==============================================================================
+   1  
+   2  void FUN_001db4e8(ulonglong param_1)
+   3  
+   4  {
+   5    ulonglong uVar1;
+   6    longlong unaff_r2;
+   7    undefined4 uVar2;
+   8    undefined4 uVar3;
+   9    undefined4 uVar4;
+  10    undefined4 uVar5;
+  11    int in_r9;
+  12    undefined4 *puVar6;
+  13    undefined4 uStack_50;
+  14    int iStack_4c;
+  15    undefined4 auStack_48 [4];
+  16    
+  17    iStack_4c = in_r9 + 0x10;
+  18    uVar1 = param_1 & 0xffffffff;
+  19    func_0x000144f0((double)*(float *)(unaff_r2 + 0xc7c),*(undefined4 *)(param_1 + 8));
+  20    uVar2 = func_0x00011230(*(undefined4 *)(ulonglong)*(uint *)(unaff_r2 + 0xc14),
+  21                            *(undefined4 *)(unaff_r2 + 0xc80));
+  22    uVar5 = *(undefined4 *)(unaff_r2 + 0xc88);
+  23    func_0x00012080(uVar1,*(undefined4 *)(unaff_r2 + 0xc84),uVar5,uVar2);
+  24    func_0x001da458(&uStack_50,uVar1);
+  25    func_0x00012080(uVar1,*(undefined4 *)(unaff_r2 + 0xc8c),uVar5,uStack_50);
+  26    FUN_00029270(&uStack_50);
+  27    puVar6 = (undefined4 *)(ulonglong)*(uint *)(unaff_r2 + 0xc14);
+  28    uVar3 = func_0x00011230(*puVar6,*(undefined4 *)(unaff_r2 + 0xc90));
+  29    uVar4 = func_0x00011ee0(0);
+  30    uVar1 = param_1 & 0xffffffff;
+  31    uVar5 = *(undefined4 *)(unaff_r2 + 0xc3c);
+  32    uVar2 = *(undefined4 *)(unaff_r2 + 0xc40);
+  33    func_0x00012080(uVar1,uVar5,uVar2,0,uVar3,uVar4);
+  34    uVar3 = func_0x00011230(*puVar6,*(undefined4 *)(unaff_r2 + 0xc94));
+  35    uVar4 = func_0x00012d30(0);
+  36    func_0x00012080(uVar1,uVar5,uVar2,1,uVar3,uVar4);
+  37    uVar3 = func_0x00011230(*puVar6,*(undefined4 *)(unaff_r2 + 0xc98));
+  38    uVar4 = func_0x00013d30(0,0x2d,0x2d,0xfffffffffffffff6);
+  39    uVar5 = *(undefined4 *)(unaff_r2 + 0xc9c);
+  40    func_0x00012080(uVar1,uVar5,uVar2,0,uVar3,uVar4);
+  41    uVar3 = func_0x00011230(*puVar6,*(undefined4 *)(unaff_r2 + 0xca0));
+  42    uVar4 = func_0x00012d60(0);
+  43    func_0x00012080(uVar1,uVar5,uVar2,1,uVar3,uVar4);
+  44    uVar3 = func_0x00011230(*puVar6,*(undefined4 *)(unaff_r2 + 0xca4));
+  45    uVar4 = func_0x00014430(0);
+  46    func_0x00012080(uVar1,uVar5,uVar2,2,uVar3,uVar4);
+  47    uVar3 = func_0x00011230(*puVar6,*(undefined4 *)(unaff_r2 + 0xca8));
+  48    uVar4 = func_0x00011c70(0,0x2d,0x2d,0xfffffffffffffff6);
+  49    func_0x00012080(uVar1,uVar5,uVar2,3,uVar3,uVar4);
+  50    uVar5 = func_0x00012d30(0);
+  51    func_0x00012570(uVar1,*(undefined4 *)(unaff_r2 + 0xcac),uVar5);
+  52    func_0x00012570(uVar1,*(undefined4 *)(unaff_r2 + 0xcb0),*(undefined4 *)(unaff_r2 + 0xc44));
+  53    uVar5 = func_0x00011230(*puVar6,*(undefined4 *)(unaff_r2 + 0xcb4));
+  54    func_0x0002c1e8((ulonglong)auStack_48 & 0xffffffff,uVar5);
+  55    func_0x00012570(uVar1,*(undefined4 *)(unaff_r2 + 0xcb8),auStack_48[0]);
+  56    uVar5 = func_0x00011230(*puVar6,*(undefined4 *)(unaff_r2 + 0xcbc));
+  57    func_0x00012570(uVar1,*(undefined4 *)(unaff_r2 + 0xcc0),uVar5);
+  58    uVar5 = func_0x00011230(*puVar6,*(undefined4 *)(unaff_r2 + 0xcc4));
+  59    func_0x00012570(uVar1,*(undefined4 *)(unaff_r2 + 0xcc8),uVar5);
+  60    func_0x001da6c8(param_1 & 0xffffffff);
+  61    if (*(char *)(param_1 + 0x11) != '\0') {
+  62      func_0x00012080(uVar1,*(undefined4 *)(unaff_r2 + 0xc28),*(undefined4 *)(unaff_r2 + 0xc2c),1);
+  63    }
+  64    *(undefined1 *)(param_1 + 0x10) = 1;
+  65    FUN_00029270((ulonglong)auStack_48 & 0xffffffff);
+  66    FUN_00029270(&iStack_4c);
+  67    return;
+  68  }
+  69  
+
+# ==== function 0x1dde84 (9 bl 0x12080 calls) ====
+INFO  Function FUN_001dde84 (ConsoleTaskMonitor)  
+==============================================================================
+top 2/10  FUN_001dde84 (size=760)
+==============================================================================
+   1  
+   2  void FUN_001dde84(ulonglong param_1)
+   3  
+   4  {
+   5    ulonglong uVar1;
+   6    longlong unaff_r2;
+   7    undefined4 uVar2;
+   8    undefined4 uVar3;
+   9    undefined4 uVar4;
+  10    undefined4 uVar5;
+  11    undefined4 *puVar6;
+  12    undefined4 uStack_50;
+  13    undefined4 uStack_4c;
+  14    undefined4 auStack_48 [4];
+  15    
+  16    func_0x000144f0((double)*(float *)(unaff_r2 + 0xef8),*(undefined4 *)(param_1 + 8));
+  17    func_0x001dd2b0(auStack_48,param_1 & 0xffffffff);
+  18    func_0x00012080(param_1 & 0xffffffff,*(undefined4 *)(unaff_r2 + 0xefc),
+  19                    *(undefined4 *)(unaff_r2 + 0xf00),auStack_48[0]);
+  20    FUN_00029270(auStack_48);
+  21    func_0x001dcc14(&uStack_4c,param_1 & 0xffffffff);
+  22    func_0x00012080(param_1 & 0xffffffff,*(undefined4 *)(unaff_r2 + 0xf04),
+  23                    *(undefined4 *)(unaff_r2 + 0xf00),uStack_4c);
+  24    FUN_00029270(&uStack_4c);
+  25    func_0x001dd11c(&uStack_50,param_1 & 0xffffffff);
+  26    func_0x00012080(param_1 & 0xffffffff,*(undefined4 *)(unaff_r2 + 0xf08),
+  27                    *(undefined4 *)(unaff_r2 + 0xf00),uStack_50);
+  28    uVar1 = param_1 & 0xffffffff;
+  29    FUN_00029270(&uStack_50);
+  30    puVar6 = (undefined4 *)(ulonglong)*(uint *)(unaff_r2 + 0xdd4);
+  31    uVar2 = func_0x00011230(*puVar6,*(undefined4 *)(unaff_r2 + 0xf0c));
+  32    uVar3 = func_0x00011ee0(0);
+  33    uVar5 = *(undefined4 *)(unaff_r2 + 0xec8);
+  34    func_0x00012080(uVar1,*(undefined4 *)(unaff_r2 + 0xf10),uVar5,0,uVar2,uVar3);
+  35    func_0x00012080(uVar1,*(undefined4 *)(unaff_r2 + 0xf14),*(undefined4 *)(unaff_r2 + 0xf00),
+  36                    *(undefined4 *)(unaff_r2 + 0xf18));
+  37    uVar3 = func_0x00011230(*puVar6,*(undefined4 *)(unaff_r2 + 0xf1c));
+  38    uVar4 = func_0x00013d30(0,0x2d,0x2d,0xfffffffffffffff6);
+  39    uVar2 = *(undefined4 *)(unaff_r2 + 0xec4);
+  40    func_0x00012080(uVar1,uVar2,uVar5,0,uVar3,uVar4);
+  41    uVar3 = func_0x00011230(*puVar6,*(undefined4 *)(unaff_r2 + 0xf20));
+  42    uVar4 = func_0x00011c70(0,0x2d,0x2d,0xfffffffffffffff6);
+  43    func_0x00012080(uVar1,uVar2,uVar5,3,uVar3,uVar4);
+  44    uVar5 = func_0x00012920(0,0x2d,0x2d,0xfffffffffffffff6);
+  45    uVar2 = func_0x00014190(0,0x2d,0x2d,0xfffffffffffffff6);
+  46    func_0x00012080(uVar1,*(undefined4 *)(unaff_r2 + 0xf24),*(undefined4 *)(unaff_r2 + 0xf28),uVar5,
+  47                    uVar2);
+  48    if (*(char *)(param_1 + 0x11) != '\0') {
+  49      func_0x00012080(uVar1,*(undefined4 *)(unaff_r2 + 0xeb8),*(undefined4 *)(unaff_r2 + 0xebc),1);
+  50    }
+  51    uVar5 = func_0x00012d30(0);
+  52    func_0x00012570(uVar1,*(undefined4 *)(unaff_r2 + 0xf2c),uVar5);
+  53    uVar5 = func_0x00011230(*puVar6,*(undefined4 *)(unaff_r2 + 0xf30));
+  54    func_0x00012570(uVar1,*(undefined4 *)(unaff_r2 + 0xf34),uVar5);
+  55    uVar5 = func_0x00011230(*puVar6,*(undefined4 *)(unaff_r2 + 0xf38));
+  56    func_0x00012570(uVar1,*(undefined4 *)(unaff_r2 + 0xf3c),uVar5);
+  57    func_0x001dd41c(param_1 & 0xffffffff);
+  58    *(undefined1 *)(param_1 + 0x10) = 1;
+  59    return;
+  60  }
+  61  
+
+# ==== function 0x1de750 (6 bl 0x12080 calls) ====
+INFO  Function FUN_001de750 (ConsoleTaskMonitor)  
+==============================================================================
+top 3/10  FUN_001de750 (size=336)
+==============================================================================
+   1  
+   2  void FUN_001de750(undefined4 param_1)
+   3  
+   4  {
+   5    undefined4 uVar1;
+   6    longlong unaff_r2;
+   7    undefined4 uVar2;
+   8    undefined4 uVar3;
+   9    undefined4 *puVar4;
+  10    
+  11    puVar4 = (undefined4 *)(ulonglong)*(uint *)(unaff_r2 + 0xf7c);
+  12    uVar2 = func_0x00011230(*puVar4,*(undefined4 *)(unaff_r2 + 0xf80));
+  13    func_0x00012080(param_1,*(undefined4 *)(unaff_r2 + 0xf84),*(undefined4 *)(unaff_r2 + 0xf88),uVar2)
+  14    ;
+  15    uVar3 = func_0x00011230(*puVar4,*(undefined4 *)(unaff_r2 + 0xf8c));
+  16    uVar2 = *(undefined4 *)(unaff_r2 + 0xf90);
+  17    uVar1 = *(undefined4 *)(unaff_r2 + 0xf94);
+  18    func_0x00012080(param_1,uVar2,uVar1,0,uVar3);
+  19    uVar3 = func_0x00011230(*puVar4,*(undefined4 *)(unaff_r2 + 0xf98));
+  20    func_0x00012080(param_1,uVar2,uVar1,1,uVar3);
+  21    uVar3 = func_0x00011230(*puVar4,*(undefined4 *)(unaff_r2 + 0xf9c));
+  22    func_0x00012080(param_1,uVar2,uVar1,2,uVar3);
+  23    uVar3 = func_0x00011230(*puVar4,*(undefined4 *)(unaff_r2 + 4000));
+  24    func_0x00012080(param_1,uVar2,uVar1,3,uVar3);
+  25    uVar3 = func_0x00011230(*puVar4,*(undefined4 *)(unaff_r2 + 0xfa4));
+  26    func_0x00012080(param_1,uVar2,uVar1,4,uVar3);
+  27    return;
+  28  }
+  29  
+
+# ==== function 0x1ded48 (6 bl 0x12080 calls) ====
+INFO  Function FUN_001ded48 (ConsoleTaskMonitor)  
+==============================================================================
+top 4/10  FUN_001ded48 (size=708)
+==============================================================================
+   1  
+   2  void FUN_001ded48(undefined4 param_1)
+   3  
+   4  {
+   5    int iVar1;
+   6    longlong unaff_r2;
+   7    undefined4 uVar2;
+   8    uint *in_r9;
+   9    
+  10    iVar1 = *(int *)((ulonglong)*in_r9 + 0x7c);
+  11    if (iVar1 == 7) {
+  12  LAB_001deda8:
+  13      uVar2 = *(undefined4 *)(unaff_r2 + 0xfd0);
+  14    }
+  15    else if (iVar1 == 0xe) {
+  16      uVar2 = *(undefined4 *)(unaff_r2 + 0xfd4);
+  17    }
+  18    else if (iVar1 == 0x18) {
+  19      uVar2 = *(undefined4 *)(unaff_r2 + 0xfd8);
+  20    }
+  21    else if (iVar1 == 0x12) {
+  22      uVar2 = *(undefined4 *)(unaff_r2 + 0xfdc);
+  23    }
+  24    else {
+  25      if (iVar1 != 0x25) goto LAB_001deda8;
+  26      uVar2 = *(undefined4 *)(unaff_r2 + 0xfe0);
+  27    }
+  28    func_0x00012080(param_1,*(undefined4 *)(unaff_r2 + 0xfe4),*(undefined4 *)(unaff_r2 + 0xfe8),uVar2)
+  29    ;
+  30    iVar1 = *(int *)((ulonglong)*(uint *)(ulonglong)*(uint *)(unaff_r2 + 0xfcc) + 0x7c);
+  31    if (iVar1 == 7) {
+  32  LAB_001dee18:
+  33      uVar2 = *(undefined4 *)(unaff_r2 + 0xfec);
+  34    }
+  35    else if (iVar1 == 0xe) {
+  36      uVar2 = *(undefined4 *)(unaff_r2 + 0xff0);
+  37    }
+  38    else if (iVar1 == 0x18) {
+  39      uVar2 = *(undefined4 *)(unaff_r2 + 0xff4);
+  40    }
+  41    else if (iVar1 == 0x12) {
+  42      uVar2 = *(undefined4 *)(unaff_r2 + 0xff8);
+  43    }
+  44    else {
+  45      if (iVar1 != 0x25) goto LAB_001dee18;
+  46      uVar2 = *(undefined4 *)(unaff_r2 + 0xffc);
+  47    }
+  48    func_0x00012080(param_1,*(undefined4 *)(unaff_r2 + 0x1000),*(undefined4 *)(unaff_r2 + 0x1004),0,
+  49                    uVar2);
+  50    iVar1 = *(int *)((ulonglong)*(uint *)(ulonglong)*(uint *)(unaff_r2 + 0xfcc) + 0x7c);
+  51    if (iVar1 == 7) {
+  52  LAB_001dee8c:
+  53      uVar2 = *(undefined4 *)(unaff_r2 + 0x1008);
+  54    }
+  55    else if (iVar1 == 0xe) {
+  56      uVar2 = *(undefined4 *)(unaff_r2 + 0x100c);
+  57    }
+  58    else if (iVar1 == 0x18) {
+  59      uVar2 = *(undefined4 *)(unaff_r2 + 0x1010);
+  60    }
+  61    else if (iVar1 == 0x12) {
+  62      uVar2 = *(undefined4 *)(unaff_r2 + 0x1014);
+  63    }
+  64    else {
+  65      if (iVar1 != 0x25) goto LAB_001dee8c;
+  66      uVar2 = *(undefined4 *)(unaff_r2 + 0x1018);
+  67    }
+  68    func_0x00012080(param_1,*(undefined4 *)(unaff_r2 + 0x1000),*(undefined4 *)(unaff_r2 + 0x1004),1,
+  69                    uVar2);
+  70    iVar1 = *(int *)((ulonglong)*(uint *)(ulonglong)*(uint *)(unaff_r2 + 0xfcc) + 0x7c);
+  71    if (iVar1 == 7) {
+  72  LAB_001deee8:
+  73      uVar2 = *(undefined4 *)(unaff_r2 + 0x101c);
+  74    }
+  75    else if (iVar1 == 0xe) {
+  76      uVar2 = *(undefined4 *)(unaff_r2 + 0x1020);
+  77    }
+  78    else if (iVar1 == 0x18) {
+  79      uVar2 = *(undefined4 *)(unaff_r2 + 0x1024);
+  80    }
+  81    else {
+  82      if (iVar1 != 0x12) goto LAB_001deee8;
+  83      uVar2 = *(undefined4 *)(unaff_r2 + 0x1028);
+  84    }
+  85    func_0x00012080(param_1,*(undefined4 *)(unaff_r2 + 0x1000),*(undefined4 *)(unaff_r2 + 0x1004),2,
+  86                    uVar2);
+  87    iVar1 = *(int *)((ulonglong)*(uint *)(ulonglong)*(uint *)(unaff_r2 + 0xfcc) + 0x7c);
+  88    if (iVar1 == 7) {
+  89  LAB_001def64:
+  90      uVar2 = *(undefined4 *)(unaff_r2 + 0x102c);
+  91    }
+  92    else if (iVar1 == 0xe) {
+  93      uVar2 = *(undefined4 *)(unaff_r2 + 0x1030);
+  94    }
+  95    else if (iVar1 == 0x18) {
+  96      uVar2 = *(undefined4 *)(unaff_r2 + 0x1034);
+  97    }
+  98    else if (iVar1 == 0x12) {
+  99      uVar2 = *(undefined4 *)(unaff_r2 + 0x1038);
+ 100    }
+ 101    else {
+ 102      if (iVar1 != 0x25) goto LAB_001def64;
+ 103      uVar2 = *(undefined4 *)(unaff_r2 + 0x103c);
+ 104    }
+ 105    func_0x00012080(param_1,*(undefined4 *)(unaff_r2 + 0x1000),*(undefined4 *)(unaff_r2 + 0x1004),3,
+ 106                    uVar2);
+ 107    iVar1 = *(int *)((ulonglong)*(uint *)(ulonglong)*(uint *)(unaff_r2 + 0xfcc) + 0x7c);
+ 108    if (iVar1 != 7) {
+ 109      if (iVar1 == 0xe) {
+ 110        uVar2 = *(undefined4 *)(unaff_r2 + 0x1044);
+ 111        goto LAB_001defdc;
+ 112      }
+ 113      if (iVar1 == 0x18) {
+ 114        uVar2 = *(undefined4 *)(unaff_r2 + 0x1048);
+ 115        goto LAB_001defdc;
+ 116      }
+ 117      if (iVar1 == 0x12) {
+ 118        uVar2 = *(undefined4 *)(unaff_r2 + 0x104c);
+ 119        goto LAB_001defdc;
+ 120      }
+ 121      if (iVar1 == 0x25) {
+ 122        uVar2 = *(undefined4 *)(unaff_r2 + 0x1050);
+ 123        goto LAB_001defdc;
+ 124      }
+ 125    }
+ 126    uVar2 = *(undefined4 *)(unaff_r2 + 0x1040);
+ 127  LAB_001defdc:
+ 128    func_0x00012080(param_1,*(undefined4 *)(unaff_r2 + 0x1000),*(undefined4 *)(unaff_r2 + 0x1004),4,
+ 129                    uVar2);
+ 130    return;
+ 131  }
+ 132  
+
+# ==== function 0x1e51ac (6 bl 0x12080 calls) ====
+INFO  Function FUN_001e51ac (ConsoleTaskMonitor)  
+==============================================================================
+top 5/10  FUN_001e51ac (size=356)
+==============================================================================
+   1  
+   2  void FUN_001e51ac(undefined4 param_1)
+   3  
+   4  {
+   5    undefined4 uVar1;
+   6    longlong unaff_r2;
+   7    undefined4 uVar2;
+   8    undefined4 uVar3;
+   9    undefined4 *puVar4;
+  10    
+  11    uVar2 = func_0x00012d30(0);
+  12    func_0x00012570(param_1,*(undefined4 *)(unaff_r2 + 0x1464),uVar2);
+  13    puVar4 = (undefined4 *)(ulonglong)*(uint *)(unaff_r2 + 0x1468);
+  14    uVar3 = func_0x00011230(*puVar4,*(undefined4 *)(unaff_r2 + 0x146c));
+  15    uVar2 = *(undefined4 *)(unaff_r2 + 0x1470);
+  16    uVar1 = *(undefined4 *)(unaff_r2 + 0x1474);
+  17    func_0x00012080(param_1,uVar2,uVar1,0,uVar3);
+  18    uVar3 = func_0x00011230(*puVar4,*(undefined4 *)(unaff_r2 + 0x1478));
+  19    func_0x00012080(param_1,uVar2,uVar1,1,uVar3);
+  20    uVar3 = func_0x00011230(*puVar4,*(undefined4 *)(unaff_r2 + 0x147c));
+  21    func_0x00012080(param_1,uVar2,uVar1,2,uVar3);
+  22    uVar3 = func_0x00011230(*puVar4,*(undefined4 *)(unaff_r2 + 0x1480));
+  23    func_0x00012080(param_1,uVar2,uVar1,3,uVar3);
+  24    uVar3 = func_0x00011230(*puVar4,*(undefined4 *)(unaff_r2 + 0x1484));
+  25    func_0x00012080(param_1,uVar2,uVar1,4,uVar3);
+  26    func_0x00012080(param_1,*(undefined4 *)(unaff_r2 + 0x1488),*(undefined4 *)(unaff_r2 + 0x148c),
+  27                    *(undefined4 *)(unaff_r2 + 0x1490));
+  28    return;
+  29  }
+  30  
+
+# ==== function 0x1e5a68 (6 bl 0x12080 calls) ====
+INFO  Function FUN_001e5a68 (ConsoleTaskMonitor)  
+==============================================================================
+top 6/10  FUN_001e5a68 (size=832)
+==============================================================================
+   1  
+   2  void FUN_001e5a68(ulonglong param_1)
+   3  
+   4  {
+   5    undefined4 uVar1;
+   6    ulonglong uVar2;
+   7    longlong unaff_r2;
+   8    undefined4 uVar3;
+   9    undefined4 uVar4;
+  10    undefined4 uVar5;
+  11    int iVar6;
+  12    undefined4 *puVar7;
+  13    
+  14    puVar7 = (undefined4 *)(ulonglong)*(uint *)(unaff_r2 + 0x14b8);
+  15    uVar3 = func_0x00011230(*puVar7,*(undefined4 *)(unaff_r2 + 0x1508));
+  16    uVar5 = *(undefined4 *)(unaff_r2 + 0x14f0);
+  17    uVar2 = param_1 & 0xffffffff;
+  18    func_0x00012080(uVar2,*(undefined4 *)(unaff_r2 + 0x150c),uVar5,uVar3);
+  19    uVar4 = func_0x00011230(*puVar7,*(undefined4 *)(unaff_r2 + 0x1510));
+  20    uVar3 = *(undefined4 *)(unaff_r2 + 0x1514);
+  21    uVar1 = *(undefined4 *)(unaff_r2 + 0x1518);
+  22    func_0x00012080(uVar2,uVar3,uVar1,0,uVar4);
+  23    uVar4 = func_0x00011230(*puVar7,*(undefined4 *)(unaff_r2 + 0x151c));
+  24    func_0x00012080(uVar2,uVar3,uVar1,1,uVar4);
+  25    uVar4 = func_0x00011230(*puVar7,*(undefined4 *)(unaff_r2 + 0x1520));
+  26    func_0x00012080(uVar2,uVar3,uVar1,2,uVar4);
+  27    uVar4 = func_0x00011230(*puVar7,*(undefined4 *)(unaff_r2 + 0x1524));
+  28    func_0x00012080(uVar2,uVar3,uVar1,3,uVar4);
+  29    uVar3 = func_0x00011230(*puVar7,*(undefined4 *)(unaff_r2 + 0x14e8),0x1e);
+  30    func_0x00012080(uVar2,*(undefined4 *)(unaff_r2 + 0x14ec),uVar5,uVar3);
+  31    uVar5 = func_0x00012d30(0);
+  32    func_0x00012570(uVar2,*(undefined4 *)(unaff_r2 + 0x1528),uVar5);
+  33    iVar6 = *(int *)((ulonglong)*(uint *)(ulonglong)*(uint *)(unaff_r2 + 0x152c) + 100);
+  34    if (iVar6 != 0) {
+  35      iVar6 = func_0x0013f824(iVar6,4);
+  36      if (-1 < iVar6) goto LAB_001e5c08;
+  37    }
+  38    iVar6 = 0;
+  39  LAB_001e5c08:
+  40    func_0x000122d0((double)(longlong)iVar6,param_1 & 0xffffffff,*(undefined4 *)(unaff_r2 + 0x1530));
+  41    if (*(char *)(param_1 + 0x10) != '\0') {
+  42      iVar6 = *(int *)(unaff_r2 + 0x1498) + 0x10;
+  43      puVar7 = (undefined4 *)(ulonglong)*(uint *)(unaff_r2 + 0x14b8);
+  44      if (*(char *)((param_1 & 0xffffffff) + 0x11) == '\0') {
+  45        uVar5 = func_0x00011230(*puVar7,*(undefined4 *)(unaff_r2 + 0x14c4));
+  46        FUN_00036314(&stack0xffffffffffffffe0,uVar5);
+  47        uVar5 = *puVar7;
+  48        uVar3 = *(undefined4 *)(unaff_r2 + 0x14c8);
+  49      }
+  50      else {
+  51        uVar5 = func_0x00011230(*puVar7,*(undefined4 *)(unaff_r2 + 0x14bc));
+  52        FUN_00036314(&stack0xffffffffffffffe0,uVar5);
+  53        uVar5 = *puVar7;
+  54        uVar3 = *(undefined4 *)(unaff_r2 + 0x14c0);
+  55      }
+  56      uVar5 = func_0x00011230(uVar5,uVar3);
+  57      FUN_00036314(&stack0xffffffffffffffe4,uVar5);
+  58      uVar5 = func_0x00014430(0);
+  59      func_0x00012080(param_1 & 0xffffffff,*(undefined4 *)(unaff_r2 + 0x14cc),
+  60                      *(undefined4 *)(unaff_r2 + 0x14d0),uVar5,iVar6,iVar6);
+  61      FUN_00029270(&stack0xffffffffffffffe4);
+  62      FUN_00029270(&stack0xffffffffffffffe0);
+  63      return;
+  64    }
+  65    return;
+  66  }
+  67  
+
+# ==== function 0x224668 (6 bl 0x12080 calls) ====
+INFO  Function FUN_00224668 (ConsoleTaskMonitor)  
+==============================================================================
+top 7/10  FUN_00224668 (size=348)
+==============================================================================
+   1  
+   2  void FUN_00224668(undefined4 param_1)
+   3  
+   4  {
+   5    undefined4 uVar1;
+   6    longlong unaff_r2;
+   7    undefined4 uVar2;
+   8    undefined4 uVar3;
+   9    undefined4 *puVar4;
+  10    
+  11    uVar2 = func_0x00012d30(0);
+  12    func_0x00012570(param_1,*(undefined4 *)(unaff_r2 + 0x2d44),uVar2);
+  13    puVar4 = (undefined4 *)(ulonglong)*(uint *)(unaff_r2 + 0x2d48);
+  14    uVar2 = func_0x00011230(*puVar4,*(undefined4 *)(unaff_r2 + 0x2d4c));
+  15    func_0x00012080(param_1,*(undefined4 *)(unaff_r2 + 0x2d50),*(undefined4 *)(unaff_r2 + 0x2d54),
+  16                    uVar2);
+  17    uVar3 = func_0x00011230(*puVar4,*(undefined4 *)(unaff_r2 + 0x2d58));
+  18    uVar2 = *(undefined4 *)(unaff_r2 + 0x2d5c);
+  19    uVar1 = *(undefined4 *)(unaff_r2 + 0x2d60);
+  20    func_0x00012080(param_1,uVar2,uVar1,0,uVar3);
+  21    uVar3 = func_0x00011230(*puVar4,*(undefined4 *)(unaff_r2 + 0x2d64));
+  22    func_0x00012080(param_1,uVar2,uVar1,1,uVar3);
+  23    uVar3 = func_0x00011230(*puVar4,*(undefined4 *)(unaff_r2 + 0x2d68));
+  24    func_0x00012080(param_1,uVar2,uVar1,2,uVar3);
+  25    uVar3 = func_0x00011230(*puVar4,*(undefined4 *)(unaff_r2 + 0x2d6c));
+  26    func_0x00012080(param_1,uVar2,uVar1,3,uVar3);
+  27    func_0x00012080(param_1,*(undefined4 *)(unaff_r2 + 0x2d70),*(undefined4 *)(unaff_r2 + 0x2d74));
+  28    return;
+  29  }
+  30  
+
+# ==== function 0x1d6758 (5 bl 0x12080 calls) ====
+INFO  Function FUN_001d6758 (ConsoleTaskMonitor)  
+==============================================================================
+top 8/10  FUN_001d6758 (size=424)
+==============================================================================
+   1  
+   2  void FUN_001d6758(ulonglong param_1)
+   3  
+   4  {
+   5    ulonglong uVar1;
+   6    ulonglong uVar2;
+   7    ulonglong uVar3;
+   8    bool bVar4;
+   9    longlong unaff_r2;
+  10    undefined4 uVar6;
+  11    uint uVar7;
+  12    int iVar8;
+  13    int iVar9;
+  14    int iVar10;
+  15    undefined4 uVar11;
+  16    int *piVar5;
+  17    undefined4 uVar12;
+  18    short *in_r9;
+  19    undefined4 *puVar13;
+  20    longlong lVar14;
+  21    int iVar15;
+  22    uint uVar16;
+  23    char cStack_e0;
+  24    char cStack_df;
+  25    char cStack_de;
+  26    char cStack_dd;
+  27    uint uStack_dc;
+  28    undefined1 auStack_d8 [4];
+  29    undefined4 uStack_d4;
+  30    undefined4 uStack_d0;
+  31    int iStack_cc;
+  32    undefined1 auStack_c8 [16];
+  33    undefined1 auStack_b8 [8];
+  34    undefined1 auStack_a8 [16];
+  35    undefined1 auStack_98 [16];
+  36    undefined1 auStack_78 [16];
+  37    undefined1 auStack_68 [24];
+  38    int aiStack_50 [4];
+  39    longlong lStack_40;
+  40    
+  41    iVar10 = *(int *)(param_1 + 0x124);
+  42    uVar3 = param_1 & 0xffffffff;
+  43    if (*in_r9 != 0) {
+  44      func_0x000122d0(*(undefined8 *)(unaff_r2 + 0xb04),uVar3,*(undefined4 *)(unaff_r2 + 0xad4));
+  45    }
+  46    lStack_40 = (longlong)iVar10;
+  47    uVar1 = param_1 + 0x110 & 0xffffffff;
+  48    func_0x000122d0((double)lStack_40,uVar3,*(undefined4 *)(unaff_r2 + 0xad8));
+  49    iVar10 = func_0x00032c7c(uVar1);
+  50    uVar11 = func_0x0003224c((longlong)iVar10);
+  51    piVar5 = (int *)func_0x00032cc0(uVar1,uVar11);
+  52    lStack_40 = (longlong)*piVar5;
+  53    func_0x000122d0((double)lStack_40,uVar3,*(undefined4 *)(unaff_r2 + 0xadc));
+  54    puVar13 = (undefined4 *)(ulonglong)*(uint *)(unaff_r2 + 0xa1c);
+  55    uVar12 = func_0x00011230(*puVar13,*(undefined4 *)(unaff_r2 + 0xae0));
+  56    uVar11 = *(undefined4 *)(unaff_r2 + 0xab0);
+  57    func_0x00012080(uVar3,*(undefined4 *)(unaff_r2 + 0xae4),uVar11,uVar12);
+  58    uVar12 = func_0x00011230(*puVar13,*(undefined4 *)(unaff_r2 + 0xae8));
+  59    func_0x00012080(uVar3,*(undefined4 *)(unaff_r2 + 0xaec),uVar11,uVar12);
+  60    uVar12 = func_0x00011ee0(0);
+  61    func_0x00012080(uVar3,*(undefined4 *)(unaff_r2 + 0xaf0),uVar11,uVar12);
+  62    uVar12 = func_0x00011230(*puVar13,*(undefined4 *)(unaff_r2 + 0xaf4));
+  63    func_0x00012080(uVar3,*(undefined4 *)(unaff_r2 + 0xaf8),uVar11,uVar12);
+  64    uVar12 = func_0x00012d30(0);
+  65    func_0x00012080(uVar3,*(undefined4 *)(unaff_r2 + 0xafc),uVar11,uVar12);
+  66    func_0x00072c04(auStack_68);
+  67    func_0x00072c04(auStack_c8);
+  68    func_0x00072c04(auStack_b8);
+  69    func_0x00072c04(auStack_a8);
+  70    func_0x00035e40(auStack_98);
+  71    func_0x00072c04((ulonglong)&stack0xffffffffffffff78 & 0xffffffff);
+  72    func_0x00072c04((ulonglong)auStack_78 & 0xffffffff);
+  73    func_0x00092470((ulonglong)&stack0xffffffffffffff78 & 0xffffffff,0x11);
+  74    func_0x00092470((ulonglong)auStack_78 & 0xffffffff,0x11);
+  75    iVar10 = 0;
+  76    iStack_cc = 0;
+  77  LAB_001d47bc:
+  78    uVar16 = 0;
+  79    if (iStack_cc != 0x10) {
+  80  LAB_001d4a90:
+  81      uVar1 = uVar3 + 300 & 0xffffffff;
+  82      uVar7 = func_0x001d7d3c(uVar1);
+  83      if (uVar16 < uVar7) goto LAB_001d4a64;
+  84      uStack_d4 = func_0x001b6f38((longlong)iStack_cc,0);
+  85      func_0x0005a154(auStack_98,&uStack_d4);
+  86      uVar1 = (ulonglong)&stack0xffffffffffffff78 & 0xffffffff;
+  87      uVar11 = func_0x000705cc(uVar1,0);
+  88      func_0x00012c60(uVar11,*(undefined4 *)(unaff_r2 + 0xa18),(longlong)iStack_cc);
+  89      uVar12 = func_0x000705cc(uVar1,1);
+  90      puVar13 = (undefined4 *)(ulonglong)*(uint *)(unaff_r2 + 0xa1c);
+  91      uVar11 = *puVar13;
+  92      uVar6 = func_0x00014770((longlong)iStack_cc,0);
+  93      uVar11 = func_0x00012430(uVar11,*(undefined4 *)(unaff_r2 + 0xa3c),uVar6);
+  94      FUN_00036314(uVar12,uVar11);
+  95      uVar12 = func_0x000705cc(uVar1,2);
+  96      uVar11 = *puVar13;
+  97      uVar6 = func_0x00012e00((longlong)iStack_cc);
+  98      uVar11 = func_0x00012430(uVar11,*(undefined4 *)(unaff_r2 + 0xa40),uVar6);
+  99      FUN_00036314(uVar12,uVar11);
+ 100      uVar11 = func_0x0016165c(uVar3 + 0xc0 & 0xffffffff,(ulonglong)&iStack_cc & 0xffffffff);
+ 101      uVar2 = (ulonglong)auStack_d8 & 0xffffffff;
+ 102      func_0x00029b18(uVar2,uVar11);
+ 103      iVar8 = func_0x00012130(uVar2,10,0);
+ 104      func_0x000120a0(uVar2,0,(longlong)(iVar8 + 1));
+ 105      uVar11 = func_0x000705cc(uVar1,3);
+ 106      FUN_000297d0(uVar11,uVar2);
+ 107      uVar11 = func_0x000705cc(uVar1,4);
+ 108      uVar12 = func_0x0016165c(uVar3 + 0xe8 & 0xffffffff,(ulonglong)&iStack_cc & 0xffffffff);
+ 109      FUN_000297d0(uVar11,uVar12);
+ 110      uVar11 = func_0x000705cc(uVar1,5);
+ 111      uVar12 = func_0x00011230(*puVar13,*(undefined4 *)(unaff_r2 + 0xa2c));
+ 112      FUN_00036314(uVar11,uVar12);
+ 113      lVar14 = 0;
+ 114      uStack_dc = *(int *)(unaff_r2 + 0x9ac) + 0x10;
+ 115      do {
+ 116        iVar15 = (int)lVar14;
+ 117        *(int *)((ulonglong)*(uint *)(unaff_r2 + 0xa44) + 0x1c) = iStack_cc;
+ 118        iVar8 = func_0x000127a0((longlong)iVar15,7);
+ 119        if (iVar8 != iVar15) {
+ 120          if (0 < *(int *)(((ulonglong)uStack_dc - 0x10 & 0xffffffff) + 0xc)) {
+ 121            uVar11 = func_0x00011230(*(undefined4 *)(ulonglong)*(uint *)(unaff_r2 + 0xa1c),
+ 122                                     *(undefined4 *)(unaff_r2 + 0xa48));
+ 123            func_0x000362b4((ulonglong)&uStack_dc & 0xffffffff,uVar11);
+ 124          }
+ 125          uVar11 = *(undefined4 *)(ulonglong)*(uint *)(unaff_r2 + 0xa1c);
+ 126          uVar12 = func_0x000125e0((longlong)iVar15,7);
+ 127          uVar11 = func_0x00011230(uVar11,*(undefined4 *)(unaff_r2 + 0xa4c),uVar12);
+ 128          func_0x000362b4((ulonglong)&uStack_dc & 0xffffffff,uVar11);
+ 129        }
+ 130        lVar14 = lVar14 + 1;
+ 131      } while (lVar14 != 0x26);
+ 132      uVar1 = (ulonglong)&stack0xffffffffffffff78 & 0xffffffff;
+ 133      uVar11 = func_0x000705cc(uVar1,6);
+ 134      FUN_000297d0(uVar11,&uStack_dc);
+ 135      iVar15 = iStack_cc;
+ 136      bVar4 = false;
+ 137      iVar8 = *(int *)((ulonglong)*(uint *)(ulonglong)*(uint *)(unaff_r2 + 0xa50) + 100);
+ 138      if (iVar8 != 0) {
+ 139        iVar9 = func_0x0015e2d8(*(undefined4 *)(ulonglong)*(uint *)(unaff_r2 + 0xa54));
+ 140        func_0x0013f8cc(iVar8,(longlong)iVar15,(longlong)iVar9,&cStack_dd,&cStack_de,&cStack_df,
+ 141                        &cStack_e0);
+ 142        uVar11 = func_0x000705cc(uVar1,9);
+ 143        FUN_00036314(uVar11,*(undefined4 *)(unaff_r2 + 0xa58));
+ 144        if (cStack_df == '\0') {
+ 145          uVar12 = func_0x000705cc(uVar1,10);
+ 146          uVar11 = *(undefined4 *)(unaff_r2 + 0xa60);
+ 147        }
+ 148        else {
+ 149          uVar12 = func_0x000705cc(uVar1,10);
+ 150          uVar11 = *(undefined4 *)(unaff_r2 + 0xa5c);
+ 151        }
+ 152        FUN_00036314(uVar12,uVar11);
+ 153        uVar1 = (ulonglong)&stack0xffffffffffffff78 & 0xffffffff;
+ 154        uVar11 = func_0x000705cc(uVar1,0xb);
+ 155        FUN_00036314(uVar11,*(undefined4 *)(unaff_r2 + 0xa64));
+ 156        if (cStack_e0 == '\0') {
+ 157          uVar12 = func_0x000705cc(uVar1,0xc);
+ 158          uVar11 = *(undefined4 *)(unaff_r2 + 0xa60);
+ 159        }
+ 160        else {
+ 161          uVar12 = func_0x000705cc(uVar1,0xc);
+ 162          uVar11 = *(undefined4 *)(unaff_r2 + 0xa5c);
+ 163        }
+ 164        FUN_00036314(uVar12,uVar11);
+ 165        uVar1 = (ulonglong)&stack0xffffffffffffff78 & 0xffffffff;
+ 166        uVar11 = func_0x000705cc(uVar1,0xd);
+ 167        FUN_00036314(uVar11,*(undefined4 *)(unaff_r2 + 0xa68));
+ 168        if (cStack_dd == '\0') {
+ 169          uVar12 = func_0x000705cc(uVar1,0xe);
+ 170          uVar11 = *(undefined4 *)(unaff_r2 + 0xa60);
+ 171        }
+ 172        else {
+ 173          uVar12 = func_0x000705cc(uVar1,0xe);
+ 174          uVar11 = *(undefined4 *)(unaff_r2 + 0xa5c);
+ 175        }
+ 176        FUN_00036314(uVar12,uVar11);
+ 177        uVar1 = (ulonglong)&stack0xffffffffffffff78 & 0xffffffff;
+ 178        uVar11 = func_0x000705cc(uVar1,0xf);
+ 179        FUN_00036314(uVar11,*(undefined4 *)(unaff_r2 + 0xa6c));
+ 180        if (cStack_de == '\0') {
+ 181          uVar12 = func_0x000705cc(uVar1,0x10);
+ 182          uVar11 = *(undefined4 *)(unaff_r2 + 0xa60);
+ 183        }
+ 184        else {
+ 185          uVar12 = func_0x000705cc(uVar1,0x10);
+ 186          uVar11 = *(undefined4 *)(unaff_r2 + 0xa5c);
+ 187        }
+ 188        FUN_00036314(uVar12,uVar11);
+ 189        uVar11 = func_0x000705cc(auStack_78,iStack_cc);
+ 190        func_0x001d7d8c(aiStack_50,*(undefined4 *)(uVar3 + 0x114),*(undefined4 *)(uVar3 + 0x118),
+ 191                        &iStack_cc);
+ 192        if (aiStack_50[0] == *(int *)(uVar3 + 0x118)) {
+ 193          uVar12 = *(undefined4 *)(unaff_r2 + 0xa70);
+ 194        }
+ 195        else {
+ 196          uVar12 = *(undefined4 *)(unaff_r2 + 0xa38);
+ 197        }
+ 198        FUN_00036314(uVar11,uVar12);
+ 199        bVar4 = true;
+ 200      }
+ 201      FUN_00029270(&uStack_dc);
+ 202      FUN_00029270(auStack_d8);
+ 203      if (!bVar4) goto LAB_001d50ec;
+ 204      goto LAB_001d5020;
+ 205    }
+ 206    uVar1 = (ulonglong)&stack0xffffffffffffff78 & 0xffffffff;
+ 207    uVar11 = func_0x000705cc(uVar1,0);
+ 208    func_0x00012c60(uVar11,*(undefined4 *)(unaff_r2 + 0xa18),(longlong)(iStack_cc + 1));
+ 209    uVar12 = func_0x000705cc(uVar1,1);
+ 210    puVar13 = (undefined4 *)(ulonglong)*(uint *)(unaff_r2 + 0xa1c);
+ 211    uVar11 = *(undefined4 *)(unaff_r2 + 0xa20);
+ 212    uVar6 = func_0x00011230(*puVar13,uVar11);
+ 213    FUN_00036314(uVar12,uVar6);
+ 214    uVar12 = func_0x000705cc(uVar1,2);
+ 215    uVar11 = func_0x00011230(*puVar13,uVar11);
+ 216    FUN_00036314(uVar12,uVar11);
+ 217    uVar11 = func_0x000705cc(uVar1,3);
+ 218    uVar12 = func_0x00011230(*puVar13,*(undefined4 *)(unaff_r2 + 0xa24));
+ 219    FUN_00036314(uVar11,uVar12);
+ 220    uVar11 = func_0x000705cc(uVar1,4);
+ 221    uVar12 = func_0x00011230(*puVar13,*(undefined4 *)(unaff_r2 + 0xa28));
+ 222    FUN_00036314(uVar11,uVar12);
+ 223    uVar11 = func_0x000705cc(uVar1,5);
+ 224    uVar12 = func_0x00011230(*puVar13,*(undefined4 *)(unaff_r2 + 0xa2c));
+ 225    FUN_00036314(uVar11,uVar12);
+ 226    uVar11 = func_0x000705cc(uVar1,6);
+ 227    uVar12 = func_0x00011230(*puVar13,*(undefined4 *)(unaff_r2 + 0xa30));
+ 228    FUN_00036314(uVar11,uVar12);
+ 229    uVar12 = func_0x000705cc(uVar1,9);
+ 230    uVar11 = *(undefined4 *)(unaff_r2 + 0xa34);
+ 231    FUN_00036314(uVar12,uVar11);
+ 232    uVar12 = func_0x000705cc(uVar1,10);
+ 233    FUN_00036314(uVar12,uVar11);
+ 234    uVar12 = func_0x000705cc(uVar1,0xb);
+ 235    FUN_00036314(uVar12,uVar11);
+ 236    uVar12 = func_0x000705cc(uVar1,0xc);
+ 237    FUN_00036314(uVar12,uVar11);
+ 238    uVar12 = func_0x000705cc(uVar1,0xd);
+ 239    FUN_00036314(uVar12,uVar11);
+ 240    uVar12 = func_0x000705cc(uVar1,0xe);
+ 241    FUN_00036314(uVar12,uVar11);
+ 242    uVar12 = func_0x000705cc(uVar1,0xf);
+ 243    FUN_00036314(uVar12,uVar11);
+ 244    uVar12 = func_0x000705cc(uVar1,0x10);
+ 245    FUN_00036314(uVar12,uVar11);
+ 246    uVar11 = func_0x000705cc(auStack_78,iStack_cc);
+ 247    FUN_00036314(uVar11,*(undefined4 *)(unaff_r2 + 0xa38));
+ 248  LAB_001d5020:
+ 249    func_0x00010960(&uStack_d0,1,*(undefined4 *)(unaff_r2 + 0xa74),(longlong)(iVar10 + iStack_cc));
+ 250    func_0x00012f00(uVar3,uStack_d0,&stack0xffffffffffffff78);
+
+# ==== function 0x1e05c8 (5 bl 0x12080 calls) ====
+INFO  Function FUN_001e05c8 (ConsoleTaskMonitor)  
+==============================================================================
+top 9/10  FUN_001e05c8 (size=372)
+==============================================================================
+   1  
+   2  void FUN_001e05c8(undefined4 param_1)
+   3  
+   4  {
+   5    undefined4 uVar1;
+   6    longlong unaff_r2;
+   7    undefined4 uVar2;
+   8    undefined4 uVar3;
+   9    undefined4 *puVar4;
+  10    undefined4 auStack_40 [6];
+  11    
+  12    puVar4 = (undefined4 *)(ulonglong)*(uint *)(unaff_r2 + 0x114c);
+  13    uVar2 = func_0x00011230(*puVar4,*(undefined4 *)(unaff_r2 + 0x1150));
+  14    func_0x00012080(param_1,*(undefined4 *)(unaff_r2 + 0x1154),*(undefined4 *)(unaff_r2 + 0x1158),
+  15                    uVar2);
+  16    uVar3 = func_0x00011230(*puVar4,*(undefined4 *)(unaff_r2 + 0x115c));
+  17    uVar2 = *(undefined4 *)(unaff_r2 + 0x1160);
+  18    uVar1 = *(undefined4 *)(unaff_r2 + 0x1164);
+  19    func_0x00012080(param_1,uVar2,uVar1,0,uVar3);
+  20    uVar3 = func_0x00011230(*puVar4,*(undefined4 *)(unaff_r2 + 0x1168));
+  21    func_0x00012080(param_1,uVar2,uVar1,1,uVar3);
+  22    uVar3 = func_0x00011230(*puVar4,*(undefined4 *)(unaff_r2 + 0x116c));
+  23    func_0x0002c1e8((ulonglong)auStack_40 & 0xffffffff,uVar3);
+  24    uVar3 = func_0x00011230(*puVar4,*(undefined4 *)(unaff_r2 + 0x1170));
+  25    FUN_00036314((ulonglong)auStack_40 & 0xffffffff,uVar3);
+  26    func_0x00012080(param_1,uVar2,uVar1,2,auStack_40[0]);
+  27    uVar3 = func_0x00011230(*puVar4,*(undefined4 *)(unaff_r2 + 0x1174));
+  28    func_0x00012080(param_1,uVar2,uVar1,3,uVar3);
+  29    FUN_00029270(auStack_40);
+  30    return;
+  31  }
+  32  
+
+# ==== function 0x1e12bc (5 bl 0x12080 calls) ====
+INFO  Function FUN_001e12bc (ConsoleTaskMonitor)  
+==============================================================================
+top 10/10  FUN_001e12bc (size=412)
+==============================================================================
+   1  
+   2  void FUN_001e12bc(undefined4 param_1,undefined4 param_2)
+   3  
+   4  {
+   5    undefined4 uVar1;
+   6    longlong unaff_r2;
+   7    int iVar2;
+   8    undefined4 uVar3;
+   9    undefined4 uVar4;
+  10    uint *in_r9;
+  11    undefined4 *puVar5;
+  12    
+  13    if (*(int *)((ulonglong)*in_r9 + 100) != 0) {
+  14      iVar2 = func_0x0013f824(*(int *)((ulonglong)*in_r9 + 100),0);
+  15      if (-1 < iVar2) goto LAB_001e1314;
+  16    }
+  17    iVar2 = 0;
+  18  LAB_001e1314:
+  19    puVar5 = (undefined4 *)(ulonglong)*(uint *)(unaff_r2 + 0x11f0);
+  20    uVar3 = func_0x00011230(*puVar5,*(undefined4 *)(unaff_r2 + 0x11f4));
+  21    func_0x00012080(param_1,*(undefined4 *)(unaff_r2 + 0x11f8),*(undefined4 *)(unaff_r2 + 0x11fc),
+  22                    uVar3);
+  23    uVar4 = func_0x00011230(*puVar5,*(undefined4 *)(unaff_r2 + 0x1200));
+  24    uVar3 = *(undefined4 *)(unaff_r2 + 0x1204);
+  25    uVar1 = *(undefined4 *)(unaff_r2 + 0x1208);
+  26    func_0x00012080(param_1,uVar3,uVar1,0,uVar4);
+  27    uVar4 = func_0x00011230(*puVar5,*(undefined4 *)(unaff_r2 + 0x120c));
+  28    func_0x00012080(param_1,uVar3,uVar1,1,uVar4);
+  29    uVar4 = func_0x00011230(*puVar5,*(undefined4 *)(unaff_r2 + 0x1210));
+  30    func_0x00012080(param_1,uVar3,uVar1,2,uVar4);
+  31    uVar4 = func_0x00011230(*puVar5,*(undefined4 *)(unaff_r2 + 0x1214));
+  32    func_0x00012080(param_1,uVar3,uVar1,3,uVar4);
+  33    func_0x000122d0((double)(longlong)iVar2,param_1,*(undefined4 *)(unaff_r2 + 0x1218));
+  34    func_0x00010800(param_1,param_2);
+  35    return;
+  36  }
+  37  
+
+##############################################################################
+# end iter-206
+##############################################################################
+INFO  REPORT: Save succeeded for processed file: /EBOOT_v130_clean.ELF (HeadlessAnalyzer)  

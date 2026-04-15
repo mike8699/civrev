@@ -223,6 +223,25 @@ PATCHES: list[Patch] = [
     # Patch(0x01167d64, b"\x39\x00\x00\x10", b"\x39\x00\x00\x11", "consumer B RULERS"),
     # Patch(0x01167dc8, b"\x39\x00\x00\x10", b"\x39\x00\x00\x11", "consumer B CIVS"),
 
+    # iter-206 DIAGNOSTIC RESULT: b . traps at FUN_001dc0d8 and
+    # FUN_0x111dd70 both PASSED. Romans M9 slot 0 runs clean with
+    # both functions trapped. Conclusion: BOTH are off the
+    # boot-to-civ-select-to-in-game path — joining iter-150
+    # (FUN_001e49f0) and iter-154 (FUN_011675d8) on the "not the
+    # carousel" list. Traps removed; diagnostic recorded.
+    # Patch(
+    #     offset=0x001dc0d8,
+    #     expected_old=b"\xf8\x21\xff\x61",
+    #     new=b"\x48\x00\x00\x00",
+    #     description="DIAG iter-206: b . trap at FUN_001dc0d8 entry",
+    # ),
+    # Patch(
+    #     offset=0x00111dd70,
+    #     expected_old=b"\xf8\x21\xff\x71",
+    #     new=b"\x48\x00\x00\x00",
+    #     description="DIAG iter-206: b . trap at FUN_0x111dd70 entry",
+    # ),
+
     # (1) Write "Korean\0\0" into the padding region.
     Patch(
         offset=_KOREAN_STRING_VA,
