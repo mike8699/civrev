@@ -1,0 +1,14 @@
+{
+  "milestone": "M9",
+  "slot": 0,
+  "label": "caesar",
+  "pass": true,
+  "oracle": "OCR in-game HUD after selecting slot 0 (caesar)",
+  "stages": {
+    "main_menu": true,
+    "difficulty_selected": true,
+    "highlighted_ok": true,
+    "in_game_hud": true
+  },
+  "select_ocr": "- Bg _ y a > \u2014 \u2014_ ba g) {) _ y) \\ceuatieneeeeees | a4 \u2014_\u2014 aa a | a Cleopatra Alexander Isabella | \u2014\u2014\u2014 = a Egyptians Greeks Spanish | . . \u2018 DyeS aire \u00e9 | GAL dm XD a! * eo SS Wl 2298 ir Qa 4 o | , S 1 "
+}

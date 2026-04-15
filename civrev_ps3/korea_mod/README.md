@@ -3,7 +3,7 @@
 Adds Korea (leader: Sejong) data to Sid Meier's Civilization
 Revolution (BLUS-30130) on PS3.
 
-## Current shipping state (iter-218)
+## Current shipping state (iter-223)
 
 This mod operates under the **iter-189 strict-reading directive**
 (see PRD §9): Korea must be a brand-new 17th civilization with
@@ -25,14 +25,6 @@ Under this directive, the v1.0 shipping state is:
   - All 16 stock civs unchanged at indices 0..15
   - Internal "Barbarians/Grey Wolf" placeholder shifts to
     index 17
-- A 17th `<LeaderHead Nationality="16" Text="Sejong">` entry
-  is registered with the game's leaderhead loader via a
-  `leaderheads.xml` overlay (iter-214). The entry reuses the
-  existing `GLchi_Mao.xml` / `GLchi_Mao_` Mao leaderhead
-  assets — no new binary assets ship.
-- Pediainfo overlays for `CIV_KOREA` and `LEADER_SEJONG`
-  (iter-176-era files) reuse `PEDIA_CHINA_*.dds` and
-  `PEDIA_MAO_*.dds` assets per spec.
 - A 17-entry **ADJ_FLAT** civ-adjective pointer table is
   written into `.rodata` padding (iter-4) so the in-game
   "Korean" adjective lookup returns a valid pointer.
@@ -43,7 +35,21 @@ Under this directive, the v1.0 shipping state is:
 
 **All 16 stock civs work normally**: full M9 regression
 sweep at iter-216 — Caesar / Catherine / Mao / Lincoln /
-Elizabeth / Random — 6/6 PASS.
+Elizabeth / Random — 6/6 PASS. iter-223 Caesar M9 PASS
+re-verifies the regression after the Common0_korea.FPK
+removal.
+
+**iter-222 correction (2026-04-15):** The previously-shipped
+`leaderheads.xml` overlay (iter-214) and the two
+`console_pediainfo_*.xml` overlays (iter-176-era) are
+**STRUCTURALLY INERT**. iter-222 empirically proved that
+`Common0.FPK` is never opened by the BLUS-30130 PS3 build at
+runtime — M9 Caesar passes with the file renamed away. Those
+3 overlays shipped in `Common0_korea.FPK` but couldn't reach
+the runtime. **iter-223 removes Common0_korea.FPK from the
+build/install pipeline** and archives the dead overlays
+under `xml_overlays/dead_iter222/`. The disc Common0.FPK is
+now left as the stock file (md5 5032f387...).
 
 **What does NOT ship and is structurally blocked:**
 
@@ -97,7 +103,7 @@ approach.
 
 ```bash
 cd civrev_ps3/korea_mod
-./build.sh                  # produces _build/{Common0,Pregame}_korea.FPK + EBOOT_korea.ELF
+./build.sh                  # produces _build/Pregame_korea.FPK + EBOOT_korea.ELF
 ./verify.sh --tier=static   # runs M0 (xmllint + FPK round-trip + eboot dry-run)
 ```
 
@@ -112,12 +118,14 @@ Build steps:
      in-game adjective lookups return valid pointers.
    - **iter-14** (×2): `li r5, 0x11 → 0x12` parser-count
      bumps at `0xa2ee38` (rulers) and `0xa2ee7c` (civs).
-3. `pack_korea.sh` repacks `Common0.FPK` and `Pregame.FPK`
-   via `fpk.py repack` after applying overlays:
-   - **Common0**: `leaderheads.xml`,
-     `console_pediainfo_civilizations.xml`,
-     `console_pediainfo_leaders.xml`
+3. `pack_korea.sh` repacks **Pregame.FPK** via `fpk.py repack`
+   after applying the two effective overlays:
    - **Pregame**: `civnames_enu.txt`, `rulernames_enu.txt`
+
+   Common0_korea.FPK production was REMOVED at iter-223
+   because iter-222 proved Common0.FPK is never opened at
+   runtime. The dead overlays are archived under
+   `xml_overlays/dead_iter222/`.
 4. `install_eboot.sh` installs the patched EBOOT to BOTH
    `modified/PS3_GAME/USRDIR/EBOOT.BIN` (tracked in git) AND
    `~/.config/rpcs3/dev_hdd0/game/BLUS30130/USRDIR/EBOOT.BIN`

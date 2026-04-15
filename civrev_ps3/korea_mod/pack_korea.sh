@@ -61,7 +61,14 @@ stage_fpk() {
     sha256sum "$out_fpk"
 }
 
-stage_fpk Common0
+# iter-223 (2026-04-15): Common0_korea.FPK production REMOVED.
+# iter-222 empirically proved that Common0.FPK is never opened by
+# the BLUS-30130 PS3 build at runtime — M9 Caesar PASS with the
+# file renamed away. The 3 Common0 overlays (leaderheads.xml +
+# 2 pediainfo XMLs) shipped under iter-176/214 were structurally
+# inert. They are archived under xml_overlays/dead_iter222/ and
+# no longer participate in the build. The only effective FPK
+# overlays are the 2 Pregame.FPK ones (civnames/rulernames).
 
 # iter-195 (2026-04-15): Pregame repack path.
 #

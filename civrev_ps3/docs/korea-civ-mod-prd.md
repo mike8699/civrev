@@ -7711,3 +7711,87 @@ Pursue this in iter-223.
 **PRD changes made this iteration:** Progress Log entry added.
 §5.4 marked partially closed (boot trace mapped). §6.3 status
 note added below.
+
+### iter-223 (2026-04-15): dead Common0 overlays removed from build/install pipeline
+
+Acted on iter-222's recommendation (option a): removed the
+3 structurally-inert Common0.FPK overlays from the
+build/install pipeline.
+
+**Changes:**
+
+- `xml_overlays/leaderheads.xml`,
+  `xml_overlays/console_pediainfo_civilizations.xml`,
+  `xml_overlays/console_pediainfo_leaders.xml` → moved to
+  `xml_overlays/dead_iter222/` with a README explaining the
+  iter-222 inertness finding and how to revive them if a
+  future v1.1 unblocks Common0.FPK.
+- `pack_korea.sh`: `stage_fpk Common0` call removed; replaced
+  with an iter-223 banner comment explaining why.
+- `install.sh`: `install_fpk Common0` call removed; added a
+  `restore_common0_to_stock()` helper that copies
+  `Common0.FPK.orig` over `Common0.FPK` if the latter is
+  modified (cleans up prior iterations' patched copies on
+  re-install).
+- `install.sh` header refreshed to describe the iter-223
+  shipping state (2 effective Pregame overlays + 6 EBOOT
+  byte patches; Common0 untouched).
+- `build.sh`: xmllint loop now uses `nullglob` so empty
+  `xml_overlays/*.xml` doesn't cause the for-loop to
+  iterate the literal pattern. Without the fix the loop
+  was emitting `failed to load external entity "*.xml"` to
+  stderr.
+- `README.md` (korea_mod) header bumped from iter-218 to
+  iter-223 with the iter-222 correction inlined.
+
+**Verification:**
+
+1. `./build.sh` → 6 EBOOT patches applied, 0 mismatches;
+   only `Pregame_korea.FPK` produced; no `Common0_korea.FPK`
+   in `_build/`.
+2. `./install.sh` → restored stock `Common0.FPK` from .orig
+   (md5 5032f387 matches), installed Pregame_korea.FPK to
+   modified disc dir, dual-installed EBOOT.BIN.
+3. `./verify.sh --tier=static` → M0 GREEN.
+4. `docker_run.sh --headless korea_play 0 caesar` → **M9
+   PASS** (all 4 stages green: main_menu, difficulty_selected,
+   highlighted_ok, in_game_hud).
+
+**Effective shipping surface area (final, iter-223):**
+
+| asset | mechanism | effect |
+|---|---|---|
+| EBOOT iter-4 patches ×4 | in-place bytes | ADJ_FLAT 17-entry table |
+| EBOOT iter-14 patches ×2 | in-place bytes | parser count 17→18 |
+| `civnames_enu.txt` | Pregame.FPK overlay | Korean at row 17 |
+| `rulernames_enu.txt` | Pregame.FPK overlay | Sejong at row 17 |
+
+Total: 2 file overlays + 6 byte patches. Down from the
+pre-iter-223 state of 5 file overlays + 6 byte patches. The
+3 removed overlays were inert and contributed nothing to the
+shipping state.
+
+**§9 DoD status (unchanged):**
+
+| # | item | status |
+|---|------|--------|
+| 1 | install.sh works | **MET** (iter-223 re-verified) |
+| 2 | Korea visible at slot 16 in carousel | **OPEN — STRUCTURALLY BLOCKED** (§9.X) |
+| 3 | Found capital with Korea | **BLOCKED on item 2** |
+| 4 | 50-turn soak as Korea | **BLOCKED on item 2** |
+| 5 | Stock regression (6 civs) | **MET** (iter-216 6/6 + iter-223 caesar) |
+| 6 | Verification artifacts committed | **MET** |
+
+**Verification artifacts:**
+- `korea_mod/verification/iter223_common0_removed/m9_caesar.json`
+
+**iter-224 plan:** the v1.0 shipping state is now lean and
+honest. Remaining low-leverage options: re-run the full 6-civ
+M9 sweep with the iter-223 install to refresh the M9
+verification baseline (iter-216's was against the bloated
+pre-iter-223 install), or document the iter-222/223 finding
+in the user-visible PRD §1.1 v1.0 scope.
+
+**PRD changes made this iteration:** Progress Log entry added.
+Net shipping state: 3 dead overlays removed from build/install
+pipeline; 2 effective overlays + 6 EBOOT patches retained.

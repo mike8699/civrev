@@ -16,14 +16,22 @@ rm -rf "$STAGE"
 mkdir -p "$STAGE"
 
 echo "[build] validating XML overlays"
-for f in "$HERE/xml_overlays"/*.xml; do
+shopt -s nullglob
+xml_files=( "$HERE/xml_overlays"/*.xml )
+shopt -u nullglob
+for f in "${xml_files[@]}"; do
     xmllint --noout "$f"
     echo "  ok  $(basename "$f")"
 done
+if [ "${#xml_files[@]}" -eq 0 ]; then
+    echo "  (no top-level .xml overlays — iter-223 archived the dead Common0 XMLs)"
+fi
 
 echo "[build] staging XML overlays into $STAGE/xml_overlays"
 mkdir -p "$STAGE/xml_overlays"
-cp "$HERE/xml_overlays"/*.xml "$STAGE/xml_overlays/"
+if [ "${#xml_files[@]}" -gt 0 ]; then
+    cp "${xml_files[@]}" "$STAGE/xml_overlays/"
+fi
 
 # EBOOT patch step: dry-run first (M0a gate), then apply for real.
 if [ -f "$HERE/eboot_patches.py" ]; then

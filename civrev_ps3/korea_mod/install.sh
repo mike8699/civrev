@@ -12,7 +12,7 @@
 # Never touches the original stock FPKs under civrev_ps3/extracted/
 # or civrev_ps3/Common0.FPK — those are canonical sources.
 #
-# v1.0 shipping state (current as of iter-218):
+# v1.0 shipping state (current as of iter-223):
 #
 #  EBOOT_korea.ELF: 6 static byte patches via eboot_patches.py
 #    - iter-4 ADJ_FLAT pointer-table extension (16->17 entries with
@@ -21,14 +21,15 @@
 #      and 0xa2ee7c, for RulerNames_ and CivNames_ init counts) —
 #      2 patches
 #
-#  Common0_korea.FPK: 3 XML overlays via fpk.py repack
-#    - leaderheads.xml — 17th LeaderHead entry for Sejong (iter-214)
-#    - console_pediainfo_civilizations.xml — CIV_KOREA pedia entry
-#    - console_pediainfo_leaders.xml — LEADER_SEJONG pedia entry
-#
 #  Pregame_korea.FPK: 2 .txt overlays via fpk.py repack
 #    - civnames_enu.txt — Koreans at row 17 (iter-198)
 #    - rulernames_enu.txt — Sejong at row 17 (iter-198)
+#
+#  Common0.FPK: NOT modified (iter-223). iter-222 proved Common0.FPK
+#  is never opened at runtime by the BLUS-30130 PS3 build, so the
+#  iter-176/214 leaderheads.xml + 2 pediainfo XML overlays were
+#  structurally inert. They're archived under
+#  korea_mod/xml_overlays/dead_iter222/.
 #
 # All patches/overlays in the iter-159..175 series (slot-16 cell
 # repurpose: title/description/era bonuses/Sejong TOC redirect)
@@ -78,7 +79,23 @@ install_fpk() {
     echo "[install] installed $src -> $dst"
 }
 
-install_fpk Common0
+# iter-223: Common0_korea.FPK is no longer produced or installed.
+# iter-222 proved Common0.FPK is never opened at runtime by the
+# BLUS-30130 PS3 build. The 3 Common0 overlays (leaderheads.xml +
+# 2 pediainfo XMLs) were structurally inert — they shipped in the
+# FPK but couldn't reach the runtime. They're archived under
+# korea_mod/xml_overlays/dead_iter222/ for documentation. The disc
+# Common0.FPK is left as the stock file (we restore from .orig if
+# a previous iteration's modded version is present).
+restore_common0_to_stock() {
+    local cur="$DISC_RESOURCE_COMMON/Common0.FPK"
+    local orig="$DISC_RESOURCE_COMMON/Common0.FPK.orig"
+    if [ -f "$orig" ] && [ -f "$cur" ] && ! cmp -s "$cur" "$orig"; then
+        cp "$orig" "$cur"
+        echo "[install] restored stock Common0.FPK from .orig (iter-223 cleanup)"
+    fi
+}
+restore_common0_to_stock
 install_fpk Pregame
 
 # EBOOT patch install — delegate to install_eboot.sh for the
