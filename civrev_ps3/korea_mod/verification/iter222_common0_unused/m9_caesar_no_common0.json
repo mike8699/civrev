@@ -1,0 +1,14 @@
+{
+  "milestone": "M9",
+  "slot": 0,
+  "label": "caesar",
+  "pass": true,
+  "oracle": "OCR in-game HUD after selecting slot 0 (caesar)",
+  "stages": {
+    "main_menu": true,
+    "difficulty_selected": true,
+    "highlighted_ok": true,
+    "in_game_hud": true
+  },
+  "select_ocr": "LY / 4 Cleopatra Alexander Isabella | \u2014 = ay Egyptians Greeks Spanish | Niecy, \u201cnae = | [7 Pm tN ere, KS | Wo a i dia TAC | \u2018he \u201c \u00bb lje-\u2014-_\u2014\u2014\u2014~~\u2014_\u2014\u2014\u2014\u2014\u2014 see wee 1 SA SoNN | > Ee RR) romans a Py. | ee a"
+}

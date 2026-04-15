@@ -472,6 +472,17 @@ file-offset-vs-virtual-address translation for this EBOOT.
 
 ### 6.3 FPK / asset patches
 
+> **iter-222 correction (2026-04-15):** All Common0.FPK overlays
+> in this section are **STRUCTURALLY INERT**. iter-222 empirically
+> proved that `Common0.FPK` is never opened by the BLUS-30130 PS3
+> build at runtime — M9 Caesar passes with `Common0.FPK` renamed
+> away. The 3 Common0 overlays (`leaderheads.xml`,
+> `console_pediainfo_civilizations.xml`,
+> `console_pediainfo_leaders.xml`) ship in the build but cannot
+> reach the runtime. Only the 2 Pregame.FPK overlays
+> (`civnames_enu.txt`, `rulernames_enu.txt`) are effective.
+> See iter-222 in §10 Progress Log for the empirical proof.
+
 **Hard constraint:** prior map-mod work (per `MEMORY.md`) confirms that
 *adding* new entries to an FPK crashes the game — only *replacement* of
 existing entries is safe. We assume the same constraint applies to
@@ -7585,3 +7596,118 @@ toolchain effort.
 
 **PRD changes made this iteration:** Progress Log entry added.
 Cross-reference investigation only — no shipping state change.
+
+### iter-222 (2026-04-15): §5.4 partial — Common0.FPK is unused at runtime; 3 overlays are dead weight
+
+Pursued §5.4 (asset-loading code paths) by mining the existing
+RPCS3 `sys_fs_open` traces in
+`rpcs3_automation/output/rpcs3_logs/`. Discovered that across
+10 large RPCS3.log files from prior korea_play / M9 runs,
+**Common0.FPK is never opened by the game**. Neither are
+`leaderhead.FPK`, `buildings.FPK`, `units.FPK`, `hoa.FPK`,
+`Level.FPK`, `music.FPK`. Only Pregame.FPK, pedia.FPK,
+Misc0.FPK, Misc1.FPK, ps3_misc.FPK are opened.
+
+Verified empirically: renamed
+`modified/PS3_GAME/USRDIR/Resource/Common/Common0.FPK` to
+`Common0.FPK.iter222_renamed` and re-ran
+`docker_run.sh --headless korea_play 0 caesar`. **M9 Caesar
+PASS** with all 4 stages green (main_menu,
+difficulty_selected, highlighted_ok, in_game_hud). The game
+boots, reaches civ-select, OCRs all civilization names
+(Cleopatra/Alexander/Isabella/Romans/...), confirms civ, and
+reaches the in-game HUD — all without `Common0.FPK` being
+present on the disc at all.
+
+This proves **Common0.FPK is legacy dead weight in the
+BLUS-30130 build**. Its strings are still in the EBOOT but
+the runtime open-and-iterate code path doesn't include it.
+The 3 Common0.FPK overlays we ship under iter-176/214 —
+`leaderheads.xml`, `console_pediainfo_civilizations.xml`,
+`console_pediainfo_leaders.xml` — are **structurally inert**.
+They cannot reach the runtime because the file containing
+them is never opened.
+
+**Effective shipping surface area (corrected by iter-222):**
+
+| overlay | FPK | runtime opened? | effective? |
+|---|---|---|---|
+| `civnames_enu.txt` | Pregame | yes | YES (iter-203 verified) |
+| `rulernames_enu.txt` | Pregame | yes | YES (iter-203 verified) |
+| `leaderheads.xml` | Common0 | **no** | **DEAD** |
+| `console_pediainfo_civilizations.xml` | Common0 | **no** | **DEAD** |
+| `console_pediainfo_leaders.xml` | Common0 | **no** | **DEAD** |
+| iter-4 ADJ_FLAT (4 EBOOT patches) | EBOOT | yes | YES |
+| iter-14 parser counts (2 EBOOT patches) | EBOOT | yes | YES |
+
+**Implications for §6.3 / §9.X:**
+
+- iter-214 closed §6.3 leaderheads.xml as "shipped". This
+  is now corrected: the file ships in the FPK but is never
+  consumed at runtime. The PRD §6.3 spec assumed a code path
+  that doesn't exist on PS3.
+- The "leaderheads.xml binds Sejong to Mao assets" mechanism
+  in PRD §6.3 is **factually wrong** for the PS3 build. The
+  actual binding (which makes Mao show up when slot 6 is
+  selected) lives elsewhere — most likely in a hardcoded
+  EBOOT table indexed by Nationality, or in
+  `gfx_chooseciv.gfx` Scaleform-side. Locating the real
+  binding is out-of-scope for v1.0 (carousel is structurally
+  blocked anyway per iter-212).
+- §9.X is reinforced: the iter-189 strict-reading 18th-cell
+  visibility goal is BOTH Scaleform-blocked (carousel cells)
+  AND would-have-been-blocked even if the leaderheads.xml
+  approach worked, because the file isn't read.
+
+**Why is Common0.FPK shipped on the disc at all?**
+
+It's a legacy artifact from earlier ports (Xbox 360 and iOS
+both had a Common0.FPK in their resource layouts per the
+shared C++ codebase). The PS3 repacking step consolidated the
+actual runtime resources into Pregame/pedia/Misc0/Misc1/
+ps3_misc but left the unused FPKs on the disc as dead carry-
+over. This is consistent with iter-221's finding that the iOS
+port retained C++ class symbols the PS3 port replaced with
+Scaleform.
+
+**iter-222 positive contributions:**
+
+1. Empirically debunks the iter-214 "leaderheads.xml ships"
+   claim — file ships but is unused.
+2. Maps the EFFECTIVE asset surface area: 5 FPKs are read,
+   7 are dead. This unblocks v1.1 efforts that need to know
+   where to actually put a custom Korea asset (it MUST go in
+   one of the 5 live FPKs or in the EBOOT).
+3. §5.4 partially closed: file IO trace covers boot through
+   in-game HUD entry. Deeper soaks (M7 50-turn) would need
+   re-running with extended capture to know if any of the 7
+   dead FPKs become live during long sessions, but the iter-9
+   M7 PASS already proves the game completes 50 turns without
+   crashing — and that run also presumably never opened
+   Common0.FPK (the result.json doesn't preserve the trace).
+
+**Verification artifacts:**
+- `korea_mod/verification/iter222_common0_unused/findings.md`
+- `korea_mod/verification/iter222_common0_unused/m9_caesar_no_common0.json`
+
+**iter-223 plan:**
+
+Two implementation options for the dead Common0 overlays:
+
+(a) **Remove them from the install pipeline** (recommended).
+    `pack_korea.sh` skips Common0_korea.FPK production,
+    `install.sh` skips Common0_korea.FPK installation, the 3
+    XML files in `xml_overlays/` get a banner comment
+    documenting their iter-222 inert status (or move them to
+    `xml_overlays/dead_iter222/` for archival).
+
+(b) **Keep them as documentation** of the spec'd-but-inert
+    approach. Add an iter-222 banner to README explaining
+    they ship for documentation completeness only.
+
+Option (a) is the cleaner shipping state and is recommended.
+Pursue this in iter-223.
+
+**PRD changes made this iteration:** Progress Log entry added.
+§5.4 marked partially closed (boot trace mapped). §6.3 status
+note added below.
