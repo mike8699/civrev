@@ -5522,3 +5522,102 @@ follow-up.
 New Jython script committed under `scripts/ghidra_helpers/`.
 No code/asset/EBOOT shipping changes (pure investigation +
 verification artifacts).
+
+### iter-198 (2026-04-15): §9 DoD ITEM 1 UNBLOCKED — 18-row civnames/rulernames boots clean
+
+**18-row name files ship; parser blocker declared RESOLVED.**
+
+Built on iter-197's Ghidra finding that the parser is dynamic and
+there is no 17-wide buffer. iter-198:
+1. Added `civnames_enu.txt` and `rulernames_enu.txt` overlays with
+   Koreans/Sejong inserted at row 17 (index 16), pushing Barbarians/
+   Grey Wolf to row 18 (index 17). All 16 stock civs at indices
+   0..15 unchanged.
+2. Extended `pack_korea.sh` to apply `.txt` overlays in both the
+   Common0 (`stage_fpk`) and Pregame (`stage_pregame_repack`) paths.
+3. Kept the iter-14 parser-count bumps at `0xa2ee38`/`0xa2ee7c`
+   (`li r5, 0x11 → 0x12`) active — they were already shipping.
+
+**Test matrix** (all against the fresh 18-row overlay + iter-14
+parser-count bumps; 14 `li r8, 0x10` consumer patches NOT applied):
+
+| Probe | Slot | Label       | Result |
+|-------|------|-------------|--------|
+| M9    | 0    | romans      | **PASS** |
+| M6    | 15   | elizabeth   | **PASS** |
+| M9    | 16   | slot16_probe| **PASS** (but carousel still renders "Random") |
+
+**iter-14 finding 4 is DISPROVED.** iter-14 said the 18-row overlay
++ parser-count bumps "Still timed out at RSX init" and attributed
+this to a downstream 17-wide buffer. iter-197's decompile found no
+such buffer; iter-198 empirically verifies the boot works. iter-14's
+test was almost certainly affected by one of:
+- The iter-133-era dev_hdd0/disc dual-path EBOOT bug (patched ELF
+  was installed to the wrong location until iter-133)
+- A stale FPK from an earlier repack
+- Transient emulator/harness issue
+
+Either way, **iter-7..iter-72's entire effort was chasing a buffer
+that doesn't exist.** This closes the §9 DoD item 1 blocker that
+has been open since 2026-03-19.
+
+**Secondary test: 14 consumer patches CAUSE an RSX init hang.**
+Earlier in iter-198 I ran the full patch set (parser-count +
+18-row overlay + 14 `li r8, 0x10 → 0x11` consumer bumps) and the
+boot hung at RSX init with a cellAudio Pause() loop, no VM
+violation logged. Removing just the 14 consumer patches brought
+boot back to green. So the 14 `li r8, 0x10` sites are:
+- NOT the civ-select carousel render path (slot 16 still shows
+  "Random/Random" with them removed, confirming the carousel was
+  never reading from those consumers in the first place)
+- Some boot-time system that REQUIRES exactly 16 entries and
+  hangs if fed 17 — most likely save-game/session-restore/
+  serialization code that pre-allocates 16-wide destination
+  tables
+
+The 14 consumer patches are commented out in `eboot_patches.py`,
+not deleted — kept as a recorded failed hypothesis with context
+for the next iteration. They join iter-150 (`FUN_001e49f0`) and
+iter-154 (`FUN_011675d8`) on the list of "tested and NOT on the
+carousel path" consumer functions.
+
+**Net state: Korea exists in the parser buffer at index 16, but
+no UI element renders her.** The §9 DoD item 2 (new 18th cell,
+all 17 civs + Random visible) is still not met. iter-199 needs
+to find the actual carousel render path — known disproofs so far:
+- `FUN_001e49f0` (iter-150)
+- `FUN_011675d8` (iter-154)
+- the 14 `li r8, 0x10` consumers (iter-198)
+- the static dead-rodata tables (iter-4)
+- the EBOOT "Caesar" string rodata (iter-156)
+- any static AS2 default in tag[180]/tag[185] (iter-191..195)
+
+**Next-iteration pivot:** the parser's post-parse block in
+`real_parser_worker` (`FUN_00a2e640` lines 115-127) calls
+`FUN_009bf5a0(&iStack_a0, iVar7*0xc + *param_2 + 8)` and
+`FUN_009f1c80(iVar7*0xc + iVar8, uStack_c0)` on each entry right
+after the parse loop completes. Whichever function is the
+"per-entry registration with a downstream carousel data struct"
+is the next target. Extend the existing Jython script to
+decompile `FUN_009bf5a0` and `FUN_009f1c80`, trace their call
+graphs, and find the downstream struct they write into.
+
+**Alternate dynamic path:** extend `gdb_client.py` with Z2
+watchpoint support and plant a write-watch on the civnames buffer
+pointer at `r2 + 0x141c` = `0x193b6a4` immediately after the
+parser completes. Whoever reads it next is the render path.
+PRD §6.2 escalation applies.
+
+**Verification artifacts:**
+- `korea_mod/verification/iter198_18row_boot_safe/findings.md`
+- `m9_romans_result.json` (Romans slot 0 M9 PASS)
+- `m6_elizabeth_result.json` (Elizabeth slot 15 M6 PASS)
+- `m9_slot16_probe_result.json` (slot 16 still Random, as expected)
+- `slot16_06_still_random.png` (visual proof)
+
+**PRD changes made this iteration:**
+- Progress Log entry added (this).
+- `korea-civ-mod-prd.md` §9 DoD item 1 status updated from
+  "OPEN — parser 17-wide buffer OOB" to "MET — iter-198 boots
+  clean with 18-row civnames/rulernames + iter-14 parser-count
+  bumps; iter-7..72 blocker was a misdiagnosis".

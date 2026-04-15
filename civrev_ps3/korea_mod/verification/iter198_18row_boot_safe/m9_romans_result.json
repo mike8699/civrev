@@ -1,0 +1,14 @@
+{
+  "milestone": "M9",
+  "slot": 0,
+  "label": "romans",
+  "pass": true,
+  "oracle": "OCR in-game HUD after selecting slot 0 (romans)",
+  "stages": {
+    "main_menu": true,
+    "difficulty_selected": true,
+    "highlighted_ok": true,
+    "in_game_hud": true
+  },
+  "select_ocr": "i a @\u2122\u2014= ee ee ee | 4 R ) Cleopatra Alexander Isabella | Giese ac \u2014\u2014\u2014 . \u201c\u201c7@ Egyptians Greeks Spanish | i rer, : SS Wo os ma SY one 2 | tf ~ / * \u00bb ; a \u2014 cee \u2014 ay jacana tana eatatamaal es \u2014 alii \u2014 nea"
+}

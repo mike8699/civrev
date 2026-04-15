@@ -157,6 +157,59 @@ PATCHES: list[Patch] = [
         description="li r5,17 → li r5,18 (CivNames_ init count)",
     ),
 
+    # ITER-198: bump the 14 downstream "li r8, 0x10" (=16) consumer
+    # sites to li r8, 0x11 (=17). iter-197's Ghidra decompile of the
+    # parser dispatcher (FUN_00a2ec54) and worker (FUN_00a2e640)
+    # established that the parser is dynamic — it allocates
+    # (count*12 + 4) bytes per name file and stores all entries
+    # correctly. The "17-wide buffer" model from iter-7..72 was wrong.
+    #
+    # The actual cap on civnames visibility lives in two consumer
+    # functions at 0x011679xx / 0x01167dxx that load each of the 7
+    # name-file buffer-pointer TOC slots and call a vtable method
+    # with `r8 = 0x10` as the iteration count. With li r8 at 0x10,
+    # they iterate 16 entries (indices 0..15) — exactly the 16 stock
+    # civs, skipping the internal "Barbarians" placeholder at index
+    # 16. To make a 17th civ (Korea inserted at index 16, pushing
+    # Barbarians to 17) visible, every one of these `li r8, 0x10`
+    # sites must be bumped to `li r8, 0x11`.
+    #
+    # Encoding: `li r8, 0x10` = `addi r8, 0, 0x10` = `0x39000010`.
+    # Bumped: `li r8, 0x11` = `0x39000011`. One byte change per site
+    # (file offset +3: 0x10 → 0x11). Same-size, in-place.
+    #
+    # The 14 sites came from iter-197's exhaustive scan
+    # (Iter197ParserWriteTarget.py output): every lwz of any of the
+    # 7 name-file buffer-pointer TOC slots (r2 + 0x1404/0x1408/
+    # 0x140c/0x1410/0x1414/0x1418/0x141c) sits within ±24 bytes of
+    # one of these 14 li r8 instructions, in two consumer functions
+    # that iterate all 7 name files in sequence.
+    #
+    # Per-site mapping (from iter-197 findings.md):
+    #   consumer A (0x011676xx-0x01167900):  TECH FAMOUS CITIES
+    #                                         WONDERS WONDERS_FEM
+    #                                         RULERS CIVS
+    #   consumer B (0x01167a00-0x01167dc8):  TECH FAMOUS CITIES
+    #                                         WONDERS WONDERS_FEM
+    #                                         RULERS CIVS
+    # iter-198 A/B ISOLATION: 14 li r8 patches temporarily DISABLED
+    # so we can tell whether the RSX hang is from the patches or from
+    # the 18-row name file overlays alone. Re-enable after probe A.
+    # Patch(0x011676dc, b"\x39\x00\x00\x10", b"\x39\x00\x00\x11", "consumer A TECH"),
+    # Patch(0x01167744, b"\x39\x00\x00\x10", b"\x39\x00\x00\x11", "consumer A FAMOUS"),
+    # Patch(0x011677ac, b"\x39\x00\x00\x10", b"\x39\x00\x00\x11", "consumer A CITIES"),
+    # Patch(0x01167814, b"\x39\x00\x00\x10", b"\x39\x00\x00\x11", "consumer A WONDERS"),
+    # Patch(0x0116787c, b"\x39\x00\x00\x10", b"\x39\x00\x00\x11", "consumer A WONDERS_FEM"),
+    # Patch(0x011678e4, b"\x39\x00\x00\x10", b"\x39\x00\x00\x11", "consumer A RULERS"),
+    # Patch(0x01167948, b"\x39\x00\x00\x10", b"\x39\x00\x00\x11", "consumer A CIVS"),
+    # Patch(0x01167af4, b"\x39\x00\x00\x10", b"\x39\x00\x00\x11", "consumer B TECH"),
+    # Patch(0x01167b88, b"\x39\x00\x00\x10", b"\x39\x00\x00\x11", "consumer B FAMOUS"),
+    # Patch(0x01167c10, b"\x39\x00\x00\x10", b"\x39\x00\x00\x11", "consumer B CITIES"),
+    # Patch(0x01167ca0, b"\x39\x00\x00\x10", b"\x39\x00\x00\x11", "consumer B WONDERS"),
+    # Patch(0x01167d00, b"\x39\x00\x00\x10", b"\x39\x00\x00\x11", "consumer B WONDERS_FEM"),
+    # Patch(0x01167d64, b"\x39\x00\x00\x10", b"\x39\x00\x00\x11", "consumer B RULERS"),
+    # Patch(0x01167dc8, b"\x39\x00\x00\x10", b"\x39\x00\x00\x11", "consumer B CIVS"),
+
     # (1) Write "Korean\0\0" into the padding region.
     Patch(
         offset=_KOREAN_STRING_VA,

@@ -33,7 +33,7 @@ stage_fpk() {
     cp -r "$src" "$dst"
 
     local applied=0
-    for overlay in "$OVERLAYS"/*.xml "$OVERLAYS"/*.ini; do
+    for overlay in "$OVERLAYS"/*.xml "$OVERLAYS"/*.ini "$OVERLAYS"/*.txt; do
         [ -f "$overlay" ] || continue
         local base
         base="$(basename "$overlay")"
@@ -83,6 +83,20 @@ stage_pregame_repack() {
     fi
     rm -rf "$dst"
     cp -r "$src" "$dst"
+
+    # iter-198: apply any name-file (.txt) overlays for Pregame too —
+    # civnames_enu.txt / rulernames_enu.txt land here.
+    for overlay in "$OVERLAYS"/*.xml "$OVERLAYS"/*.ini "$OVERLAYS"/*.txt; do
+        [ -f "$overlay" ] || continue
+        local base
+        base="$(basename "$overlay")"
+        local target="$dst/$base"
+        if [ ! -f "$target" ]; then
+            continue
+        fi
+        cp "$overlay" "$target"
+        echo "[pack_korea] Pregame: replaced $base"
+    done
 
     if [ -f "$HERE/gfx_chooseciv_patch.py" ]; then
         echo "[pack_korea] Pregame: patching gfx_chooseciv.gfx (iter-195)"
