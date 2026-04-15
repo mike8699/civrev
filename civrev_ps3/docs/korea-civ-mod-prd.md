@@ -1134,6 +1134,197 @@ A user with a clean BLUS-30130 install and v1.30 update can:
 - Reaching turn 200 or any victory condition
 - Multiplayer compatibility
 
+### §9.X — STRUCTURAL BLOCKER recorded at iter-212 (2026-04-15)
+
+After 33+ iterations specifically targeting the iter-189
+strict-reading requirement (item 2: Korea as a brand-new 18th
+carousel cell), the loop has **exhausted every static-patching
+approach available to its toolchain** and the requirement is
+**not achievable** without a wholesale rewrite of the
+Scaleform AS2 carousel — a major engineering effort outside
+this loop's scope.
+
+#### What IS achieved (iter-198 partial state, currently shipping)
+
+- **18-row `civnames_enu.txt`** and **`rulernames_enu.txt`**
+  overlays ship via the FPK repack path. Korean is at row 17
+  (index 16), Sejong at row 17. All 16 stock civs unchanged.
+- **iter-14 EBOOT parser-count patches** at `0xa2ee38` and
+  `0xa2ee7c` bump the worker count from 17 to 18.
+- **Runtime-verified** end-to-end (iter-203):
+  - Civs buffer at `*(0x1ac93b8) = 0x4002a0e0`, count = 18
+  - Rulers buffer at `*(0x1ac93b4) = 0x4002a004`, count = 18
+  - Korea at civs index 16 with FStringA `0x40029880`
+    "Koreans"
+  - Sejong at rulers index 16 with FStringA `0x40029520`
+    "Sejong"
+- **All stock civs regression-pass** (iter-198 Caesar/Mao/
+  Elizabeth/Random M9 PASSes).
+
+#### What is NOT achieved
+
+- Korea is NOT visible as a 17th carousel cell. Slot 16 of
+  the civ-select carousel still renders the stock "Random"
+  cell, and the cursor right-clamp still bounds at slot 16.
+  No PPU code path that we have been able to find surfaces
+  Korea to the rendering layer.
+
+#### Exhausted approaches (iterations 7–211)
+
+**Parser path** — ✅ unblocked:
+- iter-7..72: chased a phantom "17-wide buffer OOB" that
+  doesn't exist (iter-197 disproved via Ghidra; iter-198
+  empirically confirmed parser is dynamic).
+- iter-198: 18-row overlay boots clean. The parser is
+  unconditionally safe at count 18.
+
+**Static Scaleform-side `gfx_chooseciv.gfx` modifications** —
+all inert:
+- iter-178: `slotData17` constant pool extension + matching
+  `setVariable` block in tag[184]. Boot-safe but invisible.
+- iter-181..183: cursor right-clamp patches (later RETRACTED
+  in iter-186 as false positives from screenshot
+  misinterpretation).
+- iter-187: double-clamp patch — also failed.
+- iter-191..192: `LoadOptions` (tag[180] / char 98) hardcode
+  to 18. Boot-safe but `tag[180]` is a different panel,
+  not civ-select.
+- iter-195: tag[185] `_root.numOptions = 6` default flipped
+  to 18. Inert.
+- iter-200: tag[184] `_root.numOptions = 17` literal flipped
+  to 18 (the REAL setter, found via correct tag[184]
+  parsing). Inert.
+
+**Static EBOOT consumer functions** — all ruled out:
+- iter-150: `FUN_001e49f0` (suspected per-cell binder) — `b .`
+  trap → korea_play passes → not on path.
+- iter-154: `FUN_011675d8` — same.
+- iter-198: all 14 `li r8, 0x10` consumer sites bumped
+  together — RSX init hang.
+- iter-206: `FUN_001dc0d8` + `FUN_0x111dd70` — both `b .`
+  tested → korea_play passes → not on path.
+- iter-209: `FUN_001262a0` (the unrolled CIV_*.dds icon
+  registration discovered in iter-208) — `b .` tested →
+  korea_play passes → civilopedia init, not carousel.
+- iter-210: 2 CIVS-only `li r8` patches (one from each
+  consumer) — safe but inert.
+- iter-211: consumer A's full 7 patches together — safe but
+  inert.
+
+**Hypothesis invalidations:**
+- iter-186: retracts iter-181..183 cursor-clamp patches.
+- iter-201: invalidates iter-197's TOC mapping (used wrong r2
+  base for the dispatcher).
+- iter-202: corrects to `r2=0x194a1f8` for the dispatcher
+  TOC, identifies real civs buffer holder at `0x1ac93b8`.
+- iter-208: invalidates iter-193's `0xf070a0` "ChooseCiv
+  panel loader wrapper" hypothesis. `b .` at that address
+  passes — function is not on the civ-select path.
+- iter-211: invalidates the entire iter-198/210/211 "bump
+  the consumer count" approach — all `li r8` consumers are
+  off the carousel render path.
+
+**Dynamic instrumentation** — capability-blocked:
+- iter-201: RPCS3's GDB stub **rejects Z2/Z3/Z4 watchpoints**
+  (write/read/access). Only Z0 software code breakpoints
+  work. The PRD §6.2 EXECUTE block authorized
+  `gdb_client.py` Z2 extension as a first-class deep-RE
+  path, but the wrapper was already in place; the stub
+  itself doesn't implement watchpoints. Cannot trace
+  data-address reads.
+- Z0 code breakpoints work but require knowing which PC to
+  target. Each tested PC has been off the path.
+
+**Ghidra Jython** — used extensively:
+- 8+ Jython post-scripts under
+  `korea_mod/scripts/ghidra_helpers/`, decompiling all
+  candidate functions.
+- Jython approach exhausted for static analysis.
+
+#### The unified hypothesis (no further evidence required)
+
+The civ-select carousel rendering is **entirely
+Scaleform-side**. The PPU does NOT call into a "draw-civ-cell"
+function. The cells exist as static MovieClip instances in
+`gfx_chooseciv.gfx` with civ identification baked in at
+compile time. The PPU only:
+- Sends cursor input events to the panel
+- Reads the selected civ index back after user confirms
+- Looks up the chosen civ's data (from the parser buffer)
+  AFTER selection, for in-game initialization
+
+In this model, the carousel cell COUNT is hardcoded at the
+SWF/AS2 level, and adding a 17th visible cell would require
+extending the `gfx_chooseciv.gfx` file to add new MovieClip
+instances, adjust layout coordinates, patch cursor-bound
+logic in the AS2 bytecode, and resolve the carousel sprite's
+internal layout assumptions. **Every static AS2 modification
+attempted (4 separate angles in iter-178/192/195/200) has been
+inert.**
+
+#### The §9 DoD item 2 status under iter-189 strict reading
+
+**OPEN — STRUCTURALLY BLOCKED**.
+
+The "achievable maximum" under iter-189 is the iter-198
+shipping state: Korea/Sejong correctly parsed into the
+runtime buffers but invisible in the civ-select UI. This
+satisfies items 1, 5, 6 of §9 and the parser-side aspects of
+items 2-4, but does NOT satisfy the visibility aspect of
+item 2.
+
+#### What would unblock §9 item 2
+
+Two paths exist outside this loop's toolchain:
+
+1. **Wholesale `gfx_chooseciv.gfx` rewrite.** A Scaleform
+   GFx engineer would need to disassemble the carousel
+   sprite (likely tag[177] ChooseCivLeader, char 96), add a
+   17th MovieClip child instance, recompute layout
+   coordinates, patch the cursor-right-clamp AS2 bytecode,
+   and patch the `theOptionArray` initialization to include
+   the new cell. This is a multi-day effort with full
+   Scaleform tooling that is outside the bash/Python loop.
+
+2. **Runtime instrumentation of the live emulator.**
+   Hooking RPCS3 itself to expose Scaleform variable writes
+   and ASValue-table reads in real time would let us trace
+   the carousel cell factory at runtime and identify the
+   right place to patch. This requires modifying RPCS3's GDB
+   stub (or the SCEE GFx integration) to expose the
+   internal Scaleform state. Outside this loop's toolchain.
+
+#### Recommendation to the user
+
+The user explicitly tightened the directive to strict reading
+at iter-189 (after iter-176's v0.9 slot-replacement was
+declared insufficient). Under strict reading, the loop has
+hit a structural wall and cannot make further forward
+progress on item 2 with the available tools.
+
+**Two options for the user to choose from for v1.0 shipping:**
+
+(a) **Ship the iter-198 partial state** under the iter-189
+    strict reading, with item 2 documented as
+    structurally blocked. Korea exists in the binary; the
+    carousel just doesn't render her. Items 1, 5, 6 are
+    fully MET; items 2, 3, 4 are partial-MET (parser side
+    works; visibility / playability blocked).
+
+(b) **Relax the directive back to iter-176 v0.9-style**
+    slot-replacement: ship Korea as a rename of England at
+    slot 15 via `fpk_byte_patch.py`. This satisfies item 2
+    visibility (Korea IS at slot 15), items 3 and 4 (Korea
+    IS playable as Sejong via the slot-replacement), and
+    item 6, but FAILS item 5 (Elizabeth/English is no
+    longer playable at slot 15). User explicitly rejected
+    this approach at iter-189.
+
+**Until the user re-confirms a direction, the loop will
+continue working in good faith on whatever new angles
+appear, but should not expect breakthroughs on the
+strict-reading 18th-cell requirement.**
+
 ## 10. Progress Log
 
 This section is the agent's persistent state across ralph-loop iterations.
@@ -6602,6 +6793,46 @@ input).
 **PRD changes made this iteration:** Progress Log entry added.
 Patches applied and reverted within iteration. Net shipping
 state unchanged.
+
+### iter-212 (2026-04-15): formal §9 STRUCTURAL BLOCKER recorded; pivot to documentation
+
+After 33+ iterations specifically targeting the iter-189
+strict-reading 18th-cell requirement, every static-patching
+approach available to this loop's toolchain has been exhausted.
+iter-212 formalizes the blocker in the PRD §9 with a new
+"§9.X — STRUCTURAL BLOCKER" subsection that:
+
+- Documents the iter-198 achievable shipping state (parser-
+  side fully unblocked, Korea present in runtime buffers,
+  invisible in carousel UI).
+- Lists every exhausted approach across iter-7..iter-211.
+- Records the unified hypothesis that the carousel is
+  entirely Scaleform-side and the cell count is hardcoded at
+  the SWF/AS2 level.
+- Identifies the two paths outside this loop's toolchain
+  that would unblock item 2: (1) wholesale
+  `gfx_chooseciv.gfx` rewrite by a Scaleform GFx engineer,
+  or (2) runtime instrumentation hooking RPCS3 itself.
+- Presents the user with two choices for v1.0 shipping:
+  ship the iter-198 partial state under strict reading
+  (with item 2 documented as blocked), or relax back to
+  iter-176 v0.9 slot-replacement (which user explicitly
+  rejected at iter-189).
+
+**No code/asset/EBOOT shipping changes this iteration.** The
+PRD-level documentation update is the only artifact.
+
+The loop continues running in good faith for any new angles
+that appear, but will not artificially exit. iter-213+ should
+either pursue genuinely new leads or wait for user direction.
+
+**Verification artifacts:**
+- PRD §9.X structural blocker section
+- All previous iteration findings remain in place
+
+**PRD changes made this iteration:** Major §9 update
+documenting the structural blocker. New §9.X subsection added.
+Progress Log entry added.
 
 ### iter-211 (2026-04-15): consumer A's 7 `li r8 → 0x11` patches are SAFE but INERT — strict reading is structurally blocked
 
