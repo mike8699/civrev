@@ -6355,3 +6355,79 @@ panel descriptor.
 
 **PRD changes made this iteration:** Progress Log entry added.
 Static analysis only — no shipping changes.
+
+### iter-208 (2026-04-15): 0xf070a0 is NOT the ChooseCiv entry; found the CIV icon table and `FUN_001262a0`
+
+**iter-193 invalidated by diagnostic.** Planted `b .`
+(`0x48000000`) at `0xf070a0` (the `lwz r4, -0x2888(r2)`
+instruction iter-193 identified as the ChooseCiv panel-name
+loader wrapper entry). **Romans slot 0 M9 PASS.** The function
+is NOT reached on the boot-to-civ-select path.
+
+Python scan confirms: only 1 site in the entire binary does
+`lwz r4, -0x2888(r2)` (encoded as `0x8082d778`), and it's
+`0xf070a0`. So the "ChooseCiv" string at `0x169f438` is never
+loaded by any path that reaches civ-select. iter-193's panel-
+loader-wrapper hypothesis is structurally wrong.
+
+**CIV_*.dds icon table discovered** in rodata at
+`0x169fcf8..0x169fe28`: 18 `CIV_*.dds` filenames including
+`CIV_Random.dds` and `CIV_Barbairan.dds` (sic — typo in
+binary). Each is pointed to by a 4-byte slot in a **main-TOC
+pointer table at `0x1937d38..0x1937d7c`** (18 slots,
+reachable via `r2=0x193a288` at offsets `-0x2550..-0x250c`):
+
+| offset   | filename              |
+|----------|-----------------------|
+| r2+-0x2550 | CIV_Spain.dds       |
+| r2+-0x254c | CIV_Russia.dds      |
+| r2+-0x2548 | CIV_Rome.dds        |
+| r2+-0x2544 | CIV_Random.dds      |
+| r2+-0x2540 | CIV_Mongolia.dds    |
+| r2+-0x253c | CIV_Japan.dds       |
+| r2+-0x2538 | CIV_India.dds       |
+| r2+-0x2534 | CIV_Greece.dds      |
+| r2+-0x2530 | CIV_Germany.dds     |
+| r2+-0x252c | CIV_France.dds      |
+| r2+-0x2528 | CIV_England.dds     |
+| r2+-0x2524 | CIV_Egypt.dds       |
+| r2+-0x2520 | CIV_China.dds       |
+| r2+-0x251c | CIV_Barbairan.dds   |
+| r2+-0x2518 | CIV_Aztec.dds       |
+| r2+-0x2514 | CIV_Arabia.dds      |
+| r2+-0x2510 | CIV_America.dds     |
+| r2+-0x250c | CIV_Africa.dds      |
+
+**Three consumer regions access all 18 slots:**
+
+1. `0x12672x` range — **fully unrolled sequential**
+   (21+ `bl 0x126124` calls, each passing one icon).
+   Contained in **`FUN_001262a0`** (entry `0x1262a0`, size
+   1884 bytes, 0 direct BL callers = invoked indirectly).
+2. `0x94adxx` range — 18 unrolled calls.
+3. `0xf1axxx..0xf1daxx` range — 18 scattered per-civ
+   functions.
+
+**`FUN_001262a0` is the strongest carousel candidate to date.**
+It reads `r29->[0x60]` as a panel handle and calls
+`bl 0x126124(panel, icon_filename)` for every icon. This is
+the classic "populate all carousel cells with per-civ icons"
+pattern. Only question: is it the civ-select carousel or the
+civilopedia?
+
+**iter-209 plan:**
+1. Plant `b .` at `FUN_001262a0` entry. If korea_play 0 romans
+   hangs at civ-select transition, this IS the carousel init.
+   If it passes, it's civilopedia init.
+2. If carousel: decompile fully, figure out how to add a 19th
+   icon slot (Korea), create `CIV_Korea.dds` asset.
+3. If not carousel: the icon table + `FUN_001262a0` are still
+   useful leads for finding the real carousel via a parallel
+   indexed-access path.
+
+**Verification artifacts:**
+- `korea_mod/verification/iter208_civ_icon_table/findings.md`
+
+**PRD changes made this iteration:** Progress Log entry added.
+Diagnostic trap at `0xf070a0` applied and reverted; net
+shipping state unchanged.

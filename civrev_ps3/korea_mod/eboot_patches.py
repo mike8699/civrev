@@ -229,6 +229,19 @@ PATCHES: list[Patch] = [
     # boot-to-civ-select-to-in-game path — joining iter-150
     # (FUN_001e49f0) and iter-154 (FUN_011675d8) on the "not the
     # carousel" list. Traps removed; diagnostic recorded.
+
+    # iter-208 DIAGNOSTIC RESULT: b . at 0xf070a0 PASSED (Romans
+    # M9 clean). 0xf070a0 is NOT on the civ-select path, so
+    # iter-193's "ChooseCiv panel loader wrapper" hypothesis is
+    # WRONG. Either the function is dead code, or the civ-select
+    # panel is loaded under a different name / via a different
+    # path entirely. Trap removed; diagnostic recorded.
+    # Patch(
+    #     offset=0x00f070a0,
+    #     expected_old=b"\x80\x82\xd7\x78",
+    #     new=b"\x48\x00\x00\x00",
+    #     description="DIAG iter-208: b . trap at 0xf070a0",
+    # ),
     # Patch(
     #     offset=0x001dc0d8,
     #     expected_old=b"\xf8\x21\xff\x61",
