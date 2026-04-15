@@ -1,0 +1,14 @@
+{
+  "milestone": "M9",
+  "slot": 0,
+  "label": "caesar",
+  "pass": true,
+  "oracle": "OCR in-game HUD after selecting slot 0 (caesar)",
+  "stages": {
+    "main_menu": true,
+    "difficulty_selected": true,
+    "highlighted_ok": true,
+    "in_game_hud": true
+  },
+  "select_ocr": "vy i gal g~ \u2014_\u2014 2 | B }3) EEO EEE | ALi BY Cleopatra Alexander Isabella | VAN = a LLY, Egyptians Greeks Spanish | C\\\\ \u201cSeg ea ; i] | [AL Pm aren: ee a (eer Si VA | y ~ fe \u00ae : ne \u2014<geenn \u2014elpeaeneeey ("
+}

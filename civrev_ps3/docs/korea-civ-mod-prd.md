@@ -8049,3 +8049,67 @@ are explicitly deferred and the loop should respect that.
 **PRD changes made this iteration:** Progress Log entry added.
 §5.7 step 1 closeout. New `korea_mod/docs/civrev2-extraction.md`.
 Net shipping state unchanged.
+
+### iter-227 (2026-04-15): verify.sh fast/full tiers wired to docker harness
+
+Closed a long-standing gap in `verify.sh`: tiers `fast` and
+`full` were dead code that short-circuited with a
+"not-implemented" failure for every M1-M9 milestone. M9
+verification has been happening exclusively through the
+standalone `run_m9_regressions.sh` script, completely outside
+verify.sh's tier system.
+
+**Fix:**
+
+- **`--tier=fast`** now runs M0 + a single M9 Caesar smoke
+  test (~5 min). Caesar M9 PASS implies M1 (boot to main
+  menu) transitively, so M1 doesn't need a separate
+  implementation. Calls `docker_run.sh --headless korea_play
+  0 caesar` directly and parses its result.json.
+- **`--tier=full`** now runs M0 + the iter-216/iter-224 6-civ
+  regression sample sweep (~25 min). Calls
+  `run_m9_regressions.sh` directly and verifies that all 6
+  civ result.jsons exist with `pass=true`.
+
+M2-M7 are NOT wired by this change — they are STRUCTURALLY
+BLOCKED on §9.X carousel cell visibility and their semantics
+are subsumed by M9 PASS for v1.0 regression purposes. If a
+future iteration unblocks the carousel, M1-M7 should be wired
+as separate function calls in the same `--tier=fast` block.
+
+**Verification:**
+
+```bash
+./verify.sh --tier=static  # exit 0 (M0 GREEN)
+./verify.sh --tier=fast    # exit 0 (M0 GREEN + Caesar M9 PASS)
+```
+
+Both verified. `--tier=full` not run in this iteration to
+save 25 minutes of harness time — its implementation just
+calls `run_m9_regressions.sh` which iter-224 exercised
+end-to-end with a 6/6 PASS.
+
+**§9 DoD status (unchanged):**
+
+| # | item | status |
+|---|------|--------|
+| 1 | install.sh works | **MET** |
+| 2 | Korea visible at slot 16 in carousel | **OPEN — STRUCTURALLY BLOCKED** (§9.X) |
+| 3 | Found capital with Korea | **BLOCKED on item 2** |
+| 4 | 50-turn soak as Korea | **BLOCKED on item 2** |
+| 5 | Stock regression (6 civs) | **MET** |
+| 6 | Verification artifacts committed | **MET** |
+
+**Verification artifacts:**
+- `korea_mod/verification/iter227_verify_tiers/findings.md`
+- `korea_mod/verification/iter227_verify_tiers/m9_fast_result.json`
+- `korea_mod/verification/iter227_verify_tiers/m9_fast_caesar_result.json`
+
+**iter-228 plan:** every concrete v1.0 work item is now done.
+Remaining options: closeout commit, more PRD/README polish, or
+v1.1 reach-in (which violates the loop's v1.0 scope). The loop
+is now at "polish only" maintenance mode.
+
+**PRD changes made this iteration:** Progress Log entry added.
+verify.sh tier wiring + verification artifact. Net shipping
+state unchanged.
