@@ -5764,3 +5764,118 @@ step through to see where the bound comes from.
 
 **PRD changes made this iteration:** Progress Log entry added.
 Patch reverted — no shipping state change.
+
+### iter-201 (2026-04-15): RPCS3 GDB stub rejects Z2/Z3/Z4; iter-197 TOC mapping is wrong
+
+**Tool:** new `rpcs3_automation/test_civs_watchpoint.py` driven via
+`docker_run.sh civs_watch` (also wired into entrypoint.sh +
+Dockerfile). The probe launches RPCS3 with the iter-198 build,
+reaches the main menu, attaches GDB, pauses, reads the TOC slot
+that iter-197 identified as the civs buffer pointer, tries to
+install an access/read/write watchpoint on the live address, and
+polls for hits while driving civ-select.
+
+**Two hard findings:**
+
+### 1. RPCS3's GDB stub rejects Z2/Z3/Z4
+
+`set_access_watchpoint`, `set_read_watchpoint`, and
+`set_write_watchpoint` all return False when called against
+`0x1695720` (the expected Korea entry address). None of the three
+watchpoint types installs. The stub accepts `m` (read memory),
+`g`/`p` (read registers), and `\x03` (break) but refuses Z-packet
+watchpoints.
+
+`gdb_client.py` already has the correct Z-packet wrapper (it's
+been there since the initial commit). The wrapper is fine; the
+stub just doesn't implement watchpoints. **PRD §6.2's
+"extend gdb_client with Z2 watchpoints" is structurally blocked
+on the stub side** — no amount of client-side extension fixes
+this.
+
+**Only Z0 (software code breakpoints) + pause + memory reads are
+available for dynamic probing.** Every future dynamic probe must
+be a PC-tripwire, not a data-address tripwire.
+
+### 2. iter-197's TOC-slot mapping is wrong
+
+The probe read `*(0x193b6a4)` at runtime and got `0x1695660`.
+Reading the bytes at that address returned raw rodata strings
+`"CANCEL\0\0%d%s%s\0\0SetCredits\0\0\0\0\0\0\0\0GFX_CreditsScreen.gfx
+\0\0\0this.theLeaderNu..."`. This is a constant-pool of string
+literals, **not** a writable buffer holder.
+
+A segment-permissions scan of all 8 TOC slots iter-197 flagged as
+"buffer holders" (`r2 + 0x1400..0x141c`) reveals only **4 of 8**
+point to writable regions (.bss/.data). The other 4 — including
+the one I labelled "civs" — point into R-X rodata.
+
+| slot | value | segment |
+|---|---|---|
+| r2+0x1400 | 0x198bf10 | .bss RW |
+| r2+0x1404 | 0x188c258 | .data RW |
+| r2+0x1408 | 0x1886610 | .data RW |
+| r2+0x140c | 0x169c910 | rodata R-X |
+| r2+0x1410 | 0x1693fd0 | rodata R-X |
+| r2+0x1414 | 0x1694a80 | rodata R-X |
+| r2+0x1418 | 0x1b1e4b4 | .bss RW (almost certainly rulers) |
+| r2+0x141c | 0x1695660 | rodata R-X (NOT civs buffer) |
+
+The 4 rodata-pointing slots cannot be destinations of the parser
+worker's `*param_2 = new_buf_ptr` write. iter-197's identification
+of "civs buffer holder at `r2+0x141c`" is **wrong**. The 8 BL
+sites going into `FUN_00a2e640` must not all be parser calls, or
+the function at `0xa2e640` has polymorphic second-arg semantics,
+or iter-197 decompiled a misidentified function. Either way the
+static mapping needs redoing.
+
+**Possible explanation:** `addresses.py` has long held
+`KOREA_MOD_INIT_GENDERED_NAMES_DISPATCH = 0xa21ce8` and
+`KOREA_MOD_INIT_GENDERED_NAMES_WORKER = 0xa216d4` as the parser
+entry points (from iter-14's original Jython find). iter-17..22
+renamed to "real_parser_dispatcher/worker" at
+`0xa2ec54`/`0xa2e640`, and iter-197 decompiled those under the
+new names. The **real** civnames parser may still be the
+`0xa21ce8`/`0xa216d4` pair, and the iter-14 `li r5, 0x11 → 0x12`
+patches at `0xa2ee38`/`0xa2ee7c` may have zero effect on the
+real parser (they may live inside the WRONG function body and
+only look similar to parser count args).
+
+That would explain why iter-198's 18-row civnames booted
+cleanly even though my proposed mechanism "the count patch
+lets the parser allocate for 18" is probably NOT how it works.
+There must be a different, unpatched parser successfully
+parsing the 18-row overlay.
+
+**iter-202 plan:**
+
+1. **Re-decompile `FUN_00a21ce8` and `FUN_00a216d4`** — the
+   original iter-14 candidate names for the parser dispatcher
+   and worker. Confirm whether THEY are the real parsers, and
+   whether either mentions a writable .bss civs buffer holder.
+2. **Set a Z0 code breakpoint at `0xa2ee80`** (the supposed
+   "civs BL site") to capture the actual `r4` value passed at
+   runtime. If r4 = `0x1695660` (rodata), the call isn't a
+   parser call. If r4 is a dynamic address, follow it.
+3. **If `FUN_00a21ce8` is the real parser**, set a Z0 breakpoint
+   at its civs BL site and capture r4 there — that's the real
+   civs buffer holder.
+4. Once the real civs buffer is identified, dump its content
+   post-parse to confirm Korea is at index 16, then set a Z0
+   on `FUN_00a216d4`'s exit and race to find the next reader.
+
+**iter-201 negatives are also positives:**
+- The `test_civs_watchpoint.py` harness is working end-to-end:
+  launch → attach GDB → read memory → drive UI → poll. Future
+  dynamic probes fork this file with different logic.
+- `docker_run.sh civs_watch` is now a registered test mode.
+- The RPCS3 stub capability gap is documented — no future
+  iteration will waste cycles trying Z2/Z3/Z4 again.
+
+**Verification artifacts:**
+- `korea_mod/verification/iter201_watchpoint_probe/findings.md`
+- `.../iter201_result.json`
+
+**PRD changes made this iteration:** Progress Log entry added.
+New dynamic probe harness + entrypoint wiring. No shipping
+state change.

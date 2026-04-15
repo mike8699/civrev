@@ -283,6 +283,9 @@ elif [ "${1:-}" = "carousel_bp" ]; then
 elif [ "${1:-}" = "gdb_bp_poll" ]; then
     shift
     exec python3 test_gdb_bp_poll.py "$@"
+elif [ "${1:-}" = "civs_watch" ]; then
+    shift
+    exec python3 test_civs_watchpoint.py "$@"
 else
     exec python3 test_map.py "$@"
 fi

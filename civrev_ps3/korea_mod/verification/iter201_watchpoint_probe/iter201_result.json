@@ -1,0 +1,23 @@
+{
+  "iteration": "iter-201",
+  "civs_buf_ptr_slot": "0x193b6a4",
+  "runtime_buf_ptr": "0x1695660",
+  "korea_entry_addr": "0x1695720",
+  "watchpoint_kind": null,
+  "watchpoint_set": false,
+  "stops": [
+    {
+      "poll": 0,
+      "threads": []
+    },
+    {
+      "poll": 1,
+      "threads": []
+    }
+  ],
+  "buffer_snapshot": "43414e43454c00002564257325730000536574437265646974730000000000004746585f4372656469747353637265656e2e676678000000746869732e7468654c65616465724e75",
+  "error": null,
+  "buffer_count": 0,
+  "korea_fstring_ptr": "0x626c6974",
+  "korea_fstring_bytes": ""
+}
