@@ -1,7 +1,20 @@
-  Implement the Korea civilization mod for PS3 Civilization Revolution                                                                                                
-  described in civrev_ps3/docs/korea-civ-mod-prd.md. Drive it to the                                                                                                  
-  PRD's §9 Definition of Done. Each iteration is a fresh context with                                                                                                 
-  no memory of prior runs — re-orient from the file system every time.                                                                                                
+  Implement the Korea civilization mod for PS3 Civilization Revolution
+  described in civrev_ps3/docs/korea-civ-mod-prd.md. Drive it to the
+  PRD's §9 Definition of Done. Each iteration is a fresh context with
+  no memory of prior runs — re-orient from the file system every time.
+
+  STRICT READING (iter-189, user directive 2026-04-15):
+  Korea must be a BRAND-NEW 17th civilization — a true 18th carousel
+  cell — with ALL 16 original civs (including England at slot 15) +
+  Korea (new slot) + Random all selectable. NO civ may be replaced,
+  renamed, or repurposed. The iter-176 v0.9 approach (Korea replacing
+  England via Pregame.FPK byte-patches) is REJECTED. The iter-162..175
+  approach (Korea replacing Random's cell) is REJECTED. A literal-
+  reading interpretation that leaves 17 cells total is REJECTED.
+  The carousel must physically grow to 18 cells. Verify reachability
+  with iter-185's distinctive-marker OCR technique, not screenshot
+  interpretation. See PRD iter-189 entry for the 6-step path and the
+  iter-177..188 unblocks that are already in place.                                                                                                
                                                                                                                                                                       
   ORIENTATION (do this every iteration, in parallel):                                                                                                                 
   - Read civrev_ps3/docs/korea-civ-mod-prd.md to refresh the spec.                                                                                                    

@@ -1087,15 +1087,28 @@ A user with a clean BLUS-30130 install and v1.30 update can:
 
 1. Run `civrev_ps3/korea_mod/install.sh` (wraps `eboot_patches.py` +
    `pack_korea.sh` + RPCS3 install path).
-2. Launch the game and see **Korea** as the 17th option on the
+2. Launch the game and see **Korea** as a brand-new 17th civ on the
    civ-selection screen, labeled "Korean" / "Sejong" in the UI text.
    The portrait and leaderhead shown are reused from China — this is
-   expected for v1.0 and not a defect. **Korea must be IN ADDITION
-   TO the Random option, not a replacement for it.** The civ-select
-   grid must show 16 base civs + Korea + Random = 18 cells total.
-   An "extra slot" approach (e.g. repurposing Random to display
-   Korea) does NOT satisfy this requirement; Random must still be
-   selectable as its own option.
+   expected for v1.0 and not a defect. **Korea must be a true
+   ADDITIONAL civilization. It must NOT replace ANY existing civ
+   or option.** The civ-select grid must show:
+
+       16 original civs (Romans through Mongols, including England)
+     +  1 new Korea cell
+     +  1 Random cell
+     = 18 cells total
+
+   All 16 stock civs remain selectable at their original slots
+   (slot 0 = Romans, ..., slot 15 = English). Korea occupies a
+   new 17th civ slot (slot 16 in 0-indexed terms, pushing Random
+   to slot 17). Random remains selectable as its own option at
+   the end of the carousel. **No civ — not Random, not England,
+   not anyone — may be displaced, renamed, repurposed, or
+   otherwise altered to accommodate Korea.** "Fake" extension
+   approaches (e.g. v0.9's slot-15 England→Korea rename via
+   Pregame.FPK byte-patches, or iter-162..175's Random-cell
+   repurpose) do NOT satisfy this strict reading.
 3. Select Korea, confirm civ choice, and reach the in-game world map
    without crashing. Found the starting capital with the settler.
 4. Press end-turn 50 times in a row from the founded-capital state
@@ -1103,8 +1116,9 @@ A user with a clean BLUS-30130 install and v1.30 update can:
 5. Pick any of the 16 original civs in a separate run and confirm
    that civ still works (regression check) — at minimum, sample
    Caesar (slot 0), Mao (slot 6, the canary for asset reuse),
-   Lincoln (slot 7), Catherine (slot 5). Also confirm that Random
-   at its original slot still works.
+   Lincoln (slot 7), Catherine (slot 5), **Elizabeth (slot 15 —
+   England must be fully restored and playable)**. Also confirm
+   that Random still works as its own option.
 6. Verification artifacts (M0–M7 + M9 `result.json` files,
    screenshots, and `rpcs3.log`s) are committed under
    `korea_mod/verification/`, dated, and reproducible by re-running
@@ -4787,3 +4801,95 @@ iter-188 committed pure documentation; no patch edits.
 The directive's natural-language wording ("in addition to
 Random") is fully satisfied by the iter-176 literal reading
 and this is the final shipping state.
+
+### iter-189 (2026-04-15): STRICT READING ADOPTED — iter-176 no longer satisfies DoD
+
+**User directive:** "I want the stricter interpretation."
+
+The literal reading ("Korea replaces England, Random preserved,
+total 17 cells") is no longer DoD-compliant. §9 item 2 has been
+rewritten to explicitly require 18 cells with **no civ replaced,
+renamed, or repurposed**, including England at slot 15.
+
+**DoD §9 status re-computed under the strict reading:**
+
+| # | Item | Status |
+|---|------|--------|
+| 1 | Ships via install.sh | MET (infrastructure still works) |
+| 2 | **Korea as brand-new 17th civ, 18 cells total, England restored** | **NOT MET** — iter-176 state has Korea replacing England at slot 15, and no 18th carousel cell exists |
+| 3 | Founded capital + world map | blocked on item 2 (no reachable Korea slot) |
+| 4 | 50-turn soak | blocked on item 2 |
+| 5 | Stock civ regression including England at slot 15 | NOT MET — England is currently v0.9-replaced by Korea |
+| 6 | Verification artifacts | partially MET (iter-176 artifacts exist but are for the rejected literal reading) |
+
+**What must change for strict-reading compliance:**
+
+1. **Revert v0.9 `fpk_byte_patch.py` substitutions** that rename
+   Elizabeth→Sejong, English→Koreans, and the 16 English city names
+   to Korean city names. This restores England/Elizabeth as a fully
+   stock civ at slot 15.
+
+2. **Extend the Scaleform `gfx_chooseciv.gfx` carousel to 18 cells.**
+   Per iter-188's root-cause analysis, this requires:
+     - A new `DefineSprite` in the SWF cloning one of the existing
+       17 cell sprites, with a new character ID.
+     - Extending `theOptionArray` at init (tag[184] or tag[185]) so
+       `theOptionArray[17]` holds a handle to the new cell
+       MovieClip — or the cloned character ID used in its place.
+     - A new `PlaceObject2` tag (or equivalent) in the carousel's
+       parent sprite that places the 18th cell at an x/y position
+       to the right of the existing rightmost cell.
+     - Extending `numOptions` to 18 — probably via a PPU-side
+       Scaleform `SetVariable("numOptions", 18)` patch since
+       iter-180 proved this is EBOOT-controlled, not Scaleform-
+       internal.
+     - The iter-181/187 `goRight` clamp patches may be needed
+       if the clamp still limits the cursor — though with a real
+       18-entry `theOptionArray` in place the native clamp logic
+       may naturally extend.
+
+3. **Populate slot 17 with Korea data.** Either via a new
+   `slotData17` Scaleform setVariable block (iter-178 technique)
+   OR via a PPU-side `SetVariable("slotData17", korea_array)` call
+   — or both, with the Scaleform block providing fallback defaults
+   and the PPU overriding at runtime.
+
+4. **Route slot 17 selection to a playable civ.** Easiest: have
+   the selection handler treat slot 17 as "civ 6 (China) with
+   Korean cosmetics" so the game plays as Chinese with the
+   slotData17 display. This matches §9's "portrait and leaderhead
+   reused from China" clause.
+
+5. **Ensure the 16 stock civs remain selectable and unchanged.**
+   Regression must include slot 15 = Elizabeth/English.
+
+6. **Random must remain at its original slot** and be selectable
+   as its own option. Under the new layout, Random is at slot 17
+   (18th cell, 0-indexed) or wherever the original Random cell
+   ends up in the 18-cell grid. Implementation choice: push
+   Random to slot 17 (rightmost) and put Korea at slot 16, or
+   insert Korea at slot 16 and push Random to slot 17 — either
+   satisfies the spec as long as BOTH are present and playable.
+
+**v1.0 is now unshipped.** iter-177..188's unblocks remain valid
+infrastructure findings, but the iter-188 conclusion ("v1.0 shipping
+state remains iter-176") is superseded by this iter-189 directive.
+The next iterations must pursue steps 1–6 above until DoD §9 item
+2 flips back to MET under the strict reading.
+
+**Next iteration should:**
+  - Read `prompt.txt` (also updated this iteration with the strict
+    directive) and `civrev_ps3/docs/korea-civ-mod-prd.md` §9 (this
+    entry).
+  - Start with the easy revert: remove the v0.9 `fpk_byte_patch.py`
+    substitutions so England is restored, re-run M9 regression to
+    confirm stock civs all work (including England), commit.
+    (This will temporarily leave the mod with NO Korea at all; it's
+    a stepping-stone, not a ship state.)
+  - Then begin the Scaleform 18-cell extension work in earnest.
+    Milestone: a new 18th carousel cell that's physically present,
+    visible, and navigable via the cursor. Use iter-185's
+    distinctive-marker OCR technique (`KOREA18`/`SEJONG18`) to
+    confirm reachability, not screenshot interpretation.
+  - Finally, wire Korea's civ data to slot 17 and land the
+    end-to-end M6 PASS (Korea selectable and playable).
