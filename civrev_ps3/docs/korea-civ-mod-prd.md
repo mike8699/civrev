@@ -4226,6 +4226,74 @@ iter-180 made no committed patches; it was a diagnostic iteration
 that redirected the investigation from Scaleform-side to
 EBOOT-side work. iter-176 shipping state unchanged.
 
+### iter-181 (2026-04-14): BREAKTHROUGH — slot 17 reachable via goRight clamp extension
+
+**First successful reach beyond slot 16 in the carousel.** A single
+4-byte in-place patch to `gfx_chooseciv.gfx` extends the right-arrow
+cursor to slot 17. The carousel responds and renders a new (empty)
+18th cell.
+
+**The patch:** tag[188]'s `goRight` function at bc@0x28a pushes
+`i32=1` as the clamp subtrahend. The comparison is
+`theSelectedOption == numOptions - 1`. Patching the pushed `1` to
+`0` changes the comparison to `theSelectedOption == numOptions`,
+effectively extending the cursor max by 1.
+
+```
+file offset 0x7461  (tag[188] bc@0x28a)
+before: 96 05 00 07 01 00 00 00   # PUSH i32(1)
+after:  96 05 00 07 00 00 00 00   # PUSH i32(0)
+```
+
+**M9 test result (iter-181):**
+- `korea_play 17 clamp_test`: **PASS** (`in_game_hud: true`)
+- Screenshot shows cursor past slot 16 (Random) on a new cell
+  rendered as `"undefined / undefined"` (all text fields read
+  undefined because no slotData17 was populated).
+- The yellow right-arrow indicator is still visible — the
+  carousel thinks there's still something to scroll to beyond.
+
+Artifacts: `korea_mod/verification/iter181_slot17_reachable/`
+
+**Why "undefined":** after the clamp extension, the carousel tries
+to render `theActiveArray[17]` which doesn't exist. All text fields
+read from undefined members, so they display as `undefined`. The
+"?" silhouette 3D model is used as the fallback portrait for slot
+17 just like it is for slot 16.
+
+**Path forward for a fully populated slot 17:**
+  1. Apply the clamp extension patch (iter-181, 4 bytes).
+  2. Add `slotData17` to tag[184]'s constant pool and a new
+     setVariable block (iter-178, proven safe).
+  3. Extend `theActiveArray` to length 18 (constructor in tag[184]
+     bc@0x2d).
+  4. Populate slot 17 with Korea data — either clone slot 6's
+     (China's) entries or add Korea-specific strings.
+  5. Optionally add a new DefinePlaceObject for a custom portrait.
+
+**Side findings during iter-181:**
+  - `slotData%d\0` format string exists in the EBOOT at file
+    offset 0x168c518 / vaddr 0x169c518, with one TOC slot
+    (r2-0x3d04) and 3 lwz call sites at 0xdfd0c, 0xdffb8, 0xeb4a14.
+  - The loop at 0xdfd78..0xdffec that uses the `slotData%d` format
+    string has bound `r21` which is set to `1` at 0xdf690 — it's
+    not the 17-iteration bulk slot initializer I was hunting for.
+  - No `li rN, 17` exists within 120 bytes of any of the 43 lwz
+    sites that load the "numOptions" string pointer. The value 17
+    is not loaded as a literal near numOptions pointer access.
+  - 10 TOC slots point to "numOptions" scattered across 43 lwz
+    sites (iter-180 finding).
+
+**iter-181 made no committed patches.** The test edit was reverted
+by `korea_mod/install.sh` after verification. The committed shipping
+state remains iter-176.
+
+**Significance:** This is the first iteration that has physically
+moved the carousel cursor beyond slot 16 in RPCS3. Combined with
+iter-178's proven slotData17 pool extension and iter-177's FPK
+repacker unblock, the strict-reading "18 cells" path is now
+genuinely tractable — it just needs the data population steps.
+
 The directive's natural-language wording ("in addition to
 Random") is fully satisfied by the iter-176 literal reading
 and this is the final shipping state.

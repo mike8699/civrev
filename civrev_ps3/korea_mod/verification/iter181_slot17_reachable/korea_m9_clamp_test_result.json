@@ -1,0 +1,14 @@
+{
+  "milestone": "M9",
+  "slot": 17,
+  "label": "clamp_test",
+  "pass": true,
+  "oracle": "OCR in-game HUD after selecting slot 17 (clamp_test)",
+  "stages": {
+    "main_menu": true,
+    "difficulty_selected": true,
+    "highlighted_ok": false,
+    "in_game_hud": true
+  },
+  "select_ocr": "Ss | Genghis Elizabeth Random a | Khan English Random | f Pp \u00a5 Dy \\p ; P Ah : j ig 1 X ft * | 7 \u00bb } =\u2018 A u er. \\ | ~~ a 4 undefined = Veaare | a\" m7 vee \u00e9 = hog/ a \\ . | V2, Ae eee undefined * be ad |"
+}
