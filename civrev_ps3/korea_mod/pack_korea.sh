@@ -62,19 +62,41 @@ stage_fpk() {
 }
 
 stage_fpk Common0
-# iter-14 revert: bumping InitGenderedNames count 17→18 at the call
-# site is NOT sufficient to unblock civnames+rulernames extension —
-# the boot still crashes (see verification/M2_iter14). There must be
-# a downstream 17-wide buffer (pre-allocated, not sized by the r5
-# count arg) that still OOBs on the 18th entry. Reverting to the
-# v0.9 byte-patch path for Pregame. The eboot_patches.py li-17→18
-# patches at 0xa2ee38 / 0xa2ee7c are LEFT IN PLACE (harmless when
-# civnames/rulernames only have 17 entries each — they just cause
-# the loop to run one extra iteration with no data to write).
-if [ -f "$HERE/fpk_byte_patch.py" ]; then
-    echo "[pack_korea] Pregame: running in-place byte patcher (v0.9)"
-    python3 "$HERE/fpk_byte_patch.py" \
-        "$PS3_ROOT/Pregame.FPK" \
-        "$STAGE/Pregame_korea.FPK"
-    sha256sum "$STAGE/Pregame_korea.FPK"
-fi
+
+# iter-195 (2026-04-15): Pregame repack path.
+#
+# iter-190 reverted all v0.9 English→Korean substitutions, so
+# fpk_byte_patch.py is a no-op. We now route Pregame through the same
+# repack-from-directory path as Common0, patching gfx_chooseciv.gfx in
+# place before the repack.
+#
+# iter-177 proved that `fpk.py from_directory` on a plain extract of
+# Pregame.FPK is byte-identical to the stock original, so the repack
+# path is boot-safe. The iter-195 patch is a 4-byte same-size swap
+# inside gfx_chooseciv.gfx (numOptions default 6 -> 18).
+stage_pregame_repack() {
+    local src="$PS3_ROOT/extracted/Pregame"
+    local dst="$STAGE/Pregame_korea"
+    if [ ! -d "$src" ]; then
+        echo "[pack_korea] ERROR: $src missing. Run 1unpack.sh first." >&2
+        return 1
+    fi
+    rm -rf "$dst"
+    cp -r "$src" "$dst"
+
+    if [ -f "$HERE/gfx_chooseciv_patch.py" ]; then
+        echo "[pack_korea] Pregame: patching gfx_chooseciv.gfx (iter-195)"
+        python3 "$HERE/gfx_chooseciv_patch.py" \
+            "$dst/gfx_chooseciv.gfx" \
+            "$dst/gfx_chooseciv.gfx"
+    fi
+
+    python3 "$PS3_ROOT/fpk.py" repack "$dst"
+    local out_fpk="$STAGE/Pregame_korea.FPK"
+    if [ ! -f "$out_fpk" ]; then
+        echo "[pack_korea] ERROR: expected $out_fpk" >&2
+        return 1
+    fi
+    sha256sum "$out_fpk"
+}
+stage_pregame_repack

@@ -5258,3 +5258,86 @@ have not produced a working 18th cell. Continuing requires either:
      tools.
 
 iter-194 made no patch edits. Pure structural mapping.
+
+### iter-195 (2026-04-15): tag[185] `_root.numOptions` default is INERT — PPU overrides at runtime
+
+**Test:** flipped the i32 literal in tag[185]'s `_root.numOptions = 6`
+Push (file offset `0x59eb` of `gfx_chooseciv.gfx`, bc@0x3b7 inside
+the tag body) from `06 00 00 00` to `12 00 00 00`. Same-size byte
+swap, no reflow. Pregame.FPK rebuilt via the `fpk.py repack` path
+(iter-177 byte-identical-safe) instead of `fpk_byte_patch.py`.
+
+Verified the resulting Pregame_korea/gfx_chooseciv.gfx differed
+from stock at exactly one offset (0x59eb, `06`→`12`).
+
+**Probes:**
+| Slot | Label | Expected if hypothesis | Result |
+|---|---|---|---|
+| 15 | elizabeth (M6) | regression PASS | **PASS** (`highlighted_ok=true`, `in_game_hud=true`) |
+| 17 | slot17_probe2 (M9) | new 18th cell OR cursor reaches 17 | **CURSOR CLAMPED AT SLOT 16 (Random)** |
+
+The slot-17 06_slot_highlighted screenshot shows the cursor still
+locked on the **Random** cell after 17 right-presses, with the
+familiar "Random / Random" title and ??? era bonuses — exactly
+where it would clamp without any patch. No 18th cell visible.
+
+**Conclusion:** iter-194's hypothesis is **disproved**. The
+`_root.numOptions = 6` default in tag[185] is dead code for the
+civ-select use of the panel:
+- Boot still succeeds (file isn't broken)
+- Stock civs still work (Elizabeth M6 still PASSes)
+- No 18th cell appears
+- Cursor still right-clamps at slot 16
+
+The PPU is overriding `numOptions` (almost certainly via
+`Flash::Invoke "SetVariable"` against the "ChooseCiv" panel) at
+panel-init time, **before** tag[185]'s collection loop at bc@0x153
+ever consults the variable. Static AS2 defaults are dead by the
+time the carousel renders.
+
+This also rules out the right-clamp being in the AS2 — it still
+clamps at 16 with `numOptions=18` set statically. The cursor bound
+is reading whatever the PPU sets at runtime.
+
+**Infrastructure added (kept for future iterations):**
+- `civrev_ps3/korea_mod/gfx_chooseciv_patch.py` — the gfx hook
+  point; currently a no-op pass-through with the iter-195 negative
+  finding documented in the docstring.
+- `civrev_ps3/korea_mod/pack_korea.sh` Pregame path now uses
+  `fpk.py repack` (with overlay-and-patch) instead of the legacy
+  `fpk_byte_patch.py` route. Repacked Pregame_korea.FPK is
+  byte-identical to stock (SHA `69d771f4...`) confirming iter-177's
+  finding still holds and the new pipeline is inert when no patch
+  is applied.
+
+**Verification artifacts:**
+- `civrev_ps3/korea_mod/verification/iter195_numoptions_inert/findings.md`
+- `.../m6_elizabeth_result.json` (slot 15 PASS)
+- `.../m9_slot17_probe2_result.json` (slot 17 cursor-clamped-at-16)
+- `.../slot17_06_clamp_at_random.png` (visual proof)
+
+**Next iteration:** locate the PPU `Flash::Invoke "SetVariable"`
+that writes `numOptions` for the "ChooseCiv" panel. Two paths:
+1. Static — search the EBOOT for the `"numOptions"` rodata string,
+   walk every site that takes its address, look for the 2-arg
+   SetVariable shape feeding into the panel-loader wrapper at
+   `0xf070a0` (mapped iter-193). Scaleform Invoke wrappers
+   typically take (panel_handle, method_name, argc, args...).
+2. Dynamic — extend `gdb_client.py` with Z2 watchpoint support and
+   plant a write-watch on the live ASValue cell for `numOptions`
+   inside the GFx panel object (need to discover the address by
+   first finding the SetVariable wrapper or by snapshotting GFx
+   heap right after `0xf070a0` returns). PRD §6.2 deep-RE escalation
+   in EXECUTE applies.
+
+A complementary cheap probe worth running before deep-diving the
+PPU: write a distinctive marker into the existing `slotData16`
+block and rerun the slot-16 OCR to see whether the Random cell
+actually reads slotData arrays at runtime — if yes, the slotData
+array IS consulted for live rendering (just from a different bound
+than tag[185]'s default). If no, the slotData arrays are pure
+template data the runtime ignores entirely, and the whole
+slotDataN-extension approach (iter-178..188) was always going to
+be dead. Either way, knowing which is true narrows the search.
+
+**PRD changes made this iteration:** Progress Log entry added.
