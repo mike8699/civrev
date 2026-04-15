@@ -3497,6 +3497,22 @@ available, but the current toolchain has been exhausted.
 
 ## Final Status (iter-152, 2026-04-14)
 
+> **SUPERSEDED 2026-04-15 by iter-189 directive.** This section
+> documents the v0.9 slot-15-replacement state that was the
+> "final" target *before* the user tightened the directive at
+> iter-189 to require Korea as a brand-new 17th civ at a
+> brand-new 18th carousel cell with NO replacements. Under the
+> iter-189 strict reading, the v0.9 ship state described below
+> (Korea-as-renamed-England at slot 15) is REJECTED — see
+> §10 iter-176/189 entries for the rescope.
+>
+> The current actual v1.0 ship state is documented in §1.1
+> (top-of-file) and §10 iter-218/223 entries. §9 DoD items
+> 2/3/4 are STRUCTURALLY BLOCKED on the §9.X carousel cell
+> visibility issue. Items 1/5/6 are MET. The text below is
+> retained for historical context only; do not treat it as
+> the current ship state.
+
 The Korea civilization mod for PS3 Civilization Revolution
 (BLUS-30130) is committed at branch `korea-civ-mod` as v1.0
 ship state. Per prompt.txt's STOP WHEN clause #2 (§7.7 stop
@@ -8163,3 +8179,48 @@ polish, formal closeout commit, or v1.1 reach-in (out of scope).
 **PRD changes made this iteration:** Progress Log entry added.
 README polish + 2 orphan Ghidra scripts committed. Net shipping
 state unchanged.
+
+### iter-229 (2026-04-15): banner the stale "Final Status (iter-152)" PRD section
+
+A reader walking the PRD top-to-bottom would hit the
+**"Final Status (iter-152, 2026-04-14)"** standalone section
+near the middle of §10 and find it claiming that DoD items
+3/4/5/6 are "MET" and that the project's "final state" is
+the v0.9 slot-15-replacement build. This is **frozen state
+from before the user's iter-189 directive update** — under
+iter-189 strict reading, v0.9 was rejected and items 2/3/4
+became STRUCTURALLY BLOCKED.
+
+Added a SUPERSEDED banner at the top of the "Final Status
+(iter-152)" section pointing readers to §1.1 / §10
+iter-218/223 entries for the actual current ship state. The
+historical text is retained for context (the PRD is
+append-only by convention) but no longer reads as the live
+spec.
+
+This is the same kind of polish iter-219..220 applied to
+install.sh and README.md — bringing stale "v0.9 ships" /
+"iter-152 final" claims into line with the iter-218..223
+actual state. The PRD is now consistent top-to-bottom about
+what v1.0 actually ships.
+
+**§9 DoD status (unchanged):**
+
+| # | item | status |
+|---|------|--------|
+| 1 | install.sh works | **MET** |
+| 2 | Korea visible at slot 16 in carousel | **OPEN — STRUCTURALLY BLOCKED** (§9.X) |
+| 3 | Found capital with Korea | **BLOCKED on item 2** |
+| 4 | 50-turn soak as Korea | **BLOCKED on item 2** |
+| 5 | Stock regression (6 civs) | **MET** |
+| 6 | Verification artifacts committed | **MET** |
+
+**iter-230 plan:** every concrete v1.0 work item is closed;
+every documentation inconsistency I've spotted is now fixed.
+The loop is in deep maintenance polish mode; further
+iterations will keep finding small things but the marginal
+value is dropping.
+
+**PRD changes made this iteration:** Progress Log entry added.
+SUPERSEDED banner on "Final Status (iter-152)" section. Net
+shipping state unchanged.
