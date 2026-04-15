@@ -1,0 +1,183 @@
+openjdk version "25.0.2" 2026-01-20
+OpenJDK Runtime Environment (build 25.0.2+10-Ubuntu-124.04)
+OpenJDK 64-Bit Server VM (build 25.0.2+10-Ubuntu-124.04, mixed mode)
+INFO  Using log config file: jar:file:/home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Framework/Generic/lib/Generic.jar!/generic.log4j.xml (LoggingInitialization)  
+INFO  Using log file: /home/mike/.config/ghidra/ghidra_11.3.1_PUBLIC/application.log (LoggingInitialization)  
+INFO  Loading user preferences: /home/mike/.config/ghidra/ghidra_11.3.1_PUBLIC/preferences (Preferences)  
+INFO  Loading previous preferences: /home/mike/.ghidra/.ghidra_11.0.3_PUBLIC/preferences (Preferences)  
+INFO  Searching for classes... (ClassSearcher)  
+INFO  Class search complete (545 ms) (ClassSearcher)  
+INFO  Initializing SSL Context (SSLContextInitializer)  
+INFO  Initializing Random Number Generator... (SecureRandomFactory)  
+INFO  Random Number Generator initialization complete: NativePRNGNonBlocking (SecureRandomFactory)  
+INFO  Trust manager disabled, cacerts have not been set (ApplicationTrustManagerFactory)  
+INFO  Headless startup complete (1269 ms) (AnalyzeHeadless)  
+INFO  Class searcher loaded 57 extension points (18 false positives) (ClassSearcher)  
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::staticFieldOffset has been called by org.apache.felix.framework.util.SecureAction (file:/home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/Base/lib/org.apache.felix.framework-7.0.5.jar)
+WARNING: Please consider reporting this to the maintainers of class org.apache.felix.framework.util.SecureAction
+WARNING: sun.misc.Unsafe::staticFieldOffset will be removed in a future release
+INFO  HEADLESS Script Paths:
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Processors/PIC/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Debug/Debugger/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/PyGhidra/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Processors/8051/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/SystemEmulation/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/GnuDemangler/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Processors/Atmel/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/BytePatterns/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/Decompiler/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/WildcardAssembler/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Processors/DATA/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/FileFormats/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/Jython/ghidra_scripts
+    /home/mike/.config/ghidra/ghidra_11.3.1_PUBLIC/Extensions/Ps3GhidraScripts/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/Base/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Processors/JVM/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/BSim/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/FunctionID/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Debug/Debugger-rmi-trace/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/VersionTracking/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/SwiftDemangler/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/DecompilerDependent/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/PDB/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/MicrosoftCodeAnalyzer/ghidra_scripts (HeadlessAnalyzer)  
+INFO  HEADLESS: execution starts (HeadlessAnalyzer)  
+INFO  Opening existing project: /home/mike/Desktop/civrev/civrev_ps3/ghidra_v130/v130 (HeadlessAnalyzer)  
+INFO  Opening project: /home/mike/Desktop/civrev/civrev_ps3/ghidra_v130/v130 (HeadlessProject)  
+INFO  REPORT: Processing project file: /EBOOT_v130_clean.ELF (HeadlessAnalyzer)  
+INFO  SCRIPT: /home/mike/Desktop/civrev/civrev_ps3/korea_mod/scripts/ghidra_helpers/Iter199CarouselWriter.py (HeadlessAnalyzer)  
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.kenai.jffi.internal.StubLoader in an unnamed module (file:/home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/Jython/lib/jython-standalone-2.7.4.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+
+##############################################################################
+# iter-199: carousel writer hunt
+##############################################################################
+==============================================================================
+FUN_009bf5a0 (post-parse arg0 builder)  FUN_009bf5a0  (entry=009bf5a0 size=16)
+==============================================================================
+   1  
+   2  void FUN_009bf5a0(void)
+   3  
+   4  {
+   5    FUN_000297d0();
+   6    return;
+   7  }
+   8  
+
+  [no function at 0x9f1c80]
+
+==============================================================================
+FUN_00c72cf8 (parse-loop line storer)  FUN_00c72cf8  (entry=00c72cf8 size=244)
+==============================================================================
+   1  
+   2  void FUN_00c72cf8(undefined4 *param_1,undefined4 *param_2)
+   3  
+   4  {
+   5    ulonglong uVar1;
+   6    undefined4 uVar2;
+   7    longlong unaff_r2;
+   8    int iVar3;
+   9    undefined4 uStack_50;
+  10    undefined1 auStack_4c [4];
+  11    undefined4 uStack_48;
+  12    undefined1 auStack_44 [4];
+  13    int aiStack_40 [4];
+  14    
+  15    aiStack_40[0] = *(int *)(unaff_r2 + 0x6b98) + 0x10;
+  16    iVar3 = FUN_00c27ab4((ulonglong)param_1 & 0xffffffff,0x2c,0xffffffffffffffff);
+  17    if (iVar3 < 0) {
+  18      FUN_00c27328(&uStack_50,*param_1);
+  19      FUN_009f1d00((ulonglong)param_2 & 0xffffffff,uStack_50);
+  20      func_0x00c65ef8(&uStack_50);
+  21      goto LAB_00c72f70;
+  22    }
+  23    FUN_00c2f0d8((ulonglong)auStack_4c & 0xffffffff,(ulonglong)param_1 & 0xffffffff,(longlong)iVar3);
+  24    FUN_00c65188(aiStack_40,(ulonglong)auStack_4c & 0xffffffff);
+  25    func_0x00c653a8(auStack_4c);
+  26    FUN_00a3270c(aiStack_40);
+  27    FUN_00c27328(&uStack_48,aiStack_40[0]);
+  28    FUN_009f1d00((ulonglong)param_2 & 0xffffffff,uStack_48);
+  29    func_0x00c65ef8(&uStack_48);
+  30    FUN_00c2f114((ulonglong)auStack_44 & 0xffffffff,(ulonglong)param_1 & 0xffffffff,
+  31                 (longlong)(iVar3 + 1));
+  32    FUN_00c65188(aiStack_40,(ulonglong)auStack_44 & 0xffffffff);
+  33    func_0x00c653a8(auStack_44);
+  34    uVar1 = (ulonglong)aiStack_40 & 0xffffffff;
+  35    FUN_00a3270c(uVar1);
+  36    FUN_00c7521c(uVar1);
+  37    iVar3 = func_0x00c27ffc(uVar1,0x4d,0);
+  38    uVar2 = 0;
+  39    if (iVar3 < 0) {
+  40      iVar3 = func_0x00c27ffc(uVar1,0x46,0);
+  41      uVar2 = 1;
+  42      if (-1 < iVar3) goto LAB_00c72eb8;
+  43      iVar3 = func_0x00c27ffc(uVar1,0x4e,0);
+  44      if (-1 < iVar3) {
+  45        uVar2 = 2;
+  46        goto LAB_00c72eb8;
+  47      }
+  48    }
+  49    else {
+  50  LAB_00c72eb8:
+  51      *param_2 = uVar2;
+  52    }
+  53    iVar3 = func_0x00c27ffc((ulonglong)aiStack_40 & 0xffffffff,0x53,0);
+  54    uVar2 = 0;
+  55    if (iVar3 < 0) {
+  56      iVar3 = func_0x00c27ffc((ulonglong)aiStack_40 & 0xffffffff,0x50,0);
+  57      if (iVar3 < 0) goto LAB_00c72f70;
+  58      uVar2 = 1;
+  59    }
+  60    param_2[1] = uVar2;
+  61  LAB_00c72f70:
+  62    func_0x00c653a8(aiStack_40);
+  63    return;
+  64  }
+  65  
+
+  [no function at 0xc7258c]
+
+==============================================================================
+callers of FUN_009bf5a0:
+  0x00a7dde0
+  0x00a2eb20
+  0x00c26b4c
+  0x00c41914
+  0x00c295f4
+  0x00c3bab0
+  0x00c3bb2c
+  0x00c3d680
+  0x00a32224
+  0x00a32274
+  0x00a32308
+  0x00a323a0
+  0x00a45d34
+  0x00c2b570
+  0x00bd3824
+  0x00bd387c
+
+callers of FUN_009f1c80:
+  0x00a2eb50
+  0x00a00f28
+  0x009f1d14
+
+TOC slot r2+0x1440 = 0x193b6c8
+  -> 0x198bf08
+  *r2+0x1440 = 0x198bf08 (probably a class instance pointer)
+
+all references to addr 0x193b6c8 (r2+0x1440 slot):
+
+TOC slot r2+0x13fc = 0x193b684:
+  references:
+
+==============================================================================
+callers of FUN_00a2ec54 (real_parser_dispatcher):
+
+##############################################################################
+# end iter-199 dump
+##############################################################################
+INFO  REPORT: Save succeeded for processed file: /EBOOT_v130_clean.ELF (HeadlessAnalyzer)  

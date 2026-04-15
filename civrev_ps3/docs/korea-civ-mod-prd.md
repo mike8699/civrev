@@ -5621,3 +5621,78 @@ PRD §6.2 escalation applies.
   "OPEN — parser 17-wide buffer OOB" to "MET — iter-198 boots
   clean with 18-row civnames/rulernames + iter-14 parser-count
   bumps; iter-7..72 blocker was a misdiagnosis".
+
+### iter-199 (2026-04-15): post-parse block is NOT the carousel render path
+
+**Tool:** `analyzeHeadless` + new Jython script
+`scripts/ghidra_helpers/Iter199CarouselWriter.py`. Dump saved to
+`korea_mod/verification/iter199_carousel_writer/jython_dump.txt`.
+
+**Goal:** Chase the civ-select carousel render path from iter-197's
+post-parse block in `FUN_00a2e640` via its helper calls
+(`FUN_009bf5a0`, `FUN_009f1c80`, `FUN_00c72cf8`, `FUN_00c7258c`).
+
+**Decomp results:**
+
+- **`FUN_00c72cf8` is the per-line parser.** Takes `(line_str,
+  entry_ptr)`, splits on `','`, stores the left half at `entry[0]`
+  via `FUN_009f1d00`, and parses the right half for `'M'/'F'/'N'`
+  and `'S'/'P'` flags stored at `entry[1]` and `entry[2]`. Entry
+  layout is `{ FStringA name, int gender, int plurality }`.
+  This is the per-line parser that feeds the dynamic buffer —
+  **not** a carousel writer.
+
+- **`FUN_009bf5a0` is a 16-byte wrapper** around `FUN_000297d0`,
+  called from 16+ sites all over the binary. Not carousel-specific.
+
+- **`FUN_009f1c80` doesn't exist as a function in Ghidra's DB**
+  (wasn't auto-analyzed). Caller search finds 3 sites, all inside
+  the parser-side code path: `0xa2eb50` (parser worker post-parse),
+  `0xa00f28` (inside `FUN_00a00f54` entry init), and `0x9f1d14`
+  (adjacent helper). It's the "write FString to entry `[0]`"
+  setter used by both init and post-parse — NOT a carousel writer.
+
+- **`FUN_00c7258c` also missing from Ghidra's DB.**
+
+**Ghidra blind spot discovered:** `ref_mgr.getReferencesTo()`
+returns **zero references** for TOC slots `r2+0x1440` (= `0x193b6c8`)
+and `r2+0x13fc` (= `0x193b684`), and also zero callers for
+`FUN_00a2ec54` (the real_parser_dispatcher). This is because
+Ghidra's reference DB doesn't track `lwz rN, offset(r2)` loads as
+explicit references — only direct addressing. The dispatcher is
+reached via indirect/vtable dispatch, and the TOC slots are
+loaded via register-relative instructions that Ghidra's static
+reference pass can't resolve.
+
+**Consequence:** **simple caller-graph queries cannot find the
+civ-select carousel render path**. The civ-select panel's C++
+class is instantiated dynamically, its methods are dispatched via
+vtables, and the vtable slots are populated at runtime by C++
+constructors — none of which show up as cross-references.
+
+**iter-200 plan:**
+
+- **Option D (cheapest first):** try the iter-178 slotData17 gfx
+  extension on top of iter-198's 18-row overlay. iter-178 proved
+  slotData17 extension is boot-safe; iter-181..183 claims of "slot
+  17 reachable" were later retracted, but the combined
+  "parser-buffer-Korea + gfx-slotData17 + possibly li r8 bumped for
+  just CIVS" combo hasn't been tried. If the combo surfaces
+  Korea-like data at slot 16 or a new slot 17, that reveals the
+  source immediately.
+- **Option C (dynamic, most reliable):** extend `gdb_client.py`
+  with Z2 write-watchpoint support and plant a watchpoint on the
+  parser buffer header (`*param_2 - 4`) for civs immediately
+  after `real_parser_worker` returns. Whoever reads/writes that
+  region during civ-select panel init is the render path. PRD
+  §6.2 declares this first-class in-scope.
+- **Option A (static, last resort):** manually disassemble the
+  parser-worker return path and follow the buffer pointer's
+  storage into any class field (`stw rN, OFF(rO)` patterns),
+  then chase all readers of that field.
+
+**No code/asset/EBOOT changes this iteration.** Pure investigation
++ Jython tool under `scripts/ghidra_helpers/`.
+
+**PRD changes made this iteration:** Progress Log entry added.
+New Jython script committed.
