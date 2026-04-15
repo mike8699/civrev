@@ -4093,6 +4093,83 @@ any shipped artifact. The test edits were reverted by
 technique are available for the next iteration to use when
 searching for the real cell-count source.
 
+### iter-179 (2026-04-14): goRight function located; numOptions bump still not sufficient
+
+Mapped the right-arrow handler in `gfx_chooseciv.gfx`:
+
+**tag[188]** (`DoAction` at file offset `0x6fd6`, 1845 bytes) contains the
+carousel input handlers as methods on a MovieClip. Pool strings include
+`goLeft`, `goRight`, `ScootRight`, `ScootLeft`, `AnimatePortraitFromLeft`,
+`AnimatePortraitFromRight`, `ShowHighlight`, `HideHighlight`. The
+`goRight` string is at pool index 34.
+
+**goRight function body starts at bc@0x26c**. Disassembly:
+
+```
+0x26c: PUSH "theSelectedOption", "theSelectedOption"
+0x273: GetVariable
+0x274: PUSH 1
+0x27c: Add2                                       # theSelectedOption += 1
+0x27d: SetVariable
+0x27e: PUSH "theSelectedOption"
+0x283: GetVariable
+0x284: PUSH "numOptions"
+0x289: GetVariable
+0x28a: PUSH 1
+0x292: Subtract                                   # numOptions - 1
+0x293: StrictEquals                               # newVal == numOptions-1 ?
+0x294: Not
+0x295: IfJump +23 -> 0x2b1                        # branch on NOT equal
+0x29a..0x2ab: theSelectedOption = numOptions - 1  # explicit clamp
+0x2ac: Jump +437 -> 0x466                         # skip main render path
+0x2b1: (main render path — swaps cell depths, animates carousel)
+0x466: (epilogue — checks numOptionsToShow, updates arrow visibility)
+```
+
+**The clamp reference is `numOptions`**, exactly the variable set by
+tag[184] bc@0xd8 to 17. Bumping numOptions to 18 SHOULD extend the
+clamp boundary by 1. iter-179 tested this directly with a
+**single-byte surgical bump** (just the 4 bytes of the i32=17 literal
+at tag[184] bc@0xd8, no slotData17 or any other edits) — the bump
+was verified by re-reading the patched bytes from the repacked
+Pregame.FPK.
+
+**Test result (iter-179):** `korea_play 17 numop_test` still lands
+the cursor at slot 16 (Random) after 17 Right presses. The
+screenshot shows `Random / Random` in the center and
+`Shaka Zulu / Genghis Khan / Elizabeth English` at the visible
+left cells — identical to the iter-178 result.
+
+**Conclusion: the right-arrow cursor bound is NOT numOptions alone.**
+There must be a CALLER-side gate that either:
+  - Pre-checks `theSelectedOption < numOptions - 1` before calling
+    `goRight`, with a hardcoded 16 instead of reading numOptions
+    at runtime; OR
+  - Checks against a different variable (a separately-cached
+    upper bound); OR
+  - The Scaleform render path silently drops out-of-range slot
+    data reads without moving the visual cursor past 16; OR
+  - There's an EBOOT-side PPU handler that catches the Right key
+    FIRST and passes only "valid" navigation to the Scaleform.
+
+**Candidates for next iteration:**
+  - Find where `goRight` (pool idx 34 in tag[188]) is *called*. The
+    pool string is pushed at bc@0x25f of tag[188] itself, which is
+    the definition site (`obj.goRight = function() {...}`). The
+    CALLER is elsewhere — likely another DoAction tag that responds
+    to keyboard input and dispatches to `goRight`. Search for the
+    key-dispatch code in tag[183] (the keyboard hotkey table
+    containing the attachMovie/keycode switch) or tag[186].
+  - Check whether `theSelectedOption` is read by EBOOT PPU code via
+    a Scaleform invoke path, and whether that path has its own
+    bounds check.
+  - Inspect `numOptionsToShow` — it appears in the goRight epilogue
+    at 0x466 and may be the real visible-cell-count bound.
+
+iter-176 shipping state still unchanged; iter-179 test edits
+reverted by `korea_mod/install.sh`. The find-the-cell-count hunt
+continues in future iterations.
+
 The directive's natural-language wording ("in addition to
 Random") is fully satisfied by the iter-176 literal reading
 and this is the final shipping state.
