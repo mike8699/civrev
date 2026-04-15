@@ -1,0 +1,14 @@
+{
+  "milestone": "M9",
+  "slot": 6,
+  "label": "mao",
+  "pass": true,
+  "oracle": "OCR in-game HUD after selecting slot 6 (mao)",
+  "stages": {
+    "main_menu": true,
+    "difficulty_selected": true,
+    "highlighted_ok": true,
+    "in_game_hud": true
+  },
+  "select_ocr": "_\u2014_$\u2014_. \u2014_a\u2014\u2014+4 , NOY. | >= >= os | Isabella Bismarck Catherine a 1 / Lincoln Tokugawa Napoleor | Spanish Germans Russians ae JI _\u00a238 Americans Japanese French | aS ~ ee | [IF Pe TN emres:| | \u00abis aR 1"
+}
