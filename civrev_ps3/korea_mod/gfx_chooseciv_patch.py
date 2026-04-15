@@ -40,6 +40,27 @@ from pathlib import Path
 
 EXPECTED_SIZE = 59646
 
+# iter-200 (2026-04-15) NEGATIVE FINDING:
+#     Located and tested the REAL `_root.numOptions = 17` setter in
+#     tag[184] at bc@0x4af (file offset 0x52f8 for the i32 literal).
+#     iter-195 had patched tag[185]'s `numOptions = 6` default; that
+#     was the wrong tag. The live value is here in tag[184].
+#
+#     Swapped 0x52f8..0x52fb from `11 00 00 00` to `12 00 00 00`,
+#     rebuilt on top of iter-198's 18-row civnames/rulernames
+#     overlay (the first time both the parser buffer and the
+#     Scaleform numOptions literal were extended together), and
+#     probed slot 16 and slot 17 via the harness. slot 17 cursor
+#     STILL clamps at Random (slot 16). No visible change anywhere.
+#     The tag[184] numOptions literal is INERT for the cursor
+#     clamp — consistent with iter-179's isolated finding. The
+#     right-arrow handler is reading its upper bound from somewhere
+#     else (not numOptions, not tag[184]'s static default).
+#
+#     Patch reverted to no-op. Infrastructure preserved for future
+#     Scaleform edits that do move the needle.
+NUM_OPTIONS_I32_OFFSET = 0x52F8  # retained for future reference
+
 
 def patch(src_bytes: bytes) -> bytes:
     if len(src_bytes) != EXPECTED_SIZE:

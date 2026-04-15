@@ -5696,3 +5696,71 @@ constructors — none of which show up as cross-references.
 
 **PRD changes made this iteration:** Progress Log entry added.
 New Jython script committed.
+
+### iter-200 (2026-04-15): tag[184] `numOptions = 17` literal is also INERT
+
+**Correction to iter-195:** iter-195 patched tag[185]'s
+`_root.numOptions = 6` default at file offset `0x59eb` and found
+it INERT. iter-200 located the REAL `numOptions = 17` setter by
+parsing tag[184] (the DoAction holding `slotData0..slotData16 +
+numOptions` as pool entries). Pool count 96; entry 11 is
+`"numOptions"`, entry 93 is `"slotData16"`. At bc@0x4af inside
+tag[184]'s action stream (file offset `0x52f2`) is:
+
+```
+0x52f2  Push[(c1, idx=11 "numOptions"), (i32, value=17)]
+0x52fc  ActionSetVariable
+```
+
+The i32 literal 17 lives at `0x52f8..0x52fb` as `11 00 00 00`.
+This is the real Scaleform-local initializer for numOptions — not
+a PPU SetVariable override as iter-180 hypothesized.
+
+**iter-200 probe:** flipped `0x52f8` from `11 00 00 00` to
+`12 00 00 00` (same-size 4-byte swap, no tag-length reflow) via
+`gfx_chooseciv_patch.py`, rebuilt on top of iter-198's 18-row
+civnames/rulernames overlay — the first time both the parser
+buffer and the real Scaleform numOptions literal have been
+extended together.
+
+**Result:** slot 17 cursor STILL clamps at Random (slot 16).
+Slot 16 still renders "Random / Random". No visible change
+anywhere on the civ-select screen. The tag[184] numOptions
+literal is INERT for the cursor clamp, consistent with iter-179's
+isolated test and iter-186's retraction of iter-181..183.
+
+**Scaleform side is fully probed.** Every known static
+cell-count location in `gfx_chooseciv.gfx` has now been tested
+and none affect the carousel visible count:
+- tag[184] `numOptions = 17` literal (iter-179, iter-200) — inert
+- tag[185] `numOptions = 6` default (iter-195) — inert
+- tag[180]/char 98 LoadOptions loop bound (iter-192) — inert (not
+  the civ-select panel)
+
+Patch reverted to no-op in `gfx_chooseciv_patch.py`. The
+infrastructure (fpk.py repack path for Pregame, gfx patch hook)
+stays in place for future Scaleform edits that actually move the
+needle. Pregame_korea.FPK SHA back to the iter-198 baseline
+(`3ebdbbda...`).
+
+**iter-201 pivot: Option C (dynamic).** The right-arrow cursor
+bound is not in any static Scaleform or PPU location we've
+statically searched. Extend `gdb_client.py` with Z2
+write-watchpoint support and plant a watchpoint on the civnames
+buffer header (or the live `numOptions` ASValue) during
+civ-select panel init. Whatever code reads from the parser
+buffer's count word or writes the cursor bound is on the render
+path. PRD §6.2 EXECUTE block explicitly in-scope for this.
+
+**Alternate dynamic path:** set a GDB **code** breakpoint on the
+right-arrow key handler (must first find where it lives — grep
+for "R_RIGHT" / vtable method that handles controller right) and
+step through to see where the bound comes from.
+
+**Verification artifacts:**
+- `korea_mod/verification/iter200_numopt_tag184/findings.md`
+- `.../m9_slot17_probe_result.json` (slot 17 cursor-clamped-at-Random)
+- `.../m9_slot16_probe_result.json` (slot 16 still Random)
+
+**PRD changes made this iteration:** Progress Log entry added.
+Patch reverted — no shipping state change.

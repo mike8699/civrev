@@ -1,0 +1,14 @@
+{
+  "milestone": "M9",
+  "slot": 16,
+  "label": "slot16_probe",
+  "pass": true,
+  "oracle": "OCR in-game HUD after selecting slot 16 (slot16_probe)",
+  "stages": {
+    "main_menu": true,
+    "difficulty_selected": true,
+    "highlighted_ok": true,
+    "in_game_hud": true
+  },
+  "select_ocr": "SOS sy a Non = Piss \" \\ _\u2014s _7) \u2014 a \u2018 \\ = \"] | Aontezuma Shaka Genghis ; Hi i Random | Aztecs Zulu Khan a al Fe Random | [7 Pm tN nr: ei ee) oh bt SH : | i _~ \u00bb lero \u2014 see = s<' eee eee d AA GN | a =)"
+}
