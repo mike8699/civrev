@@ -116,11 +116,15 @@ results = {"pass": True, "checked": 0, "mismatches": []}
 for fpk_path in sorted(build_dir.glob("*_korea.FPK")):
     stage_name = fpk_path.stem.replace("_korea", "")
     stage = build_dir / f"{stage_name}_korea"
-    # FPKs produced by the in-place byte patcher (e.g., Pregame_korea.FPK)
-    # do NOT have a staging directory — they're bit-for-bit copies of the
-    # stock FPK with a few bytes overwritten. Skip the round-trip check for
-    # those; fpk_byte_patch.py's own asserts verify the expected_old bytes
-    # and the output FPK is guaranteed well-formed if the input was.
+    # iter-230 note: this branch dates from when Pregame_korea.FPK was
+    # produced by the in-place byte patcher (`fpk_byte_patch.py`), which
+    # bypassed the repack pipeline and therefore had no staging directory
+    # to round-trip-check. iter-195 retired that path and moved Pregame
+    # onto the `pack_korea.sh` repack flow alongside Common0, so every
+    # produced `_korea.FPK` now has a corresponding `_korea/` staging dir.
+    # The branch is retained as a defensive fallback — if a future
+    # iteration reintroduces a byte-patcher FPK, the M0b round-trip check
+    # will skip it cleanly instead of failing on the missing staging dir.
     if not stage.is_dir():
         results["checked"] += 1
         results["skipped_byte_patched"] = results.get("skipped_byte_patched", [])

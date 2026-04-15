@@ -8224,3 +8224,37 @@ value is dropping.
 **PRD changes made this iteration:** Progress Log entry added.
 SUPERSEDED banner on "Final Status (iter-152)" section. Net
 shipping state unchanged.
+
+### iter-230 (2026-04-15): comment polish — verify.sh M0b explainer
+
+Single-line polish: rewrote the verify.sh M0b round-trip
+helper's stale "fpk_byte_patch.py" comment to reflect the
+current state. The original comment dated from when Pregame
+went through the in-place byte patcher (no staging dir).
+iter-195 retired that path and moved Pregame onto the repack
+pipeline; every `_korea.FPK` now has a `_korea/` staging dir,
+so the byte-patcher branch in verify.sh is dead code in the
+current pipeline. Comment now documents this and explains
+the branch is retained as a defensive fallback for any
+future iteration that reintroduces a byte-patcher path.
+
+No code change. No verification re-runs.
+
+**§9 DoD status (unchanged):**
+
+| # | item | status |
+|---|------|--------|
+| 1 | install.sh works | **MET** |
+| 2 | Korea visible at slot 16 in carousel | **OPEN — STRUCTURALLY BLOCKED** (§9.X) |
+| 3 | Found capital with Korea | **BLOCKED on item 2** |
+| 4 | 50-turn soak as Korea | **BLOCKED on item 2** |
+| 5 | Stock regression (6 civs) | **MET** |
+| 6 | Verification artifacts committed | **MET** |
+
+**iter-231 plan:** the loop is in code-comment-cleanup
+territory now. Almost every concrete polish I can think of
+has been done. The next concrete value is in either (a)
+formal closeout commit or (b) v1.1 reach-in (out of scope).
+
+**PRD changes made this iteration:** Progress Log entry added.
+1-comment polish in verify.sh. Net shipping state unchanged.
