@@ -4700,6 +4700,90 @@ block cloning, distinctive-marker OCR verification) but none of
 these culminate in a reached slot 17. That is genuinely v1.1+
 territory gated on further EBOOT investigation.
 
+### iter-188 (2026-04-14): full goRight disasm — render path hits theOptionArray[idx]
+
+Completed the full 628-byte disassembly of `goRight` in tag[188]
+body (bc@0x26c..0x4e0). Key structural findings:
+
+**Three regions:**
+  - **0x26c..0x27d** — increment: `theSelectedOption += 1`
+  - **0x27e..0x2ac** — clamp check + clamp set
+    - if `theSelectedOption == numOptions - 1`: fall to clamp
+      path at 0x29a (explicit `theSelectedOption = numOptions - 1`,
+      jump to epilogue at 0x466)
+    - else: branch to RENDER at 0x2b1
+  - **0x2b1..0x465** — RENDER path (scroll animation, depth swap,
+    show highlight, update arrows, fades, tweens)
+  - **0x466..0x4e0** — EPILOGUE (numOptionsToShow check,
+    SlideTheBoxContainer, UpdateArrows, fscommand OnOption)
+
+**What the RENDER path touches:**
+  - `options_mov.getNextHighestDepth()`
+  - `theOptionArray[theSelectedOption].swapDepths(1)`
+  - `theOptionArray[theSelectedOption].ShowHighlight()`
+  - `this.UpdatePrimaryDisplay()`
+  - `theMainPanel.AnimatePortraitFromRight()`
+  - `theOptionArray[theSelectedOption - 1].ScootLeft()`
+  - `theOptionArray[theSelectedOption - 1].HideHighlight()`
+  - Check: `theOptionArray[theSelectedOption]._visible == false`
+  - if visible: tween the scroll container
+
+**The critical dependency: `theOptionArray[idx]`.** The carousel's
+per-cell state (visibility, depth, highlight) is stored in
+`theOptionArray`, an Array that's populated during INIT. If
+`theOptionArray` has 17 elements (indices 0..16), then
+`theOptionArray[17]` is `undefined`, and calling
+`.swapDepths(1)` or `.ShowHighlight()` on undefined throws an
+AS2 runtime error. The error bails out of the current `goRight`
+invocation, meaning `theSelectedOption` DID increment to 17 but
+the UI never animated the transition.
+
+**This explains the entire iter-177..187 confusion:**
+  - Clamp patches DO extend the stored cursor value (`theSelectedOption`
+    is 17 after press at slot 16).
+  - But the VISIBLE carousel strip shows 14/15/16 because the
+    render path errored out, leaving the strip in its prior
+    state (whatever was visible when cursor was at slot 16).
+  - The OCR text "Random Random" is slot 16's PREVIOUSLY-rendered
+    state leaking through.
+  - The screenshots that looked like "undefined" or "RANDOM/Romans"
+    were different kinds of partial-render corruption caused by
+    the same root cause.
+
+**What's needed for real strict-reading 18th cell:**
+
+  1. **Patch the clamp check OR set target** — pick either
+     (iter-181/iter-187 tried both; iter-187's double-patch
+     was probably sufficient).
+  2. **Extend `theOptionArray` to length 18.** This is where
+     the per-cell MovieClip handles live. `theOptionArray[17]`
+     must point at a real (or cloned) MovieClip that has
+     `swapDepths`, `ShowHighlight`, `HideHighlight`, `ScootLeft`,
+     `_visible`, etc. methods/properties. This almost certainly
+     requires ADDING a new DefineSprite tag cloning one of the
+     existing 17 cell sprites and appending it to
+     `theOptionArray` at init.
+  3. **OR: make the render path tolerate undefined
+     `theOptionArray[17]`.** This would be an in-place
+     instruction-skip patch making the cell animation
+     conditional: `if (theOptionArray[idx] != undefined) do
+     the animation; else just update the state`. That's a
+     more targeted patch but still requires finding/editing
+     each of ~8 undefined-sensitive call sites in the render
+     path.
+  4. **Plus the previously-noted PPU-side work** to populate
+     slotData17 with Korea-specific data and extend
+     `numOptions` to 18.
+
+**All of (1) + (2) + (3) + (4) are multi-iteration v1.1+ work.**
+The investigation is bounded honestly: 11 iterations (iter-177..
+iter-188) mapped the structural problem end-to-end but did not
+land a working 18th cell. The v1.0 shipping state remains
+iter-176 (literal reading: Korea at slot 15, Random at slot 16,
+all 6 DoD items MET).
+
+iter-188 committed pure documentation; no patch edits.
+
 The directive's natural-language wording ("in addition to
 Random") is fully satisfied by the iter-176 literal reading
 and this is the final shipping state.
