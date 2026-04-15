@@ -7903,3 +7903,60 @@ reading.
 §1.1 / top-of-file iter-222/223 reality-check banners added.
 Net shipping state unchanged from iter-223; verification
 baseline refreshed against the lean install.
+
+### iter-225 (2026-04-15): harness M9 filename uniformity fix
+
+Cleaned up the iter-224 elizabeth-flake at its root: dropped
+the historical `slot == 15 -> M6` special case in
+`rpcs3_automation/test_korea_play.py`. Now every invocation
+of the harness reports as M9 and writes
+`korea_m9_<label>_result.json`. `run_m9_regressions.sh`'s
+m9-glob check no longer needs a dual-path workaround for
+elizabeth.
+
+**Why the special case existed:** under v0.9 (Pregame.FPK
+byte-patch English→Korean substitution), slot 15 WAS Korea
+and M6 was the "Korea boots and plays" milestone in the
+original verification plan. Under the iter-189 strict
+reading, slot 15 is Elizabeth/English again and the M6
+routing is meaningless — it just produced non-uniform
+filenames that confused the §9 sweep tally.
+
+**Verification:** removed the stale
+`korea_m9_elizabeth_result.json` and re-ran
+`./docker_run.sh --headless korea_play 15 elizabeth`. Output:
+
+```
+M9 PASS — elizabeth game loaded
+wrote /output/korea_m9_elizabeth_result.json; pass=True
+```
+
+The result.json now reads `"milestone": "M9"` and lives at
+the m9-glob path. Confirmed.
+
+**§9 DoD status (unchanged from iter-224):**
+
+| # | item | status |
+|---|------|--------|
+| 1 | install.sh works | **MET** |
+| 2 | Korea visible at slot 16 in carousel | **OPEN — STRUCTURALLY BLOCKED** (§9.X) |
+| 3 | Found capital with Korea | **BLOCKED on item 2** |
+| 4 | 50-turn soak as Korea | **BLOCKED on item 2** |
+| 5 | Stock regression (6 civs) | **MET** (iter-216 + iter-224 6/6) |
+| 6 | Verification artifacts committed | **MET** |
+
+**Verification artifacts:**
+- `korea_mod/verification/iter225_m9_filename_fix/findings.md`
+- `korea_mod/verification/iter225_m9_filename_fix/korea_m9_elizabeth_result.json`
+
+**iter-226 plan:** the harness is now uniform; the lean
+shipping state is fully verified; the §9 DoD blocker is
+formally recorded with cross-platform proof. Remaining
+options are extremely low-leverage: closeout commit,
+README/install.sh polish, or attempting a fresh §5.7 CivRev 2
+APK extraction (DEFERRED to v1.1+ but the only §5
+investigation that hasn't been touched at all in this loop).
+
+**PRD changes made this iteration:** Progress Log entry added.
+Single-line fix in test_korea_play.py + verification artifact.
+Net shipping state unchanged.

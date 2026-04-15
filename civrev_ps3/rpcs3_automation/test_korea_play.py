@@ -57,8 +57,17 @@ def main():
         stderr=subprocess.STDOUT,
     )
 
+    # iter-225: dropped the historical `slot == 15 -> M6` special case.
+    # When this script was written under v0.9 (England→Korea slot-15
+    # replacement), slot 15 was Korea and M6 was the "Korea boots" milestone.
+    # Under the iter-189 strict reading, slot 15 is Elizabeth/English again
+    # and M6's semantics no longer apply — the harness should report every
+    # invocation as M9 (regression sweep) so result.json filenames are
+    # uniform under `korea_m9_<label>_result.json`. Without this fix,
+    # `run_m9_regressions.sh` misses the elizabeth result via its m9-only
+    # glob (see iter-224 findings).
     result = {
-        "milestone": "M6" if slot == 15 else "M9",
+        "milestone": "M9",
         "slot": slot,
         "label": label,
         "pass": False,
