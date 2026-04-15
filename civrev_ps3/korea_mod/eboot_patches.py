@@ -215,6 +215,15 @@ PATCHES: list[Patch] = [
     # Patch(0x0006c290, b"\xf8\x21\xff\x11", b"\x48\x00\x00\x00",
     #       "DIAG iter-217: b . trap at FUN_0006c290 (carousel ctor)"),
 
+    # iter-218 DIAGNOSTIC RESULT: b . at FUN_0006ff08 AND
+    # FUN_001bff04 both PASSED (Romans M9 clean). 9th and 10th
+    # candidate functions ruled out. The entire theOptionArray
+    # function family is OFF the civ-select carousel path on PS3.
+    # Patch(0x0006ff08, b"\xf8\x21\xff\x51", b"\x48\x00\x00\x00",
+    #       "DIAG iter-218: b . at FUN_0006ff08"),
+    # Patch(0x001bff04, b"\xf8\x21\xff\x61", b"\x48\x00\x00\x00",
+    #       "DIAG iter-218: b . at FUN_001bff04"),
+
     # iter-210 SELECTIVE TEST RESULT: 2 CIVS-only sites are SAFE
     # (boot passes) but INERT. No shipping value alone.
     #

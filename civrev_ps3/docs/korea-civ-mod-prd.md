@@ -7270,3 +7270,65 @@ The iter-189 strict-reading 18th-cell requirement remains
 Diagnostic patch applied and reverted within iteration. Net
 shipping state unchanged. Significant correction of iter-196's
 empirical-scan miss on `theOptionArray` strings.
+
+### iter-218 (2026-04-15): 9th and 10th candidates ruled out — `FUN_0006ff08` + `FUN_001bff04`
+
+Two more `b .` diagnostic traps in the theOptionArray family:
+
+- `FUN_0006ff08` (per-cell event handler that loads
+  `theOptionArray[%d].unitStack.{goLeft,goRight}` and formats
+  per-cell setters via sprintf+SetVariable) — original bytes
+  `0xf821ff51`
+- `FUN_001bff04` (caller of the carousel constructor
+  `FUN_0006c290` at site `0x1c00bc`) — original bytes
+  `0xf821ff61`
+
+Both traps active simultaneously. **Romans slot 0 M9 PASS** —
+boot, civ-select, in-game HUD all green. Neither function is
+on the civ-select code path.
+
+**9 PPU functions plus 14 `li r8` consumer sites plus 4
+Scaleform-side tag edits have now been definitively ruled
+out** as candidates for the civ-select carousel render path:
+
+| iter | candidate |
+|---|---|
+| 150 | FUN_001e49f0 |
+| 154 | FUN_011675d8 |
+| 198 | all 14 li r8, 0x10 collectively (RSX hang) |
+| 206 | FUN_001dc0d8 + FUN_0x111dd70 |
+| 208 | FUN_00f070a0 (iter-193's mistaken hypothesis) |
+| 209 | FUN_001262a0 (civilopedia init) |
+| 210 | 2 CIVS-only li r8 sites |
+| 211 | consumer A's 7 li r8 sites |
+| 217 | FUN_0006c290 (carousel constructor) |
+| **218** | **FUN_0006ff08 + FUN_001bff04** |
+
+Plus inert Scaleform-side modifications:
+- iter-178: tag[184] slotData17 pool extension
+- iter-192: tag[180] LoadOptions hardcode-18
+- iter-195: tag[185] numOptions=6 default
+- iter-200: tag[184] numOptions=17 literal
+
+**Definitive conclusion:** the PS3 civ-select carousel is
+**entirely Scaleform-side** with cells pre-authored as static
+MovieClip instances. **No PPU function exists on the carousel
+render path that can be patched to add a 17th visible cell.**
+
+The iter-189 strict-reading 18th-cell requirement is
+**structurally unachievable** with the static-patching
+toolchain. The iter-212 §9.X structural blocker stands.
+
+**Verification artifacts:**
+- `korea_mod/verification/iter218_two_more_traps/findings.md`
+- `.../m9_romans_pass.json`
+
+**iter-219 plan:** the carousel-finding effort has reached
+saturation. The remaining options are user re-confirmation of
+the strict-reading directive, more §6 polish work, or
+formal acknowledgment of the structural ceiling. No further
+candidate functions are visible from static analysis.
+
+**PRD changes made this iteration:** Progress Log entry added.
+Diagnostic traps applied + reverted within iteration. Net
+shipping state unchanged.

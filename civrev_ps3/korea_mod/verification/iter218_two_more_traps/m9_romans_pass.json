@@ -1,0 +1,14 @@
+{
+  "milestone": "M9",
+  "slot": 0,
+  "label": "romans",
+  "pass": true,
+  "oracle": "OCR in-game HUD after selecting slot 0 (romans)",
+  "stages": {
+    "main_menu": true,
+    "difficulty_selected": true,
+    "highlighted_ok": true,
+    "in_game_hud": true
+  },
+  "select_ocr": "iy eS P SESS | ' a Cleopatra Alexander Isabella | a } Egyptians Greeks Spanish | Ee pi Go 2\u201d * Za < lay a pf Sots 4 . | v ~ Ts \u00ae : a \u2014~ cena \u201calee (eee aaa acerca mamma aetna \u2014 naan 1 7 aA) \\ | ay ee "
+}
