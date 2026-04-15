@@ -7332,3 +7332,63 @@ candidate functions are visible from static analysis.
 **PRD changes made this iteration:** Progress Log entry added.
 Diagnostic traps applied + reverted within iteration. Net
 shipping state unchanged.
+
+### iter-219 (2026-04-15): install.sh header refreshed; pedia overlays audited
+
+Walked the §6/§9 audit per iter-218's "polish work" plan.
+
+**§6.3 audit:** verified that `console_pediainfo_civilizations.xml`
+and `console_pediainfo_leaders.xml` overlays both contain the
+expected Korea/Sejong entries:
+- `civilizations.xml` has `<EntryTag>CIV_KOREA</EntryTag>` with
+  `<EntryType>TYPE_CIV</EntryType>`, image references reusing
+  `PEDIA_CHINA_*.dds`, and a links section pointing at
+  `LEADER_SEJONG`, `BUILDING_LIBRARY`, `TECH_WRITING`,
+  `TECH_LITERACY`, `CONCEPT_CITIES`, `CONCEPT_CIVILIZATIONS`,
+  `CONCEPT_CULTURE`.
+- `leaders.xml` has `<EntryTag>LEADER_SEJONG</EntryTag>` with
+  `<EntryType>TYPE_LEADERS</EntryType>`, image references reusing
+  `PEDIA_MAO_*.dds`, and a links section pointing back at
+  `CIV_KOREA`, etc.
+
+Both files are the iter-176-era versions and remain valid for
+the current shipping state. §6.3 is fully complete and the pedia
+overlays correctly reference Korea/Sejong with reused
+China/Mao assets per the §6.3 spec.
+
+**install.sh header refresh:** the `install.sh` script's header
+comment described an outdated v1.0 state — referenced
+`fpk_byte_patch.py` (deprecated by iter-198's `fpk.py repack`
+path), claimed "14 static byte patches" (current is 6), and
+listed iter-159/162/165/167 patches that were REVERTED in
+iter-176.
+
+Updated the header to accurately describe the iter-218 shipping
+state:
+- 6 EBOOT patches (iter-4 ADJ_FLAT extension + iter-14 parser
+  count bumps)
+- 3 Common0.FPK overlays (leaderheads + 2 pediainfos)
+- 2 Pregame.FPK .txt overlays (civnames + rulernames)
+- Notes that the iter-159..175 series was reverted in iter-176
+  and that the carousel cell rendering remains structurally
+  blocked per iter-212 §9.X.
+
+**Empirical check:** ran `install.sh` end-to-end with the
+updated header. install.sh runs clean, copies Common0/Pregame
+FPKs to disc + dual-path EBOOT install, no errors. Then ran
+`verify.sh --tier=static` — still GREEN.
+
+**§9 DoD item 1 (`install.sh works`) is empirically MET** by
+this iteration's clean install run.
+
+**Verification artifacts:**
+- `install.sh` updated with accurate header
+- `verify.sh --tier=static` GREEN
+
+**iter-220 plan:** continue PRD walk for any remaining polish
+work, OR formally close out the loop with a final summary
+commit.
+
+**PRD changes made this iteration:** Progress Log entry added.
+Documentation polish only — install.sh header refreshed to
+match shipping state. Net shipping state unchanged.

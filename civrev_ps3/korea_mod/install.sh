@@ -12,13 +12,30 @@
 # Never touches the original stock FPKs under civrev_ps3/extracted/
 # or civrev_ps3/Common0.FPK — those are canonical sources.
 #
-# v1.0: installs the modded Common0.FPK, the byte-patched
-# Pregame_korea.FPK (fpk_byte_patch.py edits for civ/ruler/city
-# names), and the patched EBOOT_korea.ELF with 14 static byte
-# patches (iter-4 ADJ_FLAT relocation, iter-14 parser count bumps,
-# iter-159 slot 16 description, iter-162 title, iter-165 Sejong
-# TOC redirect, iter-167 era bonuses). See PRD §10 for per-
-# iteration patch breakdown.
+# v1.0 shipping state (current as of iter-218):
+#
+#  EBOOT_korea.ELF: 6 static byte patches via eboot_patches.py
+#    - iter-4 ADJ_FLAT pointer-table extension (16->17 entries with
+#      a Korean adjective slot) — 4 patches
+#    - iter-14 parser-count bumps (li r5, 0x11 -> 0x12 at 0xa2ee38
+#      and 0xa2ee7c, for RulerNames_ and CivNames_ init counts) —
+#      2 patches
+#
+#  Common0_korea.FPK: 3 XML overlays via fpk.py repack
+#    - leaderheads.xml — 17th LeaderHead entry for Sejong (iter-214)
+#    - console_pediainfo_civilizations.xml — CIV_KOREA pedia entry
+#    - console_pediainfo_leaders.xml — LEADER_SEJONG pedia entry
+#
+#  Pregame_korea.FPK: 2 .txt overlays via fpk.py repack
+#    - civnames_enu.txt — Koreans at row 17 (iter-198)
+#    - rulernames_enu.txt — Sejong at row 17 (iter-198)
+#
+# All patches/overlays in the iter-159..175 series (slot-16 cell
+# repurpose: title/description/era bonuses/Sejong TOC redirect)
+# were REVERTED in iter-176 and are not part of v1.0 shipping
+# under the iter-189 strict reading. The carousel cell rendering
+# remains structurally blocked per iter-212 (PRD §9.X). See
+# PRD §10 Progress Log for the full iteration history.
 
 set -euo pipefail
 
