@@ -5108,3 +5108,78 @@ via `install.sh`.
     17 by patching the EPILOGUE check at bc@0x466 in tag[188]
     (the `numOptions == numOptionsToShow` part), because that
     might be the real "you've reached the rightmost cell" gate.
+
+### iter-193 (2026-04-15): PPU panel-loader sites mapped
+
+Searched the EBOOT for Scaleform API strings and panel names.
+Findings:
+
+**EBOOT contains Scaleform method-name strings** (string pool, used
+internally by Scaleform's runtime):
+  - `attachMovie` at vaddr `0x16c4d68` (TOC slot `0x189b048`)
+  - `createEmptyMovieClip` at `0x16c4da0` (TOC slot `0x189b060`)
+  - `duplicateMovieClip` at `0x16c4d78` (TOC slot `0x189b050`)
+  - `OnLoad`, `OnInit` (multiple) — Scaleform event names
+  - `Invoke`, `InvokeParsed` — error-message templates from Scaleform's
+    `Flash::Invoke` implementation (not user call sites)
+
+These are name strings for Scaleform's runtime registry, not direct
+call sites. They confirm the EBOOT's bundled Scaleform implementation
+exposes the standard AS2 MovieClip API to PPU code via `Invoke()`.
+
+**EBOOT contains the panel name `"ChooseCiv"`** at vaddr `0x169f438`
+with one TOC slot at `0x1937a00`. The TOC slot is loaded by 5 lwz
+sites in the text segment:
+  - `0x11d9b8`, `0x11e74c`: setup wrappers in a different code path
+  - `0xf070a0`: a small standalone wrapper function:
+    ```
+    f07040: lwz r4, -0x2890(r2)  ; "Stamp" or similar
+    f07044: bl 0xf05aa8          ; small helper
+    ...
+    f07070: lwz r4, -0x288c(r2)  ; "Gibbon" or similar
+    f07074: bl 0xf05aa8
+    ...
+    f070a0: lwz r4, -0x2888(r2)  ; <<< "ChooseCiv"
+    f070a4: bl 0xf05aa8
+    f070a8: blr
+    ```
+    This is a TABLE OF SHARED PANEL LOADER WRAPPERS. Each wrapper
+    is ~36 bytes, loads a different panel name, and calls a common
+    helper at `0xf05aa8`. The helper at `0xf05aa8` is presumably
+    the panel-resource registrar that maps panel name → SWF asset
+    path → Scaleform load.
+  - `0x93827c`, `0x9382ec`: usage in a larger function (scoring or
+    selection logic — referenced civsmaster lookup).
+
+**Implication:** The civ-select panel is loaded as a named resource
+("ChooseCiv") via PPU at `0xf070a0`. The actual cell-spawning logic
+must be inside `gfx_chooseciv.gfx` itself, but iter-191/192 proved
+that the only `attachMovie` site (in tag[180]/char 98 LoadOptions)
+is NOT the civ-select cell factory. So the civ-select cells are
+either:
+
+  (a) Pre-authored `PlaceObject2` placements at top level — but
+      iter-192 showed only 4 top-level PlaceObject2 tags exist
+      (`tag[224]/225/227/323`), which includes `options_mov`
+      (char 98), Title_txt, and a couple others. None of these is
+      a 17-cell direct placement.
+
+  (b) Pre-authored as 17 child clips inside ONE sprite that I
+      haven't enumerated. Earlier search found tag[223] (char 132)
+      with 13 PO2 children and tag[310] (char 216) with 43 PO2
+      children. Neither has exactly 17. Need to enumerate ALL
+      sprites and check inner contents for civ-related strings.
+
+  (c) Created at runtime by another sprite's DoAction that uses
+      `createEmptyMovieClip` (which exists at tag[223]/char 132 and
+      tag[326]/id=59). These are the only 2 occurrences globally.
+      tag[223] is char_id 132 — possibly the actual civ-select
+      carousel parent. tag[326] is id=59 (Scaleform-specific
+      ImportAssets2 or similar).
+
+**Next iteration: investigate tag[223] (DefineSprite char_id=132)**.
+It has `createEmptyMovieClip` references and 13 PO2 children. If
+its inner DoAction creates the carousel cells, that's the real
+factory.
+
+iter-193 made no patch edits. Pure PPU/Scaleform structural mapping.
