@@ -206,12 +206,22 @@ PATCHES: list[Patch] = [
     #                                         WONDERS WONDERS_FEM
     #                                         RULERS CIVS
     # iter-210 SELECTIVE TEST RESULT: 2 CIVS-only sites are SAFE
-    # (boot passes) but INERT (slot 16 still Random, cursor still
-    # clamped at 16). Disabled again — no need to ship inert
-    # patches.
-    # Patch(0x01167948, b"\x39\x00\x00\x10", b"\x39\x00\x00\x11", "iter-210 A CIVS"),
-    # Patch(0x01167dc8, b"\x39\x00\x00\x10", b"\x39\x00\x00\x11", "iter-210 B CIVS"),
-    # All other 12 sites stay disabled (iter-198 broke boot with all 14):
+    # (boot passes) but INERT. No shipping value alone.
+    #
+    # iter-211 BINARY SEARCH RESULT: all 7 of consumer A's
+    # patches together are SAFE but INERT. boot passes, slot 16
+    # still Random, slot 17 still clamped. So the iter-198
+    # breakage is ENTIRELY in consumer B's 7 patches. But since
+    # consumer A is inert, even bisecting consumer B further
+    # has no carousel-rendering value.
+    # Patch(0x011676dc, b"\x39\x00\x00\x10", b"\x39\x00\x00\x11", "A TECH"),
+    # Patch(0x01167744, b"\x39\x00\x00\x10", b"\x39\x00\x00\x11", "A FAMOUS"),
+    # Patch(0x011677ac, b"\x39\x00\x00\x10", b"\x39\x00\x00\x11", "A CITIES"),
+    # Patch(0x01167814, b"\x39\x00\x00\x10", b"\x39\x00\x00\x11", "A WONDERS"),
+    # Patch(0x0116787c, b"\x39\x00\x00\x10", b"\x39\x00\x00\x11", "A WONDERS_FEM"),
+    # Patch(0x011678e4, b"\x39\x00\x00\x10", b"\x39\x00\x00\x11", "A RULERS"),
+    # Patch(0x01167948, b"\x39\x00\x00\x10", b"\x39\x00\x00\x11", "A CIVS"),
+    # Consumer B sites stay disabled:
     # Patch(0x011676dc, b"\x39\x00\x00\x10", b"\x39\x00\x00\x11", "consumer A TECH"),
     # Patch(0x01167744, b"\x39\x00\x00\x10", b"\x39\x00\x00\x11", "consumer A FAMOUS"),
     # Patch(0x011677ac, b"\x39\x00\x00\x10", b"\x39\x00\x00\x11", "consumer A CITIES"),

@@ -1,0 +1,14 @@
+{
+  "milestone": "M9",
+  "slot": 17,
+  "label": "slot17_consA",
+  "pass": true,
+  "oracle": "OCR in-game HUD after selecting slot 17 (slot17_consA)",
+  "stages": {
+    "main_menu": true,
+    "difficulty_selected": true,
+    "highlighted_ok": false,
+    "in_game_hud": true
+  },
+  "select_ocr": "ee ee eee | f | Shaka Genghis Elizabeth |_| | Zulu Khan English \u201ca | {A ro Xp ror, \u2018 7 8 i G4 % Y | 4 > = 1 SOA \\ | ~~ a o) Random 5 ais ot } AY | \\) Saeee: E Random : RSET USN. | or & be aoe | \u2014 : mt"
+}

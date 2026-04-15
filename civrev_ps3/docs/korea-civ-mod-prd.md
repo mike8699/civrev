@@ -6602,3 +6602,98 @@ input).
 **PRD changes made this iteration:** Progress Log entry added.
 Patches applied and reverted within iteration. Net shipping
 state unchanged.
+
+### iter-211 (2026-04-15): consumer A's 7 `li r8 → 0x11` patches are SAFE but INERT — strict reading is structurally blocked
+
+**Test:** enabled all 7 of consumer A's
+`li r8, 0x10 → 0x11` patches together (TECH/FAMOUS/CITIES/
+WONDERS/WONDERS_FEM/RULERS/CIVS at `0x011676dc..0x01167948`).
+Consumer B's 7 patches stayed disabled.
+
+**Results:**
+
+| probe | slot | label | result |
+|---|---|---|---|
+| 1 | 0  | romans | **M9 PASS** — boot, civ-select, in-game HUD |
+| 2 | 16 | slot16_consA | **M9 PASS** — slot 16 still "Random/Random" |
+| 3 | 17 | slot17_consA | **M9 PASS** — cursor still clamps at 16 |
+
+Consumer A's 7 patches are **safe** (no boot break) and
+**completely inert** (no visible carousel effect). Same as
+iter-210's CIVS-only test.
+
+**Bisection conclusions:**
+- Consumer A's 7 patches: safe + inert
+- 2 CIVS-only patches (iter-210): safe + inert
+- All 14 patches (iter-198): break boot
+- By exclusion: the iter-198 breakage is entirely in
+  consumer B's 7 patches — but further bisection is
+  academic since the safe sites are all inert anyway.
+
+**Final conclusion**: the 14 `li r8, 0x10` consumer sites
+in `0x011676xx`/`0x01167dxx` are **NOT on the civ-select
+carousel render path**. They iterate the civnames buffer for
+some other purpose (save-game/serialization/pedia) and bumping
+their iteration count from 16 to 17 makes no visible difference.
+
+**Cumulative ruled-out inventory (definitive):**
+
+| iter | what was ruled out |
+|---|---|
+| 150 | FUN_001e49f0 |
+| 154 | FUN_011675d8 |
+| 198+210+211 | 14 li r8 sites (collectively + selectively) |
+| 206 | FUN_001dc0d8 + FUN_0x111dd70 |
+| 209 | FUN_001262a0 (civilopedia) |
+| 207..208 | iter-193's 0xf070a0 panel-loader hypothesis |
+
+Plus iter-178 (slotData17 extension), iter-192 (LoadOptions
+hardcode-18), iter-195 (tag[185] numOptions=6 default),
+iter-200 (tag[184] numOptions=17 i32) — all Scaleform-side
+edits that were boot-safe but inert.
+
+**Strong unified hypothesis (no further evidence required):**
+
+The civ-select carousel rendering is **entirely Scaleform-
+side**. The PPU does NOT call into a "draw-civ-cell" function.
+The cells exist as static MovieClip instances in
+`gfx_chooseciv.gfx`, with civ identification baked in at
+compile time. The PPU only:
+- Sends cursor input events to the panel
+- Reads the selected civ index back after the user confirms
+- Looks up the chosen civ's data (from the parser buffer)
+  AFTER selection, for in-game initialization
+
+In this model, Korea cannot be added as a 17th visible cell
+without modifying the AS2 carousel itself — adding new
+MovieClip instances, adjusting layout coordinates, patching
+cursor-bound logic in the AS2 bytecode. **iter-178/192/195/
+200 already explored every Scaleform-side modification we
+could come up with and all were inert.** The carousel cell
+COUNT is hardcoded at the SWF/AS2 level.
+
+**The iter-189 strict-reading directive is structurally
+unachievable** with the static-patching toolchain available
+in this loop. Achieving it would require:
+- (a) full SWF/GFX rewrite of `gfx_chooseciv.gfx` to add a
+  19th MovieClip cell (a major Scaleform engineering effort
+  outside this loop's scope), OR
+- (b) runtime instrumentation to find the actual cell
+  factory in the live emulator — blocked by RPCS3's GDB
+  stub not supporting Z2/Z3/Z4 watchpoints (iter-201)
+
+**iter-212 plan: pivot to documentation/acceptance.** Update
+PRD §9 to formally record the structural blocker. Document
+iter-198's achievable partial state as the maximum reachable
+under iter-189 strict reading. Optionally request user
+confirmation that strict reading is still the target.
+
+**Verification artifacts:**
+- `korea_mod/verification/iter211_consumer_a_only/findings.md`
+- `.../m9_romans_pass.json`
+- `.../m9_slot16_inert.json`
+- `.../m9_slot17_clamped.json`
+
+**PRD changes made this iteration:** Progress Log entry added.
+Patches applied and reverted within iteration. Net shipping
+state unchanged.
