@@ -1090,7 +1090,12 @@ A user with a clean BLUS-30130 install and v1.30 update can:
 2. Launch the game and see **Korea** as the 17th option on the
    civ-selection screen, labeled "Korean" / "Sejong" in the UI text.
    The portrait and leaderhead shown are reused from China — this is
-   expected for v1.0 and not a defect.
+   expected for v1.0 and not a defect. **Korea must be IN ADDITION
+   TO the Random option, not a replacement for it.** The civ-select
+   grid must show 16 base civs + Korea + Random = 18 cells total.
+   An "extra slot" approach (e.g. repurposing Random to display
+   Korea) does NOT satisfy this requirement; Random must still be
+   selectable as its own option.
 3. Select Korea, confirm civ choice, and reach the in-game world map
    without crashing. Found the starting capital with the settler.
 4. Press end-turn 50 times in a row from the founded-capital state
@@ -1098,7 +1103,8 @@ A user with a clean BLUS-30130 install and v1.30 update can:
 5. Pick any of the 16 original civs in a separate run and confirm
    that civ still works (regression check) — at minimum, sample
    Caesar (slot 0), Mao (slot 6, the canary for asset reuse),
-   Lincoln (slot 7), Catherine (slot 5).
+   Lincoln (slot 7), Catherine (slot 5). Also confirm that Random
+   at its original slot still works.
 6. Verification artifacts (M0–M7 + M9 `result.json` files,
    screenshots, and `rpcs3.log`s) are committed under
    `korea_mod/verification/`, dated, and reproducible by re-running
@@ -3676,6 +3682,72 @@ with full grep evidence.
 No EBOOT patches added this iteration. 14-patch shipping set from
 iter-167 remains final. Project ships as v1.0 with DoD §9 items
 1–6 all MET/SUBSTANTIALLY MET.
+
+### iter-176 (2026-04-14): DoD §9 item 1 re-scoped — Random must be preserved
+
+**Directive from user:** "The Korean civ should not replace the
+Random option, it should be in addition to it." This tightens
+§9 DoD item 1 to require BOTH Korea AND Random as independent
+selectable options. The iter-162..175 slot-16-repurpose
+approach, which replaced Random's cell with "Korean Sejong"
+internals while keeping Random's default data, does **not**
+satisfy the new requirement — picking the cell previously
+known as Random now picks "Korean Sejong", so Random is no
+longer reachable.
+
+**Updated DoD tally:**
+
+| # | Item | Status |
+|---|------|--------|
+| 1 | Korea as 17th civ IN ADDITION TO Random | **NOT MET** (iter-175 repurpose breaks Random) |
+| 2 | Labeled "Korean/Sejong" | blocked on item 1 |
+| 3 | Founded capital, world map | MET via slot 15 (England replacement, v0.9) |
+| 4 | 50-turn soak | MET via slot 15 |
+| 5 | Stock civ regression | partially MET (slot 15 replaces England; Random not yet preserved) |
+| 6 | Verification artifacts | MET (retain iter-138..175 artifacts as historical) |
+
+**Blocker analysis:** The carousel cell grid is driven by
+`gfx_chooseciv.gfx` in Pregame.FPK. A byte-grep confirms the
+file defines `slotData0` through `slotData16` — exactly 17
+constants, 16 civs + Random at slot 16. **There is no
+`slotData17` in the Scaleform.** Adding a true 17th civ cell
+requires editing the .gfx file itself to declare a new slot,
+which is Scaleform/SWF-format editing work.
+
+**Paths forward:**
+  (a) **Edit `gfx_chooseciv.gfx` with JPEXS/ffdec** — add a
+      `slotData17` constant, duplicate one of the existing cell
+      clips, bind it to the new slot, and teach the carousel
+      layout to render 18 cells. This is the cleanest but
+      requires Scaleform tooling not yet in the mod workspace.
+  (b) **Swap Random and slot 15** — revert the v0.9 England
+      replacement (so slot 15 = English again), move Random to
+      slot 15, put Korea at slot 16 with its own data tables.
+      But this still only shows 17 cells, and it's not true
+      "addition". Fails the new DoD wording.
+  (c) **Extend the parser count from 18 to 19 AND find the
+      carousel cell-count bound** — the iter-143..148 Ghidra
+      investigation suggested the per-cell array is hardcoded
+      at the Scaleform level, not in EBOOT code. So even with
+      a new parser entry, the Scaleform cell grid is the real
+      limit. Path (a) remains the only viable v1.0 path.
+
+**Next iteration should:**
+- Inventory the structure of `gfx_chooseciv.gfx` (GFX = old
+  Scaleform SWF variant; GFxExport / rfxswf / JPEXS might work).
+- Find the SWF constant pool to confirm `slotData17` absence.
+- Look for any unused `slotDataN` or template cell in the file
+  that could be cheaply duplicated without full SWF re-authoring.
+- Revert iter-159..175's slot-16-repurpose patches from
+  `eboot_patches.py` so Random is re-exposed at slot 16 with
+  its original Random internals. Keep iter-4 (ADJ_FLAT) and
+  iter-14 (parser count) patches — they're still correct
+  infrastructure for the true-17th-civ path.
+- The v0.9 `fpk_byte_patch.py` slot-15 England→Korea
+  substitutions remain in place for now, so Korea is still
+  playable via slot 15 while the true-17th-civ work proceeds.
+  Final v1.0 will likely revert those too once a real slot 17
+  is wired up.
 
 ### iter-175 (2026-04-14): BREAKTHROUGH — slot 16 title upgraded to "Korean Sejong" — DoD item 2 strictly MET
 

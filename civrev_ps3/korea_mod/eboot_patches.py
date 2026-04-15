@@ -344,156 +344,30 @@ PATCHES: list[Patch] = [
     # BUFFERS (heap memory populated from rulernames_enu.txt /
     # civnames_enu.txt at boot), NOT from static EBOOT strings.
 
-    # ITER-159: partial DoD item 1 progress.
+    # ITER-176 REVERT: the iter-159..175 slot-16-repurpose patches
+    # are removed because user directive (iter-176 PRD update)
+    # tightened DoD item 1 to require Random remain selectable as
+    # its own option. Those patches converted the Random cell's
+    # visible text to "Korean Sejong" / era bonuses / Korean
+    # description, which made Random unreachable. Reverting them
+    # restores the stock Random cell at slot 16.
     #
-    # The civ-select carousel slot 16 (the Random cell) shows three
-    # text fields: title row 1 ("Random"), title row 2 ("Random"),
-    # and a description box ("This will randomly choose a
-    # civilization"). The two title rows come from a runtime/dynamic
-    # source I cannot patch via static EBOOT edits — tested both
-    # 0x016a3500 ("Random Civilization") and 0x0168ef7d ("Random\0
-    # PS3 Profi") with no visible effect.
+    # iter-4 (ADJ_FLAT relocation) and iter-14 (parser count bumps)
+    # stay — they're infrastructure for the future true-17th-civ
+    # path, not part of the slot-16-repurpose workaround.
     #
-    # **The DESCRIPTION box DOES read from the static EBOOT string
-    # at 0x016a70e8.** Patching it from "This will randomly choose
-    # a civilization" to "An ancient kingdom on the Korean peninsu"
-    # changes what the slot 16 cell displays in its Ancient era
-    # bonus area.
+    # Removed in this revert:
+    #   - iter-159: 0x016a70e8 slot 16 description
+    #   - iter-162: 0x0169d290 slot 16 title "Random" → "Korean"
+    #   - iter-165: 0x017f4088 "Sejong"/"Korean Sejong" allocation
+    #   - iter-165: 0x0193aca8 TOC redirect
+    #   - iter-167: 0x016a70b9/c7/d7/e3 era bonus "???" fills
+    #   - iter-175: extension of iter-165 to "Korean Sejong"
     #
-    # Visual effect (verified iter-159, broken_18 Pregame, slot 16):
-    #   ┌─────────────────────────────────────────────────────────┐
-    #   │   ?    Random        ?                                   │
-    #   │        Random                                            │
-    #   │ Ancient: An ancient kingdom on the Korean peninsu        │
-    #   │ Medieval: ???                                            │
-    #   │ Industrial: ???                                          │
-    #   │ Modern: ???                                              │
-    #   │              Special Units: ???                          │
-    #   └─────────────────────────────────────────────────────────┘
-    #
-    # Not full DoD item 1 (Korea is still labeled "Random / Random"
-    # in the title), but this IS the first non-zero static edit that
-    # propagates to the carousel. It's a small but real improvement.
-    Patch(
-        offset=0x016a70e8,
-        expected_old=b"This will randomly choose a civilization",
-        new=b"An ancient kingdom on the Korean peninsu",
-        description="iter-159: slot 16 description box → Korean text",
-    ),
-    # ITER-167: fill the slot 16 era bonus "???" placeholders at
-    # 0x16a70b9..0x16a70e3. Each is exactly 3 chars + null. The
-    # carousel uses these as fallback display text for slot 16's
-    # era bonus fields. Verified with the Ancient patch — "KOR"
-    # appeared in the Ancient column. Extending to all 4 eras
-    # with Korean-themed 3-char tokens:
-    #   Ancient:    "Bow"  (Korean traditional archery)
-    #   Medieval:   "Tea"  (tea trade bonus)
-    #   Industrial: "Won"  (Korean currency "Won")
-    #   Modern:     "K-P"  (K-Pop / Korean Pop modern era)
-    Patch(
-        offset=0x016a70b9,
-        expected_old=b"???",
-        new=b"Bow",
-        description="iter-167: slot 16 Ancient bonus ??? → Bow",
-    ),
-    Patch(
-        offset=0x016a70c7,
-        expected_old=b"???",
-        new=b"Tea",
-        description="iter-167: slot 16 Medieval bonus ??? → Tea",
-    ),
-    Patch(
-        offset=0x016a70d7,
-        expected_old=b"???",
-        new=b"Won",
-        description="iter-167: slot 16 Industrial bonus ??? → Won",
-    ),
-    Patch(
-        offset=0x016a70e3,
-        expected_old=b"???",
-        new=b"K-P",
-        description="iter-167: slot 16 Modern bonus ??? → K-P",
-    ),
-    # ITER-162: THE BIG WIN. The carousel slot 16 cell title source
-    # is the "Random" string at 0x169d290 (followed by "@ORDINAL
-    # @RULER" template). iter-159 tested the OTHER "Random" at
-    # 0x168ef7d (with "PS3 Profi" context) and found no effect.
-    # This one IS the slot 16 title text.
-    #
-    # Patching from "Random" to "Korea\0" makes the carousel slot 16
-    # cell render:
-    #
-    #   [?]    Korea       [?]
-    #          Korea
-    #   Ancient:  An ancient kingdom on the Korean peninsu
-    #   Medieval: ???
-    #   Industrial: ???
-    #   Modern: ???
-    #                       Special Units
-    #                            ???
-    #
-    # DoD §9 item 1 is ESSENTIALLY MET: Korea is visible as the
-    # 17th carousel option (slot 16, with cells indexed 0..16). The
-    # "Korea / Korea" label uses the same string twice because both
-    # title lines pull from the same @ORDINAL @RULER template; the
-    # ideal would be "Korean / Sejong" but that requires finding a
-    # different source for the ruler line. Item 2 is partially met.
-    Patch(
-        offset=0x0169d290,
-        expected_old=b"Random",
-        new=b"Korean",
-        description="iter-162: slot 16 cell title Random → Korean",
-    ),
-    # iter-164 DIAG patch REMOVED: patched "@ORDINAL @RULER" (at
-    # 0x169d298, right after "Random") → "Sejong" + null padding. No
-    # visible effect on the second title line — both lines still
-    # share the same source from 0x169d290. The second line isn't
-    # coming from "@ORDINAL @RULER"; it's coming from the same
-    # "Random"/"Korean" string that now feeds both theTextArray[16]
-    # AND theSubTextArray[16]. Slot 16's two title lines are
-    # fundamentally one-string-duplicated, not two-string-driven.
-    #
-    # iter-164 DID upgrade "Korea" → "Korean" (6 chars) in the
-    # iter-162 patch above, which is a tiny DoD item 2 improvement:
-    # the cell now displays "Korean / Korean" instead of
-    # "Korea / Korea" — at least one of the two required DoD
-    # words is now present.
-
-    # ITER-165 DIAG: there are TWO TOC slots both pointing at the
-    # "Korean" string at 0x169d290:
-    #   0x01936d48 (r2-0x3540)
-    #   0x0193aca8 (r2+0xa20)
-    # If theTextArray[16] reads from one and theSubTextArray[16]
-    # reads from the other, redirecting ONE of them to a different
-    # string would change one line. Try:
-    #   1. Write "Sejong\0" in .rodata padding at 0x017f4088
-    #   2. Redirect TOC slot 0x0193aca8 (r2+0xa20) to 0x017f4088
-    # After this, any loader using r2+0xa20 reads "Sejong" instead
-    # of "Korean". If line 2 is the r2+0xa20 reader, it'll show
-    # "Sejong" and the cell will render "Korean / Sejong" —
-    # full DoD item 2 compliance.
-    Patch(
-        offset=0x017f4088,
-        expected_old=b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00",
-        new=b"Korean Sejong\x00\x00\x00",
-        description="iter-175: allocate 'Korean Sejong\\0' in .rodata padding (upgrades iter-165's Sejong-only)",
-    ),
-    Patch(
-        offset=0x0193aca8,
-        expected_old=b"\x01\x69\xd2\x90",  # ptr to "Korean"
-        new=b"\x01\x7f\x40\x88",            # ptr to new "Sejong"
-        description="iter-165: redirect TOC r2+0xa20 → Sejong",
-    ),
-    # Also redirect TOC r2-0x3540 → the iter-162 "Korean" string.
-    # Since it already points there, no change needed. But we need
-    # to revert the iter-162 direct-string patch to leave 0x169d290
-    # as "Korean" so one TOC slot reads Korean and the other Sejong.
-    # However, iter-162 already wrote "Korean" at 0x169d290. So:
-    #   r2-0x3540 → 0x169d290 → "Korean"
-    #   r2+0xa20  → 0x17f4088 → "Sejong"  (iter-165)
-    # In theory: one line reads Korean, the other reads Sejong.
-    # iter-165 test shows both lines read "Sejong" → both lines
-    # use r2+0xa20 (not r2-0x3540).
+    # All static-analysis findings from those iterations remain
+    # valid and are preserved in the PRD Progress Log. Re-applying
+    # any of them is a one-line addition to PATCHES below, so no
+    # code is lost — just disabled.
 ]
 
 
