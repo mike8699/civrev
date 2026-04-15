@@ -142,11 +142,16 @@ KOREA_MOD_FAULTING_INSTRUCTION_SITE    = 0x00c26a98  # stb r0, 0(r11)
 
 # Placeholders pending investigation ---------------------------------------
 
-# §5.1 — _NCIV references. The binary has no single "NCIV" constant; `16`
-# (0x10) appears in dozens of loop bounds. The authoritative list is produced
-# by scanning every `cmpwi rN, 0x10` / `li rN, 0x10` instruction whose dest
-# register is used as an index into one of the four arrays above.
-KOREA_MOD_NCIV_ADDR               = None        # §5.1 follow-up
+# §5.1 — _NCIV references. RESOLVED at iter-213 (2026-04-15).
+# The binary has no single "NCIV" constant; "16" (0x10) appears at
+# many inline `cmpwi rN, 0x10` / `li rN, 0x10` sites but NONE of them
+# are on the civ-select carousel render path (verified by iter-150,
+# iter-154, iter-198, iter-206 ×2, iter-209 b . diagnostics, plus
+# iter-198/210/211 selective + collective `li r8, 0x10` patch tests).
+# The carousel cell count is hardcoded SCALEFORM-side in
+# gfx_chooseciv.gfx, not in the PPU EBOOT. See
+# `korea_mod/docs/ncv-references.md` for the full resolution write-up.
+KOREA_MOD_NCIV_ADDR               = None        # §5.1 RESOLVED — no PPU constant
 
 # §5.2 — per-player nationality array. Players hold a nationality field
 # somewhere in the per-player struct; the binary stores players in an array

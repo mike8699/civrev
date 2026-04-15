@@ -1,6 +1,81 @@
 # §5.1 `_NCIV` references — PS3 EBOOT (v1.30)
 
-## Status: INCOMPLETE — candidates identified, call sites not yet enumerated
+## Status: RESOLVED at iter-213 (2026-04-15) — no single `_NCIV` constant; carousel count is Scaleform-side
+
+The empirical findings of iter-184, iter-197, iter-198, iter-210, and
+iter-211 collectively resolve §5.1: the PS3 binary has no single
+`_NCIV = 16` constant, the civ count "16" appears at many inline
+`cmpwi rN, 0x10` and `li rN, 0x10` sites, but **none of those sites
+are on the civ-select carousel render path**. The carousel cell count
+is hardcoded SCALEFORM-side in `gfx_chooseciv.gfx`, not in the PPU
+EBOOT.
+
+## Empirical resolution (iter-184..211)
+
+1. **Parser is fully dynamic** (iter-197 Ghidra decompile + iter-198
+   boot test). `FUN_00a2e640` mallocs `(count*12 + 4)` bytes per
+   name file and writes the count as a header word at `(buf - 4)`.
+   Safe at any count.
+
+2. **Only 2 PPU `li r5, 0x11` sites** affect parser output: at
+   `0xa2ee38` (rulers) and `0xa2ee7c` (civs). Both shipped as
+   iter-14 patches bumping to `0x12` (=18). These are the ONLY
+   "civ count" PPU constants that matter for the parser path.
+
+3. **Dispatcher uses TOC base `r2 = 0x194a1f8`** (iter-202 correction).
+   Civs buffer holder is at .bss `0x1ac93b8`. iter-203 verified
+   runtime: `*(0x1ac93b8) = 0x4002a0e0`, count = 18, Korea at
+   index 16, all 16 stock civs intact.
+
+4. **14 downstream `li r8, 0x10` consumers** (iter-197) tested
+   exhaustively: all 14 together break boot (iter-198), 2 CIVS-only
+   are safe but inert (iter-210), consumer A's 7 are safe but
+   inert (iter-211). All 14 are NOT on the carousel render path.
+
+5. **6 candidate consumer functions** diagnostically `b .` tested,
+   all OFF the carousel path: `FUN_001e49f0` (iter-150),
+   `FUN_011675d8` (iter-154), `FUN_001dc0d8` + `FUN_0x111dd70`
+   (iter-206), `FUN_001262a0` (iter-209, the CIV_*.dds icon
+   registration — civilopedia init).
+
+6. **Scaleform-side modifications** all inert: iter-178 (slotData17
+   pool extension), iter-192 (tag[180] LoadOptions hardcode),
+   iter-195 (tag[185] numOptions=6 default), iter-200 (tag[184]
+   numOptions=17 literal). Four independent angles, all inert.
+
+7. **Hypothesis invalidations**: iter-186 retracted iter-181..183
+   cursor-clamp, iter-201 invalidated iter-197's wrong-TOC mapping,
+   iter-202 corrected to `r2 = 0x194a1f8`, iter-208 invalidated
+   iter-193's `0xf070a0` "ChooseCiv panel loader" hypothesis.
+
+## Unified hypothesis (no further static analysis required)
+
+The civ-select carousel rendering is **entirely Scaleform-side**.
+The PPU does NOT call into a "draw-civ-cell" function. Cells exist
+as static MovieClip instances in `gfx_chooseciv.gfx` with civ
+identification baked in at compile time. PPU only sends cursor input
+events, reads the selected index after confirm, and looks up the
+chosen civ's data from the parser buffer for in-game init.
+
+## What §5.1 was originally asking for vs what we found
+
+The PRD §5.1 task ("find every site that depends on 0x10 as a civ
+count and patch them to 0x11") is the wrong shape for what PS3 CivRev
+actually needs:
+
+- **Parser-side count**: already done by iter-14 patches.
+- **Consumer-side count**: only 14 sites use `li r8, 0x10` paired
+  with civnames pointers; all 14 are off the carousel (iter-210/211).
+- **Carousel-side count**: lives in Scaleform AS2 bytecode, not PPU.
+
+**§5.1 is therefore CLOSED as "no further PPU enumeration is useful"
+for v1.0.** Any future iteration aiming at the carousel must either
+edit the Scaleform AS2 directly (4+ angles tried, all inert) or use
+runtime instrumentation to find the cell factory in the live emulator
+(blocked because RPCS3's GDB stub doesn't support Z2/Z3/Z4
+watchpoints, iter-201).
+
+## ----- HISTORICAL iter-1 content from §5.1 below -----
 
 The PS3 binary does not expose a single `_NCIV = 16` constant. Every place
 that needs "number of civs" encodes `16` directly as an immediate — either

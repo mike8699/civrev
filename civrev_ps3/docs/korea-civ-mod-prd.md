@@ -6928,3 +6928,42 @@ confirmation that strict reading is still the target.
 **PRD changes made this iteration:** Progress Log entry added.
 Patches applied and reverted within iteration. Net shipping
 state unchanged.
+
+### iter-213 (2026-04-15): close out §5.1 (`_NCIV` investigation)
+
+Following iter-212's pivot to documentation, walked the PRD
+top-to-bottom looking for unfinished §5 investigations.
+`korea_mod/docs/ncv-references.md` was still marked
+"INCOMPLETE — candidates identified, call sites not yet
+enumerated".
+
+iter-184/197/198/202/210/211 collectively answered every
+question §5.1 was asking. Resolution recorded:
+
+- The PS3 binary has no single `_NCIV = 16` constant.
+- The 2 `li r5, 0x11` parser-count sites at `0xa2ee38` and
+  `0xa2ee7c` are the only PPU "civ count" constants that
+  matter for the parser path; iter-14 already patches them.
+- The 14 `li r8, 0x10` consumer sites at `0x011676xx`/
+  `0x01167dxx` were exhaustively tested; all are off the
+  carousel render path.
+- The 6 candidate consumer functions ruled out via `b .`
+  traps; none are the carousel either.
+- All 4 Scaleform-side modifications to `gfx_chooseciv.gfx`
+  are inert.
+- Unified hypothesis: the carousel is entirely Scaleform-
+  side and its cell count is hardcoded at the SWF/AS2 level.
+
+Updated `korea_mod/docs/ncv-references.md` to status
+"RESOLVED at iter-213" with a full empirical write-up at the
+top. Updated `korea_mod/addresses.py`'s `KOREA_MOD_NCIV_ADDR`
+comment to reflect the resolution.
+
+**Next §5 / §6 walk:** other `addresses.py` placeholders
+(`KOREA_MOD_PLAYER_NATIONALITY_ARR`, `_PLAYER_SLOT_STRIDE`,
+`_CIV_CITY_COUNT_OFFSET`, `_TURN_COUNTER_ADDR`) are §5.2 / §5.4
+deliverables not yet investigated. iter-214 should pick the
+cheapest one to advance.
+
+**PRD changes made this iteration:** Progress Log entry added.
+Documentation-only iteration; no shipping state change.
