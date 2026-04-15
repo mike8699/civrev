@@ -289,6 +289,9 @@ elif [ "${1:-}" = "civs_watch" ]; then
 elif [ "${1:-}" = "civs_z0" ]; then
     shift
     exec python3 test_civs_z0_probe.py "$@"
+elif [ "${1:-}" = "civs_dump" ]; then
+    shift
+    exec python3 test_civs_dump.py "$@"
 else
     exec python3 test_map.py "$@"
 fi

@@ -5976,3 +5976,67 @@ civs/rulers buffer holders, and dispatcher anchor addresses.
 New Z0 probe harness `test_civs_z0_probe.py` committed.
 Shipping EBOOT state unchanged (iter-14 patches are re-enabled
 — they were never really disabled in committed state).
+
+### iter-203 (2026-04-15): full 18-entry runtime dump; Korea/Sejong both confirmed at index 16
+
+**Tool:** new `test_civs_dump.py` via `docker_run.sh civs_dump`.
+Connects GDB at main menu, reads the iter-202 `.bss` buffer
+holders, walks each buffer's 18 × 12-byte entries, and decodes
+the inline FStringA characters.
+
+**End-to-end verification of iter-198's shipping state:**
+- Civs buffer at `*(0x1ac93b8) = 0x4002a0e0`, count header = **18**
+- Rulers buffer at `*(0x1ac93b4) = 0x4002a004`, count header = **18**
+- Entry layout confirmed: `{u32 gender, u32 plurality, u32 fstring_ptr}`
+  (12 bytes per entry; FStringA has small-string optimization with
+  ASCII characters inline at offset 0 of the FStringA).
+- **Korea** at civs index **16**, FStringA `0x40029880`, flags `MP`
+- **Sejong** at rulers index **16**, FStringA `0x40029520`, flags `MS`
+- All 16 stock civs at indices 0..15 unchanged.
+- Barbarians / Grey Wolf correctly pushed to index 17.
+
+This is the first FULL end-to-end runtime verification that
+iter-198's 18-row civnames_enu.txt and rulernames_enu.txt
+overlays flow all the way through the parser into the live PPU
+heap with Korea in the right slot.
+
+**Main-menu memory scan: no cached FString copies anywhere.**
+Scanned `.data` + `.bss` for 4-byte-aligned u32 BE equal to:
+- Korea FString ptr (`0x40029880`): **0 unique hits**
+- Sejong FString ptr (`0x40029520`): **0 unique hits**
+- Civs buffer base (`0x4002a0e0`): **1 unique** (`0x1ac93b8`, the
+  known holder)
+- Rulers buffer base (`0x4002a004`): **1 unique** (`0x1ac93b4`)
+
+At main menu, nothing outside the known parser buffer holders
+stores a cached pointer to any civnames data. The carousel
+hasn't touched the civs buffer yet.
+
+**Civ-select scan: attempted, probe hung.** Extended the probe to
+reconnect GDB after navigating to civ-select and re-scan, but the
+Python test hung in `poll_s` (socket wait) partway through
+navigation, probably due to the same PSN sign-in modal that bit
+iter-195 (or an OCR subprocess hang). Result not captured this
+iteration.
+
+**iter-204 plan:**
+1. Fix the probe's civ-select phase — make navigation non-hanging
+   (per-step timeouts, PSN popup dismissal, stdout flushing for
+   debuggability).
+2. Run the 2-phase scan and observe what appears in .data/.bss
+   AFTER the carousel loads. If new cached copies appear, they
+   are the carousel's state. If nothing appears in .data/.bss,
+   the carousel state lives on the heap.
+3. Complementary: set Z0 breakpoints at code sites that load
+   `0x1ac93b8` to catch readers at render time.
+
+**Verification artifacts:**
+- `korea_mod/verification/iter203_civs_dump/findings.md`
+- `.../civs_dump_main_menu.json` (full 18-entry dump for both
+  buffers including FString contents)
+
+**PRD changes made this iteration:** Progress Log entry added.
+New probe `test_civs_dump.py` committed. No shipping state
+change — iter-198 build remains the current shipping state and
+Korea/Sejong presence in the parser buffer is now end-to-end
+verified.

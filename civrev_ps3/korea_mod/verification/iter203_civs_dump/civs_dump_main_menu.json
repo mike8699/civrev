@@ -1,0 +1,332 @@
+{
+  "iteration": "iter-203",
+  "civs_holder": "0x1ac93b8",
+  "rulers_holder": "0x1ac93b4",
+  "civs_buffer": {
+    "label": "civs",
+    "holder_va": "0x1ac93b8",
+    "buf_ptr": "0x4002a0e0",
+    "count": 18,
+    "entries": [
+      {
+        "idx": 0,
+        "gender": 0,
+        "plurality": 1,
+        "fstring_ptr": "0x40029580",
+        "chars": "[inline] Romans"
+      },
+      {
+        "idx": 1,
+        "gender": 0,
+        "plurality": 1,
+        "fstring_ptr": "0x400295b0",
+        "chars": "[inline] Egyptians"
+      },
+      {
+        "idx": 2,
+        "gender": 0,
+        "plurality": 1,
+        "fstring_ptr": "0x400295e0",
+        "chars": "[inline] Greeks"
+      },
+      {
+        "idx": 3,
+        "gender": 0,
+        "plurality": 1,
+        "fstring_ptr": "0x40029610",
+        "chars": "[inline] Spanish"
+      },
+      {
+        "idx": 4,
+        "gender": 0,
+        "plurality": 1,
+        "fstring_ptr": "0x40029640",
+        "chars": "[inline] Germans"
+      },
+      {
+        "idx": 5,
+        "gender": 0,
+        "plurality": 1,
+        "fstring_ptr": "0x40029670",
+        "chars": "[inline] Russians"
+      },
+      {
+        "idx": 6,
+        "gender": 0,
+        "plurality": 1,
+        "fstring_ptr": "0x400296a0",
+        "chars": "[inline] Chinese"
+      },
+      {
+        "idx": 7,
+        "gender": 0,
+        "plurality": 1,
+        "fstring_ptr": "0x400296d0",
+        "chars": "[inline] Americans"
+      },
+      {
+        "idx": 8,
+        "gender": 0,
+        "plurality": 1,
+        "fstring_ptr": "0x40029700",
+        "chars": "[inline] Japanese"
+      },
+      {
+        "idx": 9,
+        "gender": 0,
+        "plurality": 1,
+        "fstring_ptr": "0x40029730",
+        "chars": "[inline] French"
+      },
+      {
+        "idx": 10,
+        "gender": 0,
+        "plurality": 1,
+        "fstring_ptr": "0x40029760",
+        "chars": "[inline] Indians"
+      },
+      {
+        "idx": 11,
+        "gender": 0,
+        "plurality": 1,
+        "fstring_ptr": "0x40029790",
+        "chars": "[inline] Arabs"
+      },
+      {
+        "idx": 12,
+        "gender": 0,
+        "plurality": 1,
+        "fstring_ptr": "0x400297c0",
+        "chars": "[inline] Aztecs"
+      },
+      {
+        "idx": 13,
+        "gender": 0,
+        "plurality": 1,
+        "fstring_ptr": "0x400297f0",
+        "chars": "[inline] Zulu"
+      },
+      {
+        "idx": 14,
+        "gender": 0,
+        "plurality": 1,
+        "fstring_ptr": "0x40029820",
+        "chars": "[inline] Mongols"
+      },
+      {
+        "idx": 15,
+        "gender": 0,
+        "plurality": 1,
+        "fstring_ptr": "0x40029850",
+        "chars": "[inline] English"
+      },
+      {
+        "idx": 16,
+        "gender": 0,
+        "plurality": 1,
+        "fstring_ptr": "0x40029880",
+        "chars": "[inline] Koreans"
+      },
+      {
+        "idx": 17,
+        "gender": 0,
+        "plurality": 1,
+        "fstring_ptr": "0x400298b0",
+        "chars": "[inline] Barbarians"
+      }
+    ]
+  },
+  "rulers_buffer": {
+    "label": "rulers",
+    "holder_va": "0x1ac93b4",
+    "buf_ptr": "0x4002a004",
+    "count": 18,
+    "entries": [
+      {
+        "idx": 0,
+        "gender": 0,
+        "plurality": 0,
+        "fstring_ptr": "0x40029250",
+        "chars": "[inline] Caesar"
+      },
+      {
+        "idx": 1,
+        "gender": 1,
+        "plurality": 0,
+        "fstring_ptr": "0x40029220",
+        "chars": "[inline] Cleopatra"
+      },
+      {
+        "idx": 2,
+        "gender": 0,
+        "plurality": 0,
+        "fstring_ptr": "0x40029280",
+        "chars": "[inline] Alexander"
+      },
+      {
+        "idx": 3,
+        "gender": 1,
+        "plurality": 0,
+        "fstring_ptr": "0x400292b0",
+        "chars": "[inline] Isabella"
+      },
+      {
+        "idx": 4,
+        "gender": 0,
+        "plurality": 0,
+        "fstring_ptr": "0x400292e0",
+        "chars": "[inline] Bismarck"
+      },
+      {
+        "idx": 5,
+        "gender": 1,
+        "plurality": 0,
+        "fstring_ptr": "0x40029310",
+        "chars": "[inline] Catherine"
+      },
+      {
+        "idx": 6,
+        "gender": 0,
+        "plurality": 0,
+        "fstring_ptr": "0x40029340",
+        "chars": "[inline] Mao"
+      },
+      {
+        "idx": 7,
+        "gender": 0,
+        "plurality": 0,
+        "fstring_ptr": "0x40029370",
+        "chars": "[inline] Lincoln"
+      },
+      {
+        "idx": 8,
+        "gender": 0,
+        "plurality": 0,
+        "fstring_ptr": "0x400293a0",
+        "chars": "[inline] Tokugawa"
+      },
+      {
+        "idx": 9,
+        "gender": 0,
+        "plurality": 0,
+        "fstring_ptr": "0x400293d0",
+        "chars": "[inline] Napoleon"
+      },
+      {
+        "idx": 10,
+        "gender": 0,
+        "plurality": 0,
+        "fstring_ptr": "0x40029400",
+        "chars": "[inline] Gandhi"
+      },
+      {
+        "idx": 11,
+        "gender": 0,
+        "plurality": 0,
+        "fstring_ptr": "0x40029430",
+        "chars": "[inline] Saladin"
+      },
+      {
+        "idx": 12,
+        "gender": 0,
+        "plurality": 0,
+        "fstring_ptr": "0x40029460",
+        "chars": "[inline] Montezuma"
+      },
+      {
+        "idx": 13,
+        "gender": 0,
+        "plurality": 0,
+        "fstring_ptr": "0x40029490",
+        "chars": "[inline] Shaka"
+      },
+      {
+        "idx": 14,
+        "gender": 0,
+        "plurality": 0,
+        "fstring_ptr": "0x400294c0",
+        "chars": "[inline] Genghis Khan"
+      },
+      {
+        "idx": 15,
+        "gender": 1,
+        "plurality": 0,
+        "fstring_ptr": "0x400294f0",
+        "chars": "[inline] Elizabeth"
+      },
+      {
+        "idx": 16,
+        "gender": 0,
+        "plurality": 0,
+        "fstring_ptr": "0x40029520",
+        "chars": "[inline] Sejong"
+      },
+      {
+        "idx": 17,
+        "gender": 0,
+        "plurality": 0,
+        "fstring_ptr": "0x40029550",
+        "chars": "[inline] Grey Wolf"
+      }
+    ]
+  },
+  "korea_idx": 16,
+  "sejong_idx": 16,
+  "error": null,
+  "memory_scan_hits": {
+    "korea (0x40029880)": [],
+    "sejong (0x40029520)": [],
+    "civs_buf (0x4002a0e0)": [
+      {
+        "region": "bss",
+        "va": "0x1ac93b8"
+      },
+      {
+        "region": "bss",
+        "va": "0x1ac93b8"
+      },
+      {
+        "region": "bss",
+        "va": "0x1ac93b8"
+      },
+      {
+        "region": "bss",
+        "va": "0x1ac93b8"
+      },
+      {
+        "region": "bss",
+        "va": "0x1ac93b8"
+      },
+      {
+        "region": "bss",
+        "va": "0x1ac93b8"
+      }
+    ],
+    "rulers_buf (0x4002a004)": [
+      {
+        "region": "bss",
+        "va": "0x1ac93b4"
+      },
+      {
+        "region": "bss",
+        "va": "0x1ac93b4"
+      },
+      {
+        "region": "bss",
+        "va": "0x1ac93b4"
+      },
+      {
+        "region": "bss",
+        "va": "0x1ac93b4"
+      },
+      {
+        "region": "bss",
+        "va": "0x1ac93b4"
+      },
+      {
+        "region": "bss",
+        "va": "0x1ac93b4"
+      }
+    ]
+  }
+}
