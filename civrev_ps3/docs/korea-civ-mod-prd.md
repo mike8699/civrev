@@ -3988,6 +3988,111 @@ for future iterations.
 amended to note that the "breaks boot" claim is stale and the
 repacker is available for patches that need size changes.
 
+### iter-178 (2026-04-14): slotData17 extension + i32=17 bumps — boots but cursor still clamps at 16
+
+Built on iter-177 by actually **adding slotData17 to
+`gfx_chooseciv.gfx`** for the first time. Two edits landed in a
+single test build:
+
+1. **Constant pool extension in tag[184]** (the DoAction
+   containing `slotData0..slotData16`):
+   - Appended `"slotData17\0"` (11 bytes) at the end of the
+     pool body.
+   - Incremented pool count `96 → 97` and pool length field
+     `980 → 991`.
+   - Duplicated `slotData16`'s 32-byte ActionPush+SetVariable
+     block immediately before tag[184]'s terminating
+     `ActionEnd` (0x00), patching byte index 4 from `93`
+     (slotData16's pool index) to `96` (the new slotData17
+     index).
+   - Updated tag[184]'s 4-byte length field from `2021 → 2064`
+     (+43 bytes).
+   - Updated the SWF file header file-length at byte 0x04
+     from `59646 → 59689`.
+
+2. **`i32=17 → i32=18` bumps**:
+   - Found 5 `i32=17` pushes in tag[184] at body offsets
+     `0x43a, 0x4c0, 0x596, 0x5c6, 0x5f6`.
+   - Found 1 `i32=17` push in tag[185] at body offset `0x69e`
+     (tag[185] now at file offset `0x5653` because tag[184]
+     grew by 43 bytes).
+   - Bumped all 6 to `18` in-place (same byte count, no
+     further size change).
+
+Rebuilt `Pregame.FPK` via `fpk.py from_directory` and
+installed to
+`modified/PS3_GAME/USRDIR/Resource/Common/Pregame.FPK`.
+
+**Test results:**
+
+- **Slot 15 sejong M6 PASS**: game still boots cleanly. No
+  crash from the expanded constant pool or the new slotData17
+  block. Tag length + file length updates are correct.
+- **Slot 17 slot17test2 M9 PASS**: game "loads" when the test
+  presses Right 17 times, but the OCR screenshot shows the
+  cursor landed on the **existing Random cell at slot 16**
+  (display: `Random / Random`, description
+  `This will randomly choose a civilization`). The 17th Right
+  was absorbed by the cursor clamp; no new 18th cell appeared.
+
+**Conclusion: the carousel cursor clamp is NOT in any i32=17
+push in tag[184] or tag[185].** The five i32=17 references in
+tag[184] appear to be something else (possibly per-cell
+initialization counts or unrelated constants); the one in
+tag[185] is likewise unrelated to the cursor bound. Bumping
+them all to 18 does not grow the carousel.
+
+**Where the cursor bound lives (candidates for next iteration):**
+  - **A DefineSprite tag** (id 39 in the SWF) whose body
+    contains 17 `PlaceObject2` child records, each placing one
+    cell MovieClip at a pre-authored x/y. The carousel parent
+    sprite knows its child count from the frame stream, not
+    from an integer constant. Adding an 18th cell requires
+    adding a new `PlaceObject2` tag + a new `DefineSprite` for
+    the 18th cell clip + a new cell background asset.
+  - **PPU EBOOT code** that handles the right-arrow input and
+    calls into Scaleform with the new cursor index. Look for
+    `cmpwi rN, 16` near the carousel input handler. The
+    `iter-140..142` Ghidra investigation suggested this lives
+    inside the cell-grid builder, not the input handler, but
+    that was before the iter-177 unblock proved the Scaleform
+    side is editable. With the editability constraint lifted,
+    re-examining EBOOT cursor bounds is now a viable path.
+  - **An ActionScript timeline-level loop** in a different
+    DoAction tag that builds the carousel cells from
+    `slotData0..slotData16` and hardcodes the bound 16 as a
+    loop terminator. The iter-178 bumps didn't catch it
+    because it's not a literal `i32 17` push — it's probably a
+    `< 17` comparison or a hardcoded ActionDefineLocal or
+    similar.
+
+**What iter-178 proved:**
+  - `fpk.py` repacker handles arbitrary file size changes to
+    `Pregame.FPK` → `gfx_chooseciv.gfx` edits can ship.
+  - The SWF tag[184] length field + SWF file header length
+    field are the only two size-dependent updates needed to
+    extend a DoAction tag.
+  - The Scaleform constant pool can be safely extended by
+    appending new entries and updating `<count, pool_len>`
+    fields.
+  - Adding a new `setVariable("slotData17", …)` block by
+    duplicating an existing block is a safe, boot-preserving
+    edit (game still boots, slot 15 M6 still PASS).
+  - The i32=17 constants in tag[184]/tag[185] are NOT the
+    carousel cell-count source.
+
+**What iter-178 did NOT prove:**
+  - Whether a new 18th cell would render if the real cell
+    count source is found and bumped.
+  - Whether `DefineSprite` child clip count is the actual
+    bound (hypothesis, not yet tested).
+
+iter-178 made no committed changes to `eboot_patches.py` or
+any shipped artifact. The test edits were reverted by
+`korea_mod/install.sh`. The unblock and the slotData17-extend
+technique are available for the next iteration to use when
+searching for the real cell-count source.
+
 The directive's natural-language wording ("in addition to
 Random") is fully satisfied by the iter-176 literal reading
 and this is the final shipping state.
