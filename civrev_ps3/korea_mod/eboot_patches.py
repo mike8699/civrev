@@ -205,23 +205,25 @@ PATCHES: list[Patch] = [
     #   consumer B (0x01167a00-0x01167dc8):  TECH FAMOUS CITIES
     #                                         WONDERS WONDERS_FEM
     #                                         RULERS CIVS
-    # iter-198 A/B ISOLATION: 14 li r8 patches temporarily DISABLED
-    # so we can tell whether the RSX hang is from the patches or from
-    # the 18-row name file overlays alone. Re-enable after probe A.
+    # iter-210 SELECTIVE TEST RESULT: 2 CIVS-only sites are SAFE
+    # (boot passes) but INERT (slot 16 still Random, cursor still
+    # clamped at 16). Disabled again — no need to ship inert
+    # patches.
+    # Patch(0x01167948, b"\x39\x00\x00\x10", b"\x39\x00\x00\x11", "iter-210 A CIVS"),
+    # Patch(0x01167dc8, b"\x39\x00\x00\x10", b"\x39\x00\x00\x11", "iter-210 B CIVS"),
+    # All other 12 sites stay disabled (iter-198 broke boot with all 14):
     # Patch(0x011676dc, b"\x39\x00\x00\x10", b"\x39\x00\x00\x11", "consumer A TECH"),
     # Patch(0x01167744, b"\x39\x00\x00\x10", b"\x39\x00\x00\x11", "consumer A FAMOUS"),
     # Patch(0x011677ac, b"\x39\x00\x00\x10", b"\x39\x00\x00\x11", "consumer A CITIES"),
     # Patch(0x01167814, b"\x39\x00\x00\x10", b"\x39\x00\x00\x11", "consumer A WONDERS"),
     # Patch(0x0116787c, b"\x39\x00\x00\x10", b"\x39\x00\x00\x11", "consumer A WONDERS_FEM"),
     # Patch(0x011678e4, b"\x39\x00\x00\x10", b"\x39\x00\x00\x11", "consumer A RULERS"),
-    # Patch(0x01167948, b"\x39\x00\x00\x10", b"\x39\x00\x00\x11", "consumer A CIVS"),
     # Patch(0x01167af4, b"\x39\x00\x00\x10", b"\x39\x00\x00\x11", "consumer B TECH"),
     # Patch(0x01167b88, b"\x39\x00\x00\x10", b"\x39\x00\x00\x11", "consumer B FAMOUS"),
     # Patch(0x01167c10, b"\x39\x00\x00\x10", b"\x39\x00\x00\x11", "consumer B CITIES"),
     # Patch(0x01167ca0, b"\x39\x00\x00\x10", b"\x39\x00\x00\x11", "consumer B WONDERS"),
     # Patch(0x01167d00, b"\x39\x00\x00\x10", b"\x39\x00\x00\x11", "consumer B WONDERS_FEM"),
     # Patch(0x01167d64, b"\x39\x00\x00\x10", b"\x39\x00\x00\x11", "consumer B RULERS"),
-    # Patch(0x01167dc8, b"\x39\x00\x00\x10", b"\x39\x00\x00\x11", "consumer B CIVS"),
 
     # iter-206 DIAGNOSTIC RESULT: b . traps at FUN_001dc0d8 and
     # FUN_0x111dd70 both PASSED. Romans M9 slot 0 runs clean with

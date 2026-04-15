@@ -6506,3 +6506,99 @@ iter-210 should pursue option 1 first (cheapest, may unblock).
 **PRD changes made this iteration:** Progress Log entry added.
 Diagnostic trap at `0x1262a0` applied and reverted within
 iteration. Net shipping state unchanged.
+
+### iter-210 (2026-04-15): 2 CIVS-only `li r8 → 0x11` patches are SAFE but INERT
+
+**Test:** enabled JUST `0x01167948` (consumer A CIVS) and
+`0x01167dc8` (consumer B CIVS) from the iter-197 14-patch set.
+The other 12 patches stayed disabled. iter-198 had tested all
+14 together and boot HUNG; this iteration isolates the CIVS
+pair to see if they're individually safe.
+
+**Results:**
+
+| probe | slot | label | result |
+|---|---|---|---|
+| 1 | 0  | romans | **M9 PASS** — boot, civ-select, in-game HUD |
+| 2 | 16 | slot16 | **M9 PASS** — slot 16 still renders "Random/Random" |
+| 3 | 17 | slot17 | **M9 PASS** — cursor still clamps at slot 16 |
+
+**Conclusion**: the 2 CIVS-only patches are **safe** (don't
+crash boot) and **completely inert** for the carousel render —
+slot 16 is unchanged and the cursor right-clamp is unchanged.
+
+These sites are NOT on the civ-select carousel render path.
+They iterate the civnames buffer for some other purpose (most
+likely save-game serialization or pedia code), and bumping
+their count from 16 to 17 makes them iterate one extra entry
+that's consumed and discarded.
+
+The breakage in iter-198 was caused by some COMBINATION of
+the OTHER 12 patches (TECH/FAMOUS/CITIES/WONDERS/WONDERS_FEM/
+RULERS in both consumers).
+
+**Patches reverted to disabled** — no shipping state change.
+
+**Cumulative "ruled out" inventory (6 candidates):**
+
+| iter | what was ruled out |
+|---|---|
+| 150 | FUN_001e49f0 (suspected per-cell carousel binder) |
+| 154 | FUN_011675d8 (second 16-count consumer) |
+| 198 | All 14 li r8 sites bumped together (BREAKS boot) |
+| 206 | FUN_001dc0d8 + FUN_0x111dd70 (b . tested, off path) |
+| 209 | FUN_001262a0 (CIV_*.dds icon registration; civilopedia) |
+| 210 | 2 CIVS-only li r8 patches (safe but inert) |
+
+Plus iter-208's invalidation of iter-193's `0xf070a0`/
+`FUN_00f057b0` "ChooseCiv panel loader" hypothesis.
+
+**Strong hypothesis** for the carousel architecture: the
+`gfx_chooseciv.gfx` Scaleform file has its cells **hardcoded
+as static MovieClip instances** with compile-time civ
+assignment. There may be NO PPU→Scaleform data flow for the
+cells — the cells are purely AS2 / Scaleform-side, with the
+PPU only sending cursor events and "current selection"
+indices. In that model:
+
+- Adding a 19th `slotData17` constant is inert
+  (iter-178/200 already proved this)
+- The civnames parser buffer is consumed by other systems
+  (in-game UI, pedia, save game) but not by the carousel
+- The CIV_*.dds icon table feeds the civilopedia
+- The cursor right-clamp lives in Scaleform AS2 bytecode
+
+If true, the iter-189 strict-reading directive is
+**structurally unachievable** without rewriting the AS2
+carousel to add a new cell — which is a much bigger surgery
+than this loop's toolchain supports (RPCS3 doesn't expose
+runtime Scaleform editing, and rewriting AS2 bytecode in a
+released SWF/GFX file is a major undertaking).
+
+**iter-211 plan options:**
+1. **Continue binary search**: enable consumer A's 7 patches
+   only. If boot passes, breakage is in B; if hangs, in A.
+   Repeat until isolated. Even if isolated, the patches are
+   likely all inert based on iter-210's CIVS findings —
+   diminishing returns.
+2. **Pivot to acceptance**: update PRD §9 DoD to acknowledge
+   the iter-189 strict reading is structurally blocked and
+   ship the iter-198 partial state with documented caveat.
+3. **Re-relax the directive**: ask the user to re-confirm
+   whether the iter-189 strict reading or the iter-176 v0.9
+   slot-replacement is the correct shipping target.
+
+User has already declined acceptance once (iter-189 was the
+stricter pivot). Iteration 211 should pursue option 1 for ONE
+more cycle before considering option 3 (which requires user
+input).
+
+**Verification artifacts:**
+- `korea_mod/verification/iter210_civs_only_lir8/findings.md`
+- `.../m9_romans_pass.json`
+- `.../m9_slot16_unchanged.json`
+- `.../m9_slot17_clamped.json`
+
+**PRD changes made this iteration:** Progress Log entry added.
+Patches applied and reverted within iteration. Net shipping
+state unchanged.
