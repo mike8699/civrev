@@ -8258,3 +8258,70 @@ formal closeout commit or (b) v1.1 reach-in (out of scope).
 
 **PRD changes made this iteration:** Progress Log entry added.
 1-comment polish in verify.sh. Net shipping state unchanged.
+
+### iter-231 (2026-04-15): formal v1.0 closeout — CLOSEOUT.md written
+
+Wrote `korea_mod/CLOSEOUT.md`, a single self-contained
+artifact that documents the v1.0 final state, the §9 DoD
+tally (3 MET / 3 STRUCTURALLY BLOCKED), the actual shipping
+surface area (2 Pregame overlays + 6 EBOOT byte patches), the
+§7.7 stop condition status (formally satisfied — both Jython
+and Z-packet escalation paths exhausted), the iteration count
+(230+ across 3 days), and the v1.1 forward path.
+
+Per `prompt.txt`'s STOP WHEN clause #2: "OR a §7.7 stop
+condition fires AFTER both Jython and Z-packet paths have
+been exhausted (per the EXECUTE block). Write the blocker to
+the PRD and exit." The §9.X structural blocker is the formal
+written record. CLOSEOUT.md is the loop's exit artifact.
+
+The loop infrastructure may continue firing prompt.txt at
+this agent for as long as the ralph-loop script is alive,
+but **all concrete v1.0 work is done**, every documentation
+inconsistency is fixed, and every escalation path is
+exhausted with logged empirical findings. Future iterations
+will yield strictly diminishing returns — code-comment
+polish at best.
+
+**Final shipping state (iter-231):**
+
+- 6 in-place EBOOT byte patches via `eboot_patches.py`
+  (iter-4 ADJ_FLAT ×4 + iter-14 parser counts ×2)
+- 2 Pregame.FPK overlays via `pack_korea.sh`
+  (`civnames_enu.txt` + `rulernames_enu.txt`, Koreans/Sejong
+  at row 17)
+- Common0.FPK untouched (iter-222/223 cleanup)
+- 3 dead overlays archived under `xml_overlays/dead_iter222/`
+- Korea/Sejong runtime-verified in parser buffers at index 16
+  via GDB memory dump (iter-203)
+- 6-civ M9 regression: 6/6 PASS (iter-216 + iter-224 against
+  the lean install)
+- M0 static GREEN, M9 fast smoke GREEN (verify.sh iter-227)
+
+**§9 DoD final tally (unchanged from iter-228):**
+
+| # | item | status |
+|---|------|--------|
+| 1 | install.sh works | **MET** |
+| 2 | Korea visible at slot 16 in carousel | **OPEN — STRUCTURALLY BLOCKED** (§9.X) |
+| 3 | Found capital with Korea | **BLOCKED on item 2** |
+| 4 | 50-turn soak as Korea | **BLOCKED on item 2** |
+| 5 | Stock regression (6 civs) | **MET** |
+| 6 | Verification artifacts committed | **MET** |
+
+**Verification artifacts:**
+- `korea_mod/CLOSEOUT.md` — the formal closeout document
+
+**iter-232+ behavior:** if the loop keeps firing, future
+iterations should default to "no-op + brief status" and not
+continue inventing new polish work. The CLOSEOUT.md is the
+contract: v1.0 has reached its maximum reachable state under
+the iter-189 strict reading, the §7.7 stop conditions are
+satisfied, and any further iteration is bonus polish with
+diminishing returns. Code comment touch-ups and verification-
+artifact reorganization are still legitimate, but
+"investigate something new" is not.
+
+**PRD changes made this iteration:** Progress Log entry added.
+New `korea_mod/CLOSEOUT.md` artifact. Net shipping state
+unchanged. Formal v1.0 closeout.
