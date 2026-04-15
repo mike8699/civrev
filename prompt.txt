@@ -17,6 +17,82 @@
   iter-177..188 unblocks that are already in place.
 
   ================================================================
+  KOREA-PLAYS-AS-CHINA DIRECTIVE (iter-1188+, user directive 2026-04-15)
+  ================================================================
+
+  User-reported bug after iter-1186 ship: selecting Korea at carousel
+  slot 16 starts a game with a RANDOM civ, not Korea. Root cause:
+  the SWF's `fscommand("OnAccept", theSelectedOption)` passes the
+  slot index (16) to the PPU, and the PPU's OnAccept handler
+  hardcodes `slot == 16 → startRandomGame()` because slot 16 was
+  Random's original location before iter-1185 moved Random to
+  slot 17.
+
+  User authorized two paths:
+    (a) easier: make Korea always start as Chinese
+    (b) harder: inject real Korean civ attributes from CivRev 2
+
+  Ratio is ~50:1 in favor of (a). User said "If it's not
+  meaningfully easier [to start with (a)], proceed with (b)".
+  It IS meaningfully easier, so we go with (a).
+
+  PATH (a) IMPLEMENTATION — strategy A (AS2 remap at fscommand):
+
+  Modify scripts/frame_1/DoAction_2.as (root frame keyboard
+  handler for the civ-select panel). The single call site:
+
+      case 13:
+      case 90:
+         trace("fscommand(\"OnAccept\", " + theSelectedOption + ");");
+         fscommand("OnAccept",theSelectedOption);
+         break;
+
+  becomes:
+
+      case 13:
+      case 90:
+         // iter-1188: Korea (slot 16) routes to China (slot 6)
+         // at the fscommand boundary so OnAccept starts a
+         // Chinese game. See PRD §9.Z.
+         var acceptSlot = theSelectedOption == 16 ? 6 : theSelectedOption;
+         trace("fscommand(\"OnAccept\", " + acceptSlot + ");");
+         fscommand("OnAccept", acceptSlot);
+         break;
+
+  That's the entire change. Delivered via JPEXS -importScript,
+  wired into gfx_chooseciv_patch.py alongside the existing
+  LOAD_OPTIONS_KOREA constant from iter-1185.
+
+  No EBOOT patches. No PPU RE. No civ-record table changes.
+  Entirely SWF-side. Fully reversible. Testing: pick Korea in
+  GUI mode, confirm the selection, verify the starting city is
+  Beijing (not a random civ's city), verify the leaderhead
+  transition shows Mao/Chinese, verify bonus text says Chinese.
+
+  STRATEGY A CONSTRAINT (what the user sees):
+    - Civ-select carousel: still shows "Sejong / Koreans" with
+      Mao's portrait (iter-1185 unchanged)
+    - After confirming Korea: transition shows Mao / Chinese
+    - In-game: China's starting position, Chinese units, Chinese
+      bonuses, Chinese tech start, Mao's leader bonus
+    - Korea is a COSMETIC ALIAS for China on the select screen
+      only. Matches PRD §1.1 v1.0 scope ("Korea is a renamed China").
+
+  DEFERRED TO v1.2+ (PATH b):
+    - Reverse-engineer PS3 civ-record struct layout (iter-198
+      partially mapped it)
+    - Locate the civ-data table in EBOOT (Ghidra work)
+    - Extend the table to a 17th entry for civ index 16
+    - Populate from iter-226's CR2 extracted XMLs
+    - Hwacha unique unit data
+    - Sejong leader bonus
+    - Korean civ trait
+  Track in PRD §11 v1.2 differentiation roadmap.
+
+  iter-1188 STOP: commit + push the AS2 remap + verification
+  artifact. Then exit the loop again, same as after iter-1186.
+
+  ================================================================
   CAROUSEL UNBLOCK DIRECTIVE (iter-1182+, user directive 2026-04-15)
   ================================================================
 

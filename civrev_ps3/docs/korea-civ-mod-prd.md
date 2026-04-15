@@ -1635,6 +1635,173 @@ existing docker harness. No more "boot-safe but inert"
 iterations — a change that doesn't move the OCR result is
 reverted same-iteration.
 
+### §9.Z — "Korea plays as China" plan (iter-1188+ directive, 2026-04-15)
+
+> **Directive update.** After the iter-1186 ship, the user
+> tested the mod manually (outside the harness) and reported:
+> "when I select Koreans in the civ select, it behaves as if
+> I selected Random". §9 DoD item 3 ("Found capital with
+> Korea") was reported MET by iter-1185/1186 because the
+> harness's M9 oracle only checks "did we reach the in-game
+> HUD" — it doesn't verify which civ the player is actually
+> controlling. The iter-1186 artifact passes were correct but
+> not stringent enough to catch the slot-16 → random
+> misrouting.
+
+#### The bug
+
+When the user confirms Korea at carousel slot 16, the SWF
+fires `fscommand("OnAccept", theSelectedOption)` where
+`theSelectedOption == 16`. The PS3 PPU's `OnAccept` handler
+hardcodes `slot == 16 → startRandomGame()` because slot 16
+was Random's original position in the stock 17-cell
+carousel. iter-1185's LoadOptions prefix pushed Random to
+slot 17 and dropped Korea into slot 16, but the PPU-side
+handler still fires random on slot 16. Result: Korea
+visually appears on the carousel but the game dispatches to
+`startRandomGame()` behind the scenes.
+
+The harness oracle (`stages.in_game_hud == true`) passes
+because a random civ DOES reach the in-game HUD — it's just
+not Korea. The M7 50-turn soak passed similarly because the
+soak harness didn't check the civ identity either.
+
+#### Two user-authorized paths
+
+The user explicitly authorized two recovery options at
+iter-1188:
+
+**(a) "Korea always plays as Chinese"** — cosmetic alias
+only. Keep the Sejong/Koreans carousel cell visible, but
+route the fscommand for slot-16 selections to dispatch
+"start a Chinese game" at the PPU boundary. Effectively the
+"Korea is a renamed China" spec from PRD §1.1 v1.0 scope,
+enforced at the selection callback instead of the civ-data
+layer.
+
+**(b) "Real Korean civ attributes"** — extend the PPU's
+civ-record table to a 17th entry with Korean-specific
+values (civ trait, leader bonus, unique unit Hwacha,
+starting tech, AI personality). Uses iter-226's CivRev 2
+APK extracted source XMLs as the data source.
+
+#### Cost comparison
+
+| path | estimated iterations | work |
+|---|---|---|
+| **(a) Korea = Chinese** | **~1 iteration** | ~1 AS2 line change in `gfx_chooseciv_patch.py`'s patch_xml, rebuild, verify in GUI mode |
+| (b) Real Korean civ | ~10-20 iterations | RE the PPU civ-record struct (iter-198 partially mapped it), locate the civ-data table, extend to a 17th entry, port values from CR2's different engine (Unity C# → PS3 native struct), handle Hwacha unique-unit dispatch, handle leader-bonus code path, validate |
+
+**Ratio: ~15-20×** in favor of (a). User said: "If it's
+not meaningfully easier [to start with (a)], proceed with
+(b)". It is meaningfully easier, so iter-1188 goes with (a).
+
+#### Path (a) implementation — strategy A: AS2 remap at fscommand
+
+The entire fix is **one line change** to
+`DefineSprite_98_options_mov/../DoAction_2.as`'s root-frame
+sibling at `scripts/frame_1/DoAction_2.as` (the civ-select
+panel's keyboard handler). Currently:
+
+```javascript
+case 13:  // Enter
+case 90:  // Z
+   trace("fscommand(\"OnAccept\", " + theSelectedOption + ");");
+   fscommand("OnAccept", theSelectedOption);
+   break;
+```
+
+Becomes:
+
+```javascript
+case 13:
+case 90:
+   // iter-1188: Korea (slot 16) routes to China (slot 6)
+   // at the fscommand boundary so OnAccept starts a
+   // Chinese game. See PRD §9.Z.
+   var acceptSlot = theSelectedOption == 16 ? 6 : theSelectedOption;
+   trace("fscommand(\"OnAccept\", " + acceptSlot + ");");
+   fscommand("OnAccept", acceptSlot);
+   break;
+```
+
+Delivered via JPEXS `-importScript`, wired into
+`korea_mod/gfx_chooseciv_patch.py`'s `jpexs_synthesize_korea()`
+function alongside the existing `LOAD_OPTIONS_KOREA` constant
+from iter-1185. Two `.as` file overwrites instead of one.
+
+**Why this works:** the PPU's OnAccept handler receives
+only the slot index. It has no way to tell whether the
+user clicked Korea or China — it just sees an integer.
+When the SWF passes `6` instead of `16`, the PPU's existing
+"start a Chinese game" path fires. Zero PPU patches, zero
+EBOOT touches, zero new verification surface.
+
+#### What the user will experience after iter-1188
+
+- **Civ-select carousel:** unchanged — still shows
+  Sejong / Koreans at slot 16 with Mao's portrait
+  (iter-1185 LoadOptions synthesis unchanged)
+- **After confirming Korea:** the transition / leaderhead
+  animation will show **Mao / Chinese** because the PPU now
+  thinks the user picked slot 6 = China
+- **In-game HUD:** plays as China — Beijing starting city,
+  Chinese units in the build queue, Chinese bonus list,
+  Mao's leader bonus, Chinese starting tech
+- **Net user experience:** Korea is a cosmetic alias for
+  China on the civ-select screen only. This exactly matches
+  PRD §1.1's v1.0 scope clause: "Korea is a renamed China
+  for v1.0, with the only real work being [the visible
+  menu entry]."
+
+#### Verification (iter-1188 definition of done)
+
+1. `./verify.sh --tier=fast` — Caesar M9 smoke still PASSes
+   (should, since the edit only affects slot 16).
+2. Manual GUI run: launch RPCS3, pick Korea at slot 16,
+   confirm, observe:
+   - Post-confirm transition shows Mao's leaderhead
+   - Starting city on the world map is **Beijing** (not a
+     random civ's capital name)
+   - The in-game civ-info panel lists Chinese bonuses
+   - Unit build queue includes Chinese unique unit
+     (if any — CivRev 1 China doesn't have a unique unit,
+     so this is a no-op check)
+3. Save a screenshot of the in-game HUD showing the
+   Chinese starting position to
+   `verification/iter1188_korea_plays_as_china/`.
+4. Refresh the 7-civ M9 regression sweep OR at least
+   re-run Caesar + Random (slot 17) to confirm the two
+   cells adjacent to our edit still dispatch correctly.
+
+#### Deferral of path (b)
+
+Path (b) — real Korean civ attributes via civ-record table
+extension — is formally deferred to a new **PRD §11 v1.2
+differentiation roadmap**. The forward path is:
+
+1. Reverse-engineer PS3 civ-record struct layout. iter-198
+   partially mapped it in
+   `korea_mod/docs/civ-record-layout.md` — expand that doc.
+2. Locate the civ-data table in the EBOOT. Scan for arrays
+   of civ-record structs, identify the base address.
+3. Extend the table to a 17th entry (civ index 16). This
+   is similar in spirit to iter-4's ADJ_FLAT extension
+   but for a larger, more complex struct.
+4. Port values from iter-226's CivRev 2 XML extracts at
+   `civrev2/extracted_apk/Mobile_PediaInfo_*.xml`. Handle
+   the engine-translation nuances (CR2 is Unity/C#,
+   CR1 PS3 is native-struct).
+5. Remove iter-1188's slot-16 → slot-6 AS2 remap so that
+   slot 16 flows cleanly into the newly-populated civ
+   index 16.
+6. Additional work: Hwacha unique unit dispatch, Sejong
+   leader bonus code path, Korean civ trait.
+
+Estimated effort: 10-20 iterations. ~1-3 days wall clock.
+Not in scope for v1.0 under PRD §1.1, retained here as a
+v1.2 roadmap for a future loop unfreeze.
+
 ## 10. Progress Log
 
 This section is the agent's persistent state across ralph-loop iterations.
