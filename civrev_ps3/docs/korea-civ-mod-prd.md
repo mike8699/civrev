@@ -5432,3 +5432,93 @@ row write.
 
 **PRD changes made this iteration:** Progress Log entry added.
 No code/asset/EBOOT changes (pure investigation).
+
+### iter-197 (2026-04-15): GHIDRA UNBLOCK — parser is dynamic; "17-wide buffer" doesn't exist; downstream uses hardcoded 16
+
+**Tool:** `analyzeHeadless` against `civrev_ps3/ghidra_v130/v130.gpr`
+with new Jython post-script `Iter197ParserWriteTarget.py`. Decomp
+output saved to
+`korea_mod/verification/iter197_parser_decomp/jython_dump.txt`.
+
+**Decomp result 1 — `real_parser_dispatcher` (`FUN_00a2ec54`):**
+calls `real_parser_worker` (`FUN_00a2e640`) once per name file with
+hardcoded counts. The civs BL is at `0xa2ee80` with `li r5, 0x11`
+at `0xa2ee7c`; the rulers BL is at `0xa2ee3c` with `li r5, 0x11` at
+`0xa2ee38`. Both are the iter-14 patch sites already shipping.
+Each call passes the address of a per-name-file buffer-pointer
+slot in `r4` (e.g. civs uses `r2 + 0x141c` = `0x193b6a4`).
+
+**Decomp result 2 — `real_parser_worker`:**
+```
+piVar5 = (int*)thunk_FUN_00c4ff00(param_3 * 0xc + 4);  // malloc
+*piVar5 = param_3;                                     // store count
+*param_2 = piVar5 + 1;                                 // publish ptr
+... parse loop, store entries at iVar10*0xc + *param_2 ...
+```
+
+The buffer is **dynamically sized** (`count*12 + 4` bytes) and the
+parse loop's bound is the file line count, not a constant. There
+is **no hardcoded 17-wide buffer in the parser**. iter-7..72's
+"downstream 17-wide buffer in the parser" model was wrong.
+
+**Decomp result 3 — downstream consumers at `0x011679xx`/`0x01167dxx`:**
+exhaustive scan for `li rN, 0x10` within ±8 instructions of every
+`lwz r,N(r2)` that loads any of the 7 name-file buffer-pointer
+TOC slots finds **14 hits**, all with the same shape:
+
+```
+lwz   r7, 0x141c(r2)     ; civs buffer ptr
+addi  r4, r1, 0x8c       ; stack temp
+li    r8, 0x10           ; count = 16
+mr    r3, r9             ; this
+lwz   r11, 0(r9)         ; vtable
+lwz   r9, 0x24(r11)      ; method @ vtable+0x24
+mtctr/bctrl              ; virtual call
+```
+
+These are **two consumer functions** that iterate all 7 name files
+and call a vtable method with `r8 = 16` as the count. Because stock
+civnames has 17 entries (16 real civs + 1 internal "Barbarians" at
+index 16), the consumer reads the 16 real civs and ignores the
+Barbarians entry by design — the `0x10` is a visibility cap, not
+a buffer capacity. **Bumping civnames to 18 entries cannot OOB
+these consumers** because they iterate exactly 16 regardless.
+
+**Implication:** iter-14 finding 4 ("bumping count to 18 still
+times out at RSX init") may have been a **misdiagnosis** — the
+test rig at the time may have had stale or partial files. The
+parser is structurally safe at count=18.
+
+**Side benefit:** the 14 `li r8, 0x10` sites are also the EXACT
+locations to bump from `0x10` to `0x11` if we want the **downstream
+consumers to actually surface the 17th civ** (Korea at index 16).
+Currently they cap visibility at 16 — even if the parser successfully
+loads Korea at index 16, these consumers won't iterate past index 15.
+This is the cap that makes "Random" (slot 16 in the carousel)
+actually correspond to the **internal Barbarians slot** through
+some other mapping. Crucial mapping unclear yet — needs iter-198
+follow-up.
+
+**iter-198 plan:**
+1. Insert `"Koreans, MP"` at line 17 of `civnames_enu.txt` (between
+   "English" and "Barbarians") and ship it as an FPK overlay.
+2. Insert `"Sejong, M"` at line 17 of `rulernames_enu.txt` (between
+   "Elizabeth" and "Grey Wolf").
+3. Keep the iter-14 `li r5, 0x11`→`0x12` patches active.
+4. Bump every `li r8, 0x10` (=16) to `li r8, 0x11` (=17) at the 14
+   downstream consumer sites identified above (RULERS, CIVS, plus
+   the other 5 name-file sites for symmetry).
+5. Rebuild, install, run M2 boot test + slot-16 OCR probe.
+6. If boot succeeds and slot 16 OCR shows "Korean / Sejong":
+   we've won the M2 unblock and Korea is now playable at slot 16
+   (which still LOSES the iter-189 strict-reading directive — slot
+   16 is "Random" — but it proves the parser path works and is
+   the foundation for the 18th-cell strict-reading work).
+7. If boot crashes: capture the fault address and pivot to
+   Z-packet watchpoint via `gdb_client.py` extension (PRD §6.2
+   dynamic path) on whatever the new fault site indicates.
+
+**PRD changes made this iteration:** Progress Log entry added.
+New Jython script committed under `scripts/ghidra_helpers/`.
+No code/asset/EBOOT shipping changes (pure investigation +
+verification artifacts).

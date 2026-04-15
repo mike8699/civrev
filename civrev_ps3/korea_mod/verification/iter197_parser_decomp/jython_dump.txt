@@ -1,0 +1,258 @@
+openjdk version "25.0.2" 2026-01-20
+OpenJDK Runtime Environment (build 25.0.2+10-Ubuntu-124.04)
+OpenJDK 64-Bit Server VM (build 25.0.2+10-Ubuntu-124.04, mixed mode)
+INFO  Using log config file: jar:file:/home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Framework/Generic/lib/Generic.jar!/generic.log4j.xml (LoggingInitialization)  
+INFO  Using log file: /home/mike/.config/ghidra/ghidra_11.3.1_PUBLIC/application.log (LoggingInitialization)  
+INFO  Loading user preferences: /home/mike/.config/ghidra/ghidra_11.3.1_PUBLIC/preferences (Preferences)  
+INFO  Loading previous preferences: /home/mike/.ghidra/.ghidra_11.0.3_PUBLIC/preferences (Preferences)  
+INFO  Searching for classes... (ClassSearcher)  
+INFO  Class search complete (560 ms) (ClassSearcher)  
+INFO  Initializing SSL Context (SSLContextInitializer)  
+INFO  Initializing Random Number Generator... (SecureRandomFactory)  
+INFO  Random Number Generator initialization complete: NativePRNGNonBlocking (SecureRandomFactory)  
+INFO  Trust manager disabled, cacerts have not been set (ApplicationTrustManagerFactory)  
+INFO  Headless startup complete (1316 ms) (AnalyzeHeadless)  
+INFO  Class searcher loaded 57 extension points (18 false positives) (ClassSearcher)  
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::staticFieldOffset has been called by org.apache.felix.framework.util.SecureAction (file:/home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/Base/lib/org.apache.felix.framework-7.0.5.jar)
+WARNING: Please consider reporting this to the maintainers of class org.apache.felix.framework.util.SecureAction
+WARNING: sun.misc.Unsafe::staticFieldOffset will be removed in a future release
+INFO  HEADLESS Script Paths:
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Processors/PIC/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Debug/Debugger/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/PyGhidra/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Processors/8051/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/SystemEmulation/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/GnuDemangler/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Processors/Atmel/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/BytePatterns/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/Decompiler/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/WildcardAssembler/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Processors/DATA/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/FileFormats/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/Jython/ghidra_scripts
+    /home/mike/.config/ghidra/ghidra_11.3.1_PUBLIC/Extensions/Ps3GhidraScripts/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/Base/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Processors/JVM/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/BSim/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/FunctionID/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Debug/Debugger-rmi-trace/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/VersionTracking/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/SwiftDemangler/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/DecompilerDependent/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/PDB/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/MicrosoftCodeAnalyzer/ghidra_scripts (HeadlessAnalyzer)  
+INFO  HEADLESS: execution starts (HeadlessAnalyzer)  
+INFO  Opening existing project: /home/mike/Desktop/civrev/civrev_ps3/ghidra_v130/v130 (HeadlessAnalyzer)  
+INFO  Opening project: /home/mike/Desktop/civrev/civrev_ps3/ghidra_v130/v130 (HeadlessProject)  
+INFO  REPORT: Processing project file: /EBOOT_v130_clean.ELF (HeadlessAnalyzer)  
+INFO  SCRIPT: /home/mike/Desktop/civrev/civrev_ps3/korea_mod/scripts/ghidra_helpers/Iter197ParserWriteTarget.py (HeadlessAnalyzer)  
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by com.kenai.jffi.internal.StubLoader in an unnamed module (file:/home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/Jython/lib/jython-standalone-2.7.4.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+
+##############################################################################
+# iter-197: parser write-target hunt
+##############################################################################
+  [no function at 0xa21ce8]
+
+  [no function at 0xa216d4]
+
+
+============================================================================
+bl FUN_00a216d4 sites inside dispatcher 0xa21ce8:
+
+============================================================================
+
+============================================================================
+FUN_00a2e640  (size=1300)
+============================================================================
+   1  
+   2  void real_parser_worker(undefined4 *param_1,int *param_2,int param_3)
+   3  
+   4  {
+   5    undefined4 uVar1;
+   6    uint uVar2;
+   7    undefined4 uVar3;
+   8    ulonglong uVar4;
+   9    longlong unaff_r2;
+  10    int *piVar5;
+  11    char cVar6;
+  12    int iVar7;
+  13    int iVar8;
+  14    int iVar10;
+  15    int *piVar9;
+  16    undefined4 uStack_c0;
+  17    int iStack_bc;
+  18    uint uStack_b8;
+  19    undefined1 auStack_b4 [4];
+  20    undefined1 auStack_b0 [4];
+  21    undefined1 auStack_ac [4];
+  22    undefined1 auStack_a8 [4];
+  23    undefined1 auStack_a4 [4];
+  24    int iStack_a0;
+  25    undefined1 auStack_9c [4];
+  26    undefined1 auStack_98 [40];
+  27    int iStack_70;
+  28    
+  29    uStack_b8 = *(int *)(unaff_r2 + 0x1420) + 0x10;
+  30    uVar1 = *(undefined4 *)(ulonglong)*(uint *)(unaff_r2 + 0x143c);
+  31    FUN_009c31e0(auStack_98,0,1,0,uVar1);
+  32    iVar10 = *param_2;
+  33    if (iVar10 != 0) {
+  34      iVar10 = iVar10 + *(int *)(ulonglong)(iVar10 - 4) * 0xc;
+  35      while (*param_2 != iVar10) {
+  36        iVar10 = iVar10 + -0xc;
+  37        func_0x009c3a20(iVar10);
+  38      }
+  39      thunk_FUN_00c4faa8(*param_2 + -4);
+  40      *param_2 = 0;
+  41    }
+  42    piVar5 = (int *)thunk_FUN_00c4ff00(param_3 * 0xc + 4);
+  43    *piVar5 = param_3;
+  44    piVar9 = piVar5 + 1;
+  45    iVar10 = param_3 + -2;
+  46    iVar7 = param_3 + -1;
+  47    while (iVar8 = iVar10, iVar7 != -1) {
+  48      FUN_00a00f54((ulonglong)piVar9 & 0xffffffff,0,0,0);
+  49      piVar9 = piVar9 + 3;
+  50      iVar10 = iVar8 + -1;
+  51      iVar7 = iVar8;
+  52    }
+  53    uVar2 = *(uint *)(unaff_r2 + 0x1440);
+  54    *param_2 = (int)(piVar5 + 1);
+  55    uVar3 = *param_1;
+  56    (*(code *)(ulonglong)
+  57              *(uint *)(ulonglong)
+  58                       *(uint *)((ulonglong)*(uint *)(ulonglong)*(uint *)(ulonglong)uVar2 + 0xc))
+  59              ((ulonglong)auStack_ac & 0xffffffff,(uint *)(ulonglong)*(uint *)(ulonglong)uVar2);
+  60    func_0x009c21e0((ulonglong)auStack_b0 & 0xffffffff,uVar3,(ulonglong)auStack_ac & 0xffffffff);
+  61    func_0x009c20a0((ulonglong)auStack_b4 & 0xffffffff,(ulonglong)auStack_b0 & 0xffffffff,
+  62                    *(undefined4 *)(unaff_r2 + 0x1444));
+  63    func_0x00c2bfd8(&uStack_b8,(ulonglong)auStack_b4 & 0xffffffff);
+  64    FUN_009c2f70(auStack_b4);
+  65    FUN_009c2f70(auStack_b0);
+  66    FUN_009c2f70(auStack_ac);
+  67    uVar4 = (ulonglong)auStack_9c & 0xffffffff;
+  68    (*(code *)(ulonglong)
+  69              *(uint *)(ulonglong)
+  70                       *(uint *)((ulonglong)
+  71                                 *(uint *)(ulonglong)*(uint *)(ulonglong)*(uint *)(unaff_r2 + 0x1440)
+  72                                + 0xc))
+  73              (uVar4,(uint *)(ulonglong)*(uint *)(ulonglong)*(uint *)(unaff_r2 + 0x1440));
+  74    cVar6 = func_0x009c1a20(uVar4,*(undefined4 *)(unaff_r2 + 0x1448));
+  75    FUN_009c2f70(uVar4);
+  76    if (cVar6 != '\0') {
+  77      func_0x00c2bfd8((ulonglong)&uStack_b8 & 0xffffffff,(ulonglong)param_1 & 0xffffffff);
+  78      func_0x00c269a4((ulonglong)&uStack_b8 & 0xffffffff,*(undefined4 *)(unaff_r2 + 0x144c));
+  79    }
+  80    func_0x009c3320(auStack_98,uStack_b8,1,0,uVar1);
+  81    iVar10 = 0;
+  82    while( true ) {
+  83      uVar4 = (ulonglong)auStack_98 & 0xffffffff;
+  84      cVar6 = func_0x009c2380(uVar4);
+  85      if (cVar6 != '\0') break;
+  86      if (iStack_70 == 1) {
+  87        func_0x00c48f14(uVar4,&uStack_b8);
+  88      }
+  89      else {
+  90        FUN_00c27328((ulonglong)&iStack_bc & 0xffffffff,uStack_b8);
+  91        func_0x00c49704(uVar4,(ulonglong)&iStack_bc & 0xffffffff);
+  92        func_0x00c2c570((ulonglong)auStack_a4 & 0xffffffff,iStack_bc);
+  93        func_0x009c34f0(&uStack_b8,(ulonglong)auStack_a4 & 0xffffffff);
+  94        func_0x009c34a0(auStack_a4);
+  95        FUN_009c2f70(&iStack_bc);
+  96      }
+  97      FUN_00a3270c((ulonglong)&uStack_b8 & 0xffffffff);
+  98      if (*(int *)(((ulonglong)uStack_b8 - 0x10 & 0xffffffff) + 0xc) != 0) {
+  99        if ((*(short *)(ulonglong)uStack_b8 != 0x23) && (*(short *)(ulonglong)uStack_b8 != 0x3b)) {
+ 100          iVar7 = iVar10 * 0xc;
+ 101          iVar10 = iVar10 + 1;
+ 102          FUN_00c72cf8((ulonglong)&uStack_b8 & 0xffffffff,iVar7 + *param_2);
+ 103        }
+ 104      }
+ 105    }
+ 106    uVar4 = (ulonglong)auStack_a8 & 0xffffffff;
+ 107    (*(code *)(ulonglong)
+ 108              *(uint *)(ulonglong)
+ 109                       *(uint *)((ulonglong)
+ 110                                 *(uint *)(ulonglong)*(uint *)(ulonglong)*(uint *)(unaff_r2 + 0x1440)
+ 111                                + 0xc))
+ 112              (uVar4,(uint *)(ulonglong)*(uint *)(ulonglong)*(uint *)(unaff_r2 + 0x1440));
+ 113    cVar6 = func_0x009c1a20(uVar4,*(undefined4 *)(unaff_r2 + 0x1448));
+ 114    FUN_009c2f70(uVar4);
+ 115    if (cVar6 != '\0') {
+ 116      iStack_bc = *(int *)(unaff_r2 + 0x13fc) + 0x10;
+ 117      iStack_a0 = iStack_bc;
+ 118      for (iVar7 = 0; iVar7 < iVar10; iVar7 = iVar7 + 1) {
+ 119        FUN_009bf5a0(&iStack_a0,iVar7 * 0xc + *param_2 + 8);
+ 120        iVar8 = *param_2;
+ 121        func_0x00c7258c(&uStack_c0,*(undefined4 *)(ulonglong)*(uint *)(unaff_r2 + 0x1440),iStack_a0);
+ 122        func_0x009f1c80(iVar7 * 0xc + iVar8,uStack_c0);
+ 123        FUN_009c2f70(&uStack_c0);
+ 124      }
+ 125      FUN_009c2f70(&iStack_a0);
+ 126      FUN_009c2f70(&iStack_bc);
+ 127    }
+ 128    func_0x009c0650(auStack_98);
+ 129    func_0x009c18e0(auStack_98);
+ 130    func_0x009c34a0(&uStack_b8);
+ 131    return;
+ 132  }
+ 133  
+
+Function containing 0xa2ee38: 0xa2ec54
+============================================================================
+FUN_00a2ec54  (size=496)
+============================================================================
+   1  
+   2  void real_parser_dispatcher(void)
+   3  
+   4  {
+   5    longlong unaff_r2;
+   6    ulonglong uVar1;
+   7    undefined1 auStack_40 [4];
+   8    undefined1 auStack_3c [4];
+   9    undefined1 auStack_38 [4];
+  10    undefined1 auStack_34 [4];
+  11    undefined1 auStack_30 [4];
+  12    undefined1 auStack_2c [4];
+  13    undefined1 auStack_28 [4];
+  14    undefined1 auStack_24 [12];
+  15    
+  16    func_0x009bf850((ulonglong)auStack_24 & 0xffffffff,*(undefined4 *)(unaff_r2 + 0x1450));
+  17    uVar1 = func_0x00a22308();
+  18    real_parser_worker((ulonglong)auStack_24 & 0xffffffff,*(undefined4 *)(unaff_r2 + 0x1400),
+  19                       (longlong)(int)((uVar1 & 0xffffffff) << 1));
+  20    FUN_009c2f70(auStack_24);
+  21    func_0x009bf850((ulonglong)auStack_3c & 0xffffffff,*(undefined4 *)(unaff_r2 + 0x1454));
+  22    real_parser_worker((ulonglong)auStack_3c & 0xffffffff,*(undefined4 *)(unaff_r2 + 0x1404),0x30);
+  23    FUN_009c2f70(auStack_3c);
+  24    func_0x009bf850((ulonglong)auStack_38 & 0xffffffff,*(undefined4 *)(unaff_r2 + 0x1458));
+  25    real_parser_worker((ulonglong)auStack_38 & 0xffffffff,*(undefined4 *)(unaff_r2 + 0x1408),0x30);
+  26    FUN_009c2f70(auStack_38);
+  27    func_0x009bf850((ulonglong)auStack_34 & 0xffffffff,*(undefined4 *)(unaff_r2 + 0x145c));
+  28    real_parser_worker((ulonglong)auStack_34 & 0xffffffff,*(undefined4 *)(unaff_r2 + 0x140c),0x101);
+  29    FUN_009c2f70(auStack_34);
+  30    func_0x009bf850((ulonglong)auStack_30 & 0xffffffff,*(undefined4 *)(unaff_r2 + 0x1460));
+  31    real_parser_worker((ulonglong)auStack_30 & 0xffffffff,*(undefined4 *)(unaff_r2 + 0x1410),0x42);
+  32    FUN_009c2f70(auStack_30);
+  33    func_0x009bf850((ulonglong)auStack_2c & 0xffffffff,*(undefined4 *)(unaff_r2 + 0x1464));
+  34    real_parser_worker((ulonglong)auStack_2c & 0xffffffff,*(undefined4 *)(unaff_r2 + 0x1414),0x80);
+  35    FUN_009c2f70(auStack_2c);
+  36    func_0x009bf850((ulonglong)auStack_28 & 0xffffffff,*(undefined4 *)(unaff_r2 + 0x1468));
+  37    real_parser_worker((ulonglong)auStack_28 & 0xffffffff,*(undefined4 *)(unaff_r2 + 0x1418),0x11);
+  38    FUN_009c2f70(auStack_28);
+  39    func_0x009bf850((ulonglong)auStack_40 & 0xffffffff,*(undefined4 *)(unaff_r2 + 0x146c));
+  40    real_parser_worker((ulonglong)auStack_40 & 0xffffffff,*(undefined4 *)(unaff_r2 + 0x141c),0x11);
+  41    FUN_009c2f70(auStack_40);
+  42    return;
+  43  }
+  44  
+
+##############################################################################
+# end iter-197 dump
+##############################################################################
+INFO  REPORT: Save succeeded for processed file: /EBOOT_v130_clean.ELF (HeadlessAnalyzer)  
