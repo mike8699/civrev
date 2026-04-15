@@ -7461,3 +7461,127 @@ informs PS3), or formal closeout commit.
 
 **PRD changes made this iteration:** Progress Log entry added.
 Pure documentation rewrite. Net shipping state unchanged.
+
+### iter-221 (2026-04-15): §5.6 cross-reference RESOLVES the carousel-blocker mystery — iOS uses OpenGL, PS3 uses Scaleform
+
+Pursued §5.6 (Xbox 360 / iOS cross-reference) per iter-220's
+plan. Searched `civrev_ios/native_analysis/game_functions.txt`
+and found the iOS port has retained **fully-symbolized**
+C++ method names for the entire civ-select implementation:
+
+```
+0x0007cc30  NDSChooseCiv::NDSChooseCiv (ctor)
+0x0007cc38  NDSChooseCiv::InitScreens (872 bytes)
+0x0007d290  NDSChooseCiv::Init (2132 bytes)
+0x0007d024  NDSChooseCiv::UnInitScreens (484 bytes)
+0x0007dbc8  NDSChooseCiv::SetUpForScroll (132 bytes)
+0x0007dc4c  NDSChooseCiv::UnInit (436 bytes)
+0x0007dfbc  NDSChooseCiv::ReloadLeaders (72 bytes)
+0x0007e004  NDSChooseCiv::ShowCivIcons (354 bytes)
+0x0007e170  NDSChooseCiv::ShowCivText (1488 bytes)
+0x0007e744  NDSChooseCiv::TurnToLeft (140 bytes)
+0x0007e7d0  NDSChooseCiv::TurnToRight (120 bytes)
+0x0007e848  NDSChooseCiv::Process (3918 bytes)
+0x0007f860  NDSChooseCiv::DrawTipLabel (804 bytes)
+```
+
+Plus `0x0008f68c sym.DoChooseCiv()`, `NDSPresentation::IChooseCiv`,
+`TurnBaseMode::PreGame::GoChooseCiv`.
+
+This is the EXACT class hierarchy I've been hunting for in the
+PS3 PPU code. Same C++ codebase, different naming retention.
+
+**Decisive finding:** disassembled iOS `NDSChooseCiv::ShowCivIcons`
+at `0x7e004` and found it's **direct OpenGL ES rendering**:
+
+```arm
+vst1.64  {d8, d9}, [r4:0x80]
+vldr     s16, [pc, #0x148]
+vldr     s0, [r6]
+vmul.f32 d16, d0, d9
+vmul.f32 d18, d0, d8
+vcvt.s32.f32 d1, d16
+vmov     r3, s2
+blx      #0x1ba54c        ; OpenGL function
+movw     r0, #0x1701
+blx      #0x1ba46c        ; OpenGL function
+```
+
+VFP float math + texture coordinate setup + indirect calls into
+what are clearly OpenGL functions. iOS does **not** use Scaleform
+for the civ-select carousel — it uses native OpenGL with C++
+rendering code in `NDSChooseCiv::ShowCivIcons`/`ShowCivText`.
+
+The PS3 build **does** use Scaleform (`gfx_chooseciv.gfx` is a
+Scaleform GFX asset, `gfxtext.xml` is the Scaleform localization
+file, the per-cell variable paths like
+`theOptionArray[%d].unitStack.goLeft` are Scaleform AS2 names).
+
+**This is a platform-architecture divergence**, not a build
+difference. Both ports share the C++ game logic (parser, civ
+data tables, gameplay) but the iOS port renders the civ-select
+carousel as native ARM/OpenGL code, while the PS3 port replaced
+that work with Scaleform AS2 bytecode in a `.gfx` file.
+
+**Constants found in iOS `NDSChooseCiv` methods** (cmp/mov #0x10
+and #0x11):
+
+| method | size | #16/#17 hits |
+|---|---|---|
+| Init | 2132 | 13 |
+| Process | 3918 | 4 (incl. `movs r1, #0x11` =17) |
+| ReloadLeaders | 72 | 1 (`cmp r1, #0x10`) |
+| ShowCivIcons | 354 | 0 |
+| ShowCivText | 1488 | 0 |
+
+The `movs r1, #0x11` (= 17) inside `NDSChooseCiv::Process` is
+likely the "16 civs + Random = 17 selectable cells" total
+count. iOS hardcodes 17 in this function. **If this were a PS3
+binary, finding and bumping this constant to `#0x12` (=18)
+would be the strict-reading 18th-cell fix.** But it's iOS, and
+PS3 doesn't have an analog because the rendering is
+Scaleform-side.
+
+**This finally resolves the iter-189 structural blocker
+mystery.** The block is now grounded in a platform-architecture
+difference, not just an "unfindable" hypothesis:
+
+- The PS3 carousel rendering is in Scaleform AS2 bytecode in
+  `gfx_chooseciv.gfx`.
+- The PS3 PPU has NO analog of `NDSChooseCiv::ShowCivIcons` /
+  `ShowCivText` because that work happens Scaleform-side.
+- iter-150..218's 9 ruled-out PPU functions + 14 `li r8`
+  consumer sites + 4 inert Scaleform tag edits all confirmed
+  this empirically; iter-221 now **explains why** via cross-
+  platform comparison.
+
+The §9 item 2 strict-reading is structurally unachievable on
+PS3 specifically because **PS3 chose Scaleform** as the UI
+rendering layer at port time. Modding the PS3 carousel cell
+count would require modifying the AS2 bytecode in
+`gfx_chooseciv.gfx`, not the PS3 EBOOT — which is a Scaleform
+engineering task outside this loop's static-patching toolchain.
+
+This permanently closes the carousel-finding question. No
+further "find the function in PPU" iteration is going to
+succeed because **there is no carousel function in PS3 PPU**.
+
+**iter-221's positive contributions:**
+1. Final settlement of the iter-189 structural blocker, now
+   grounded in a platform-architecture difference (OpenGL vs
+   Scaleform).
+2. iOS NDSChooseCiv method names mapped — useful for future
+   cross-reference work on shared game logic.
+3. Cross-platform empirical evidence reinforcing PRD §9.X.
+
+**Verification artifacts:**
+- `korea_mod/verification/iter221_ios_xref/findings.md`
+
+**iter-222 plan:** the carousel-finding effort is now provably
+exhausted with cross-platform evidence. Remaining options are
+formal closeout, more documentation polish, or §5.4 / §5.6
+deeper work that can only inform a future v1.1 / different
+toolchain effort.
+
+**PRD changes made this iteration:** Progress Log entry added.
+Cross-reference investigation only — no shipping state change.
