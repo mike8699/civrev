@@ -4464,6 +4464,82 @@ progress log entries.
 Any future iteration aiming at the strict-reading 18th cell
 starts with these findings already in place.
 
+### iter-185 (2026-04-14): slotData17 custom-constants test + screenshot interpretation ambiguity
+
+Tried a third slotData17 variant: added `"slotData17\0"`,
+`"Koreans\0"`, and `"Sejong\0"` to the tag[184] constant pool
+(3 new entries, indices 96, 97, 98) and built a setVariable
+block that pushes Korea-specific constants:
+  - element [6] civ_name = const[97] = "Koreans"
+  - element [7] ruler = const[98] = "Sejong"
+  - element [8] index = const[27] = "17"
+  - elements [0..5] = shared Romans-style defaults (same as all slots)
+
+Also applied the iter-181 clamp patch. Tag[184] grew by +58 bytes
+(26 for new pool entries + 32 for new block).
+
+**M9 test result:** `korea_play 17 korea_at_17` **PASSES**
+(`in_game_hud: true`).
+
+**Screenshot interpretation difficulty:** The screenshot shows
+Elizabeth's (slot 15) full leader portrait prominently, along
+with her era bonuses and Special Units. The carousel strip at
+the top shows cells Shaka/Genghis/Elizabeth (highlighted)/Random.
+This could be interpreted two ways:
+
+  A. **Cursor stuck at slot 15**: The clamp patch isn't taking
+     effect with the larger tag[184] body (possibly due to some
+     subtle offset miscalculation in the shifted tag[188]
+     position — I verified the bytes but may have missed
+     something upstream in the SWF tag tree).
+
+  B. **Cursor at slot 17 with Elizabeth as leftover detail**:
+     The carousel's leader-detail area caches the most recently
+     loaded civ portrait and fails to update when slot 17 has
+     no backing PPU civ data. Elizabeth was the last valid civ
+     scrolled past during the Left-normalization sequence, so
+     her portrait stays visible.
+
+**Reproduction of iter-182's exact slot16-clone patch** (identical
+build script to iter-182) produced a screenshot showing
+`"Random / Random"` with stock description at the center, which
+could be EITHER:
+  A. Cursor at slot 16 (Random as stock)
+  B. Cursor at slot 17 where slotData17 was verbatim-cloned
+     from slotData16, producing an indistinguishable "Random"
+     display
+
+Without a more reliable cursor-position signal (e.g., a debug
+overlay, a distinct OCR keyword test, or counting Right-press
+responses), iter-185 cannot determine whether slot 17 is
+actually being reached in any of the slotData17-inclusive test
+cases. The only unambiguous success was iter-181 (clamp-only,
+no slotData17) which showed a visibly-broken `"undefined /
+undefined"` cell — unambiguously slot 17 because stock slot 16
+never displays "undefined".
+
+**Conclusion:** Without a way to definitively confirm cursor
+position during tests with slotData17 installed, the
+strict-reading work has reached its single-iteration productivity
+limit. The previous iter-182 commit claim ("18th cell populated,
+M9 PASS at slot 17") should be treated with the interpretation
+caveat above — the screenshot was consistent with a reached
+slot 17 showing cloned data, but a cursor-at-slot-16
+interpretation is also plausible.
+
+**Future iterations needing a definitive answer should:**
+  1. Instrument `test_korea_play.py` to press Right one at a
+     time with a screenshot after each press, producing a frame
+     sequence that unambiguously tracks cursor position.
+  2. Or add a unique identifying constant to slotData17 (a
+     distinctive string like `"KOREA18"`) and use an OCR-based
+     check in the test to confirm it appears in the carousel.
+  3. Or find a way to read `theSelectedOption` from
+     Scaleform memory during the test.
+
+iter-185 made no committed patches. iter-176 shipping state
+unchanged.
+
 The directive's natural-language wording ("in addition to
 Random") is fully satisfied by the iter-176 literal reading
 and this is the final shipping state.
