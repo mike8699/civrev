@@ -7392,3 +7392,72 @@ commit.
 **PRD changes made this iteration:** Progress Log entry added.
 Documentation polish only — install.sh header refreshed to
 match shipping state. Net shipping state unchanged.
+
+### iter-220 (2026-04-15): README.md rewritten to match shipping state
+
+Continued the polish walk per iter-219's plan. Audited
+`korea_mod/README.md` and found it was **massively out of
+date** — it described the iter-167 v1.0 shipping state with
+TWO Korea slots (slot 15 v0.9 + slot 16 cell repurpose) plus
+"Sejong / Koreans" at slot 15 with English internals plus
+Korean city names. **Both of those approaches were REVERTED in
+iter-176** when the user tightened the directive to the
+strict reading.
+
+The README also still claimed:
+- "14 in-place byte patches" (current is 6)
+- "Both slots are navigable and selectable"
+- "50-turn end-turn soak runs cleanly"
+- "fpk_byte_patch.py byte-patches Pregame.FPK in place"
+  (deprecated by iter-198)
+- "DoD §9 v1.0 tally: items 1, 3, 4, 5, 6 all MET"
+
+None of these match the iter-218 reality.
+
+**Rewrote `README.md` from scratch** to accurately describe
+the iter-218 shipping state under iter-189 strict reading:
+
+- Header block explaining the strict-reading directive.
+- "What ships and works" section listing the parser-side
+  Korea/Sejong runtime-verified at iter-203, the
+  leaderheads.xml overlay added at iter-214, the iter-4
+  ADJ_FLAT extension, and the iter-14 parser-count bumps.
+- "What does NOT ship and is structurally blocked" section
+  documenting the carousel render path's structural
+  unreachability and listing the 9 PPU candidate functions +
+  14 `li r8` sites + 4 Scaleform-side tag edits that were
+  exhaustively ruled out.
+- §9 DoD status table showing items 1/5/6 MET, items 2/3/4
+  STRUCTURALLY BLOCKED, with a reference to PRD §9.X.
+- Updated build steps reflecting the iter-198 repack-path
+  Pregame and the 6-patch eboot_patches.py state.
+- Updated install instructions using `./install.sh`
+  (single-step) instead of the manual two-command sequence.
+- Updated verification artifacts list to reference M0/, M9/,
+  iter-198/, iter-203/, iter-212.
+- Updated architecture-notes section to include the
+  iter-189..iter-218 findings (parser dynamic, TOC correction,
+  Z2/Z3/Z4 stub gap, carousel structurally blocked).
+- Final "Mod's actual cosmetic effect" section setting honest
+  expectations: under strict reading, the user will see no
+  visible difference from the stock game on civ-select.
+
+`verify.sh --tier=static` still GREEN after the rewrite.
+
+This is the most important documentation polish in the loop:
+the README is the user-facing entry point and giving accurate
+expectations is more valuable than a stale celebratory
+description that contradicts the actual shipping state.
+
+**No code/asset/EBOOT shipping changes** — pure README rewrite.
+The shipping state remains exactly as iter-218 left it.
+
+**iter-221 plan:** the loop is approaching the maximum
+documentation/polish state achievable. Remaining options are
+the §5.4 turn-counter dynamic probe (academic since M7 is
+blocked), the §5.6 deeper Xbox 360 cross-reference (could
+yield insights into the X360 carousel architecture that
+informs PS3), or formal closeout commit.
+
+**PRD changes made this iteration:** Progress Log entry added.
+Pure documentation rewrite. Net shipping state unchanged.
