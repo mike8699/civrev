@@ -4170,6 +4170,62 @@ iter-176 shipping state still unchanged; iter-179 test edits
 reverted by `korea_mod/install.sh`. The find-the-cell-count hunt
 continues in future iterations.
 
+### iter-180 (2026-04-14): BREAKTHROUGH — numOptions is set from PPU, not Scaleform
+
+The iter-178/179 bumps of `numOptions = 17 → 18` inside
+`gfx_chooseciv.gfx` were runtime no-ops because **PPU code in
+the EBOOT sets numOptions via Scaleform SetVariable**, overriding
+whatever the DoAction at tag[184] bc@0xd8 wrote at frame load.
+
+**Evidence:**
+  - The literal string `"numOptions\0"` appears 4 times in the
+    EBOOT at file offsets `0x1682b68, 0x1683b8e, 0x1684205,
+    0x1687922`.
+  - The primary copy at `0x1682b68` (vaddr `0x1692b68`) has
+    **10 TOC slots** pointing to it across `.toc`:
+    ```
+    0x1933820, 0x193463c, 0x1936528, 0x193abac, 0x193ad60,
+    0x193aec0, 0x193b148, 0x193b5f8, 0x193bbe4, 0x193c36c
+    ```
+    These TOC slots are loaded by PPU code that invokes
+    Scaleform `Invoke("SetVariable", "numOptions", <value>)` —
+    each one likely a different UI panel (civ-select,
+    difficulty, options, handicap, etc.).
+
+**Implication:** The Scaleform cell count cannot be extended by
+editing `gfx_chooseciv.gfx` alone. The fix lives in the EBOOT:
+  1. Identify which of the 10 TOC call sites is the civ-select
+     `SetVariable("numOptions", 17)`.
+  2. Find the integer constant (probably a `li rN, 17` or
+     `li rN, 0x11`) being passed as the SetVariable value.
+  3. Patch that constant from 17 to 18 (or to "17 civs + Random
+     = 18").
+  4. Also extend `theActiveArray` and `slotData0..slotData16` to
+     include a new slot 17 — these are likely populated via
+     separate PPU-side SetVariable calls over an 0..16 loop
+     that will need its bound extended to 0..17.
+
+**Next iteration should:**
+  - Ghidra-disassemble one of the 10 TOC-load sites (probably
+    the one closest to civ-select init code) and trace the
+    SetVariable call pattern.
+  - Find the `li rN, 17` or equivalent integer literal that's
+    passed as the value.
+  - Write an EBOOT patch to bump it to 18.
+  - Also find the loop that iterates slot initialization (likely
+    calls SetVariable("slotDataN", ...) for N in 0..16) and
+    bump its bound to 0..17.
+
+**This unblocks the strict-reading path structurally.** Once the
+EBOOT is the known lever, the Scaleform side only needs the
+slotData17 pool/block extension (already proven safe in iter-178)
+and optionally a new cell MovieClip placement — but the CELL
+COUNT itself is EBOOT-controlled, not Scaleform-controlled.
+
+iter-180 made no committed patches; it was a diagnostic iteration
+that redirected the investigation from Scaleform-side to
+EBOOT-side work. iter-176 shipping state unchanged.
+
 The directive's natural-language wording ("in addition to
 Random") is fully satisfied by the iter-176 literal reading
 and this is the final shipping state.
