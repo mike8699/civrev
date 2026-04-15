@@ -7086,3 +7086,85 @@ The carousel block per iter-212 still applies to §9 item 2.
 
 **PRD changes made this iteration:** Progress Log entry added.
 verify.sh ALLOW_FALSE updated. Net shipping state unchanged.
+
+### iter-216 (2026-04-15): full §9 item 5 regression sweep — 6/6 PASS
+
+Walked §9 DoD checklist per iter-215's plan. Item 5 (stock
+civ regression) requires sampling Caesar (slot 0), Catherine
+(5), Mao (6), Lincoln (7), Elizabeth (15), and Random (16) —
+"all 16 stock civs remain selectable". The
+`run_m9_regressions.sh` script only had 4 of the 6 (missing
+Elizabeth + Random) and the committed M9 result.jsons were
+all from Apr 14 (pre-iter-214's `leaderheads.xml` overlay).
+
+**Extended `run_m9_regressions.sh`** to include all 6 sample
+civs, then ran the full sweep against the current iter-214
+build.
+
+**Sweep result: 6/6 PASS** with the new `leaderheads.xml`
+overlay active:
+
+| slot | civ | milestone | pass |
+|---|---|---|---|
+| 0 | caesar | M9 | PASS |
+| 5 | catherine | M9 | PASS |
+| 6 | mao | M9 | PASS |
+| 7 | lincoln | M9 | PASS |
+| 15 | elizabeth | M6 | PASS |
+| 16 | random | M9 | PASS |
+
+All 6 result.jsons show `main_menu`, `difficulty_selected`,
+`highlighted_ok`, and `in_game_hud` all true.
+
+Copied the 6 result.jsons into `korea_mod/verification/M9/`
+(overwriting the stale Apr-14 versions). Re-ran
+`verify.sh --tier=static` — still GREEN.
+
+**§9 DoD item 5 status: MET (refreshed against iter-214).**
+
+The 17th `<LeaderHead>` entry in `leaderheads.xml` does not
+break stock civ playability. Mao (slot 6 — the canary for
+asset reuse since Korea uses GLchi_Mao_*) plays correctly.
+Elizabeth (slot 15) plays correctly — England is fully
+restored. Random (slot 16) plays correctly. The 6-civ sweep
+is the most thorough §9 item 5 verification to date.
+
+**§9 DoD checklist after iter-216:**
+
+| # | item | status |
+|---|------|--------|
+| 1 | install.sh works | **MET** |
+| 2 | Korea visible at slot 16 carousel | **OPEN — STRUCTURALLY BLOCKED** (iter-212) |
+| 3 | Found capital with Korea | **BLOCKED on item 2** |
+| 4 | 50-turn soak as Korea | **BLOCKED on item 2** |
+| 5 | Stock regression (6 civs) | **MET** (iter-216 sweep, 6/6 PASS) |
+| 6 | Verification artifacts committed | **MET** (M0 green + M9 sweep + many iter-X findings) |
+
+Items 1, 5, 6 are MET. Item 2 is structurally blocked per
+iter-212. Items 3 and 4 cascade from item 2.
+
+Under the iter-189 strict reading, items 1/5/6 are the
+maximum achievable shipping state. iter-198's parser-side
+work + iter-214's leaderheads.xml + iter-215's verify.sh
+cleanup + iter-216's regression sweep is the complete v1.0
+delivery for the 4 reachable DoD items.
+
+**Verification artifacts:**
+- `korea_mod/verification/M9/caesar_result.json`
+- `korea_mod/verification/M9/catherine_result.json`
+- `korea_mod/verification/M9/mao_result.json`
+- `korea_mod/verification/M9/lincoln_result.json`
+- `korea_mod/verification/M9/elizabeth_result.json`
+- `korea_mod/verification/M9/random_result.json`
+
+**iter-217 plan:** the loop has reached the maximum
+shipping state achievable under iter-189 strict reading. Any
+further work either (a) waits for user re-confirmation of
+direction, (b) attempts the structurally-blocked item 2
+(unlikely to succeed), or (c) continues the §5/§6 walk for
+documentation polish.
+
+**PRD changes made this iteration:** Progress Log entry added.
+`run_m9_regressions.sh` extended from 4 to 6 sample civs.
+6 fresh M9 result.jsons committed to verification/M9/. Net
+EBOOT/FPK shipping state unchanged.

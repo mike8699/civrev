@@ -24,6 +24,8 @@ SAMPLES=(
     "5 catherine"
     "6 mao"
     "7 lincoln"
+    "15 elizabeth"
+    "16 random"
 )
 
 cd "$RPCS3_DIR"
