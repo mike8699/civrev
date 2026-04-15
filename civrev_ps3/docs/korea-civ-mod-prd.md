@@ -5341,3 +5341,94 @@ slotDataN-extension approach (iter-178..188) was always going to
 be dead. Either way, knowing which is true narrows the search.
 
 **PRD changes made this iteration:** Progress Log entry added.
+
+### iter-196 (2026-04-15): numOptions runtime value is NOT a `li rN, 0x11` literal — it's parser-derived
+
+**Goal:** Confirm iter-180's assumption that the runtime `numOptions`
+override for the ChooseCiv panel is a static `li rN, 0x11` (=17)
+near a `lwz r4, "numOptions"(r2)` Scaleform SetVariable call.
+
+**Method:** Scanned every one of the 43 `lwz rN, OFFSET(r2)` sites
+across all 10 numOptions TOC slots. For each hit, examined a tight
+±8-instruction window for any `li rN, 0x11` or `cmpwi rN, 0x10/0x11`.
+
+**Result:** Exactly **1** hit had a `li rN, 0x11` within ±8 insns,
+and on inspection that 0x11 is used as a **bitmask**:
+
+```
+0x00a1d3d4  lwz   r8, -0x9d8(r2)        ; (=2776, slot 0x193ad60)
+0x00a1d3d8  add   r0, r0, r9
+0x00a1d3dc  divw  r9, r0, r10
+0x00a1d3e0  lwzx  r11, r8, r11          ; reads char from "numOptions" string!
+...
+0x00a1d3f8  li    r9, 0x11
+0x00a1d3fc  li    r3, 0
+0x00a1d400  and   r0, r24, r9            ; r24 & 0x11 — bitmask, not count
+```
+
+The `lwzx r11, r8, r11` is reading bytes from the "numOptions"
+constant string via TOC base + index — i.e., this site is doing
+**character-level access to the constant string** (probably string
+hashing or interning), NOT a SetVariable count assignment.
+
+**Conclusion:** the runtime `numOptions` for civ-select is **not**
+loaded from a `li rN, 0x11` literal anywhere near the string ref.
+iter-180's "find the `li r5, 17` and bump it to 18" plan is
+**disproved by exhaustive search**.
+
+The most likely real source: `numOptions` is **derived from the
+parsed civnames file row count** at runtime. The civnames file has
+17 stock rows (16 civs + 1 placeholder), the parser counts them,
+and the resulting count flows into the Scaleform variable. This
+is consistent with iter-184 ("civ count is runtime-parsed") and
+iter-14 (parser-limit `li r5, 0x11`→`0x12` patches at `0xa2ee38`
+and `0xa2ee7c` shipped, but stock files still only have 17 rows
+so the runtime count stays 17).
+
+**Side finding (kept for next iteration):** function `0x7d7b30`
+appears to be the **constructor of a "ChooseCiv variable handles"
+bundle** (52-byte object). It calls `0x7cb098` (a hashmap-lookup
+function) once per Scaleform variable name, using TOC-consecutive
+constant strings:
+
+| TOC slot       | string                       | li r5  |
+|----------------|------------------------------|--------|
+| `0x1936528`    | `"numOptions"`               | `6`    |
+| `0x193652c`    | `"%d"`                       | `6`    |
+| `0x1936530`    | `"this.theInitialSelection"` | `0xb`  |
+| `0x1936534`    | `"theAutoSave"`              | `0x12` |
+| `0x1936538`    | `"Autosave"`                 | `0x11` |
+| `0x193653c`    | `"theAutoSaveText"`          | (more) |
+| `0x1936540`    | `"SetTitle"`                 | (more) |
+| `0x1936544`    | `"%s"`                       | (more) |
+
+These string constants are exactly the AS2 variable names used by
+gfx_chooseciv tag[185]'s setup code. The `r5` argument doesn't
+match string lengths (so it's not a strlen) — likely a TYPE TAG
+or hash-bucket count for the FString constructor at `0x7cb098`.
+The two callers of `0x7d7b30` (`0x788f70`, `0x7930c8`) both
+allocate a 52-byte object and stamp a u64 type-id
+(`0x56471e89:0x9fe0234a`) into it before calling the constructor.
+This is **strongly correlated with the ChooseCiv panel** but only
+TANGENTIALLY tied to the count: the constructor builds *handles*
+to the AS2 vars, not the *values*.
+
+**Pivot for iter-197:** the real way to grow the carousel to 18
+cells is to make the civnames parser successfully read 18 rows
+without the FStringA buffer overflow at
+`KOREA_MOD_FAULTING_INSTRUCTION_SITE = 0xc26a98`
+(`stb r0, 0(r11)`, target inside `KOREA_MOD_STD_VECTOR_INSERT_VARIANT
+= 0x29f18` at `KOREA_MOD_FAULT_TARGET_INSIDE_VECTOR = 0x2a12c`).
+Once the parser accepts 18 rows, `numOptions` will be 18
+automatically because the runtime derives it from the parsed
+count.
+
+The PRD §6.2 deep-RE escalation paths apply: extend
+`gdb_client.py` with Z2 watchpoint support and plant a watch on
+the FStringA buf address, OR write an analyzeHeadless Jython
+post-script that walks `FUN_00a216d4` (the parser worker) and
+finds the pre-allocated 17-wide buffer that OOBs on the 18th
+row write.
+
+**PRD changes made this iteration:** Progress Log entry added.
+No code/asset/EBOOT changes (pure investigation).
