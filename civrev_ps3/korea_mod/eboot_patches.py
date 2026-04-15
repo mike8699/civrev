@@ -242,6 +242,20 @@ PATCHES: list[Patch] = [
     #     new=b"\x48\x00\x00\x00",
     #     description="DIAG iter-208: b . trap at 0xf070a0",
     # ),
+
+    # iter-209 DIAGNOSTIC RESULT: b . at FUN_001262a0 PASSED
+    # (Romans M9 clean). FUN_001262a0 is the 5th candidate
+    # consumer function ruled out (joining FUN_001e49f0,
+    # FUN_011675d8, FUN_001dc0d8, FUN_0x111dd70). The CIV_*.dds
+    # icon table iter-208 discovered IS used somewhere, but not
+    # on the boot-to-civ-select-to-in-game path. Almost
+    # certainly the civilopedia init.
+    # Patch(
+    #     offset=0x001262a0,
+    #     expected_old=b"\xf8\x21\xff\x71",
+    #     new=b"\x48\x00\x00\x00",
+    #     description="DIAG iter-209: b . trap at FUN_001262a0 entry",
+    # ),
     # Patch(
     #     offset=0x001dc0d8,
     #     expected_old=b"\xf8\x21\xff\x61",

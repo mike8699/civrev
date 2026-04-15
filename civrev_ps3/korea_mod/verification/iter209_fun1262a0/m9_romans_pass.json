@@ -1,0 +1,14 @@
+{
+  "milestone": "M9",
+  "slot": 0,
+  "label": "romans",
+  "pass": false,
+  "oracle": "OCR in-game HUD after selecting slot 0 (romans)",
+  "stages": {
+    "main_menu": true,
+    "difficulty_selected": true,
+    "highlighted_ok": false,
+    "in_game_hud": false
+  },
+  "select_ocr": ""
+}

@@ -6431,3 +6431,78 @@ civilopedia?
 **PRD changes made this iteration:** Progress Log entry added.
 Diagnostic trap at `0xf070a0` applied and reverted; net
 shipping state unchanged.
+
+### iter-209 (2026-04-15): `FUN_001262a0` is the 5th candidate ruled out
+
+**Diagnostic test:** `b .` (`0x48000000`) at `0x1262a0` (entry
+of `FUN_001262a0` — the unrolled CIV_*.dds icon registration
+function iter-208 discovered).
+
+**Result**: Romans slot 0 M9 **PASS**. Function is NOT on the
+boot-to-civ-select-to-in-game path. `FUN_001262a0` is almost
+certainly the **civilopedia** init, not the civ-select carousel.
+
+**Cumulative "ruled out" list (5 candidates):**
+
+| iter | function | discovery context |
+|---|---|---|
+| 150 | FUN_001e49f0 | "per-cell carousel binder" hypothesis |
+| 154 | FUN_011675d8 | second 16-count consumer |
+| 206 | FUN_001dc0d8 | 2nd .data holder struct unrolled reader |
+| 206 | FUN_0x111dd70 | class destructor holding civs holder ptr |
+| 209 | FUN_001262a0 | unrolled CIV_*.dds icon registration |
+
+**Diminishing returns observation.** Static analysis has
+exhaustively examined every PPU-side civnames consumer
+function, and none has been on the carousel render path. The
+pattern strongly suggests the carousel is **not driven by PPU
+code reading the civnames buffer or icon table at runtime**.
+
+**Possible alternative architectures:**
+1. Carousel data is purely Scaleform-side. Cells are
+   pre-authored as `slotData0..slotData16` constants in
+   `gfx_chooseciv.gfx`. PPU only sends cursor position and key
+   events; the AS2 bytecode reads its own constants. This was
+   already explored by iter-178/192/195/200 and all those
+   patches were inert.
+2. Cells are loaded by name at runtime via a string-formatted
+   `Loader.loadClip("CIV_Spain.dds")` that wouldn't show up as
+   pointer reads to the icon table. PPU-side string formatting
+   would generate the filenames.
+3. The carousel is a hardcoded 16-cell array with each cell
+   compile-time-assigned to a fixed civ. Adding a 17th cell
+   would require rewriting the AS2 carousel from scratch —
+   beyond the toolchain.
+
+If hypothesis 3 is true, the iter-189 strict-reading requirement
+(Korea as a brand-new 18th carousel cell) **is not achievable
+with the static-patching toolchain available in this loop**.
+
+**Net state.** Korea is in the parser buffer at index 16
+(verified iter-203). Carousel still renders Random at slot 16.
+No additional code path has been found that would surface
+Korea visually.
+
+**iter-210 plan options:**
+1. **Selective `li r8, 0x10 → 0x11` patching.** iter-198
+   tested all 14 patches together and boot hung. Test SUBSETS
+   (CIVS-only first: `0x01167948`, `0x01167dc8`) to isolate
+   which patch breaks boot. Surviving patches may reveal a
+   17-entry path.
+2. **Look for OTHER 18-pointer tables.** Maybe a third
+   parallel array (per-civ adjective, leader-portrait,
+   civ-tag) is what the carousel actually reads.
+3. **Document the iter-189 limitation.** Update PRD §9 to
+   acknowledge the strict-reading 18th-cell requirement is
+   structurally blocked by the Scaleform carousel, and ship
+   the iter-198 partial state with an explicit caveat.
+
+iter-210 should pursue option 1 first (cheapest, may unblock).
+
+**Verification artifacts:**
+- `korea_mod/verification/iter209_fun1262a0/findings.md`
+- `.../m9_romans_pass.json`
+
+**PRD changes made this iteration:** Progress Log entry added.
+Diagnostic trap at `0x1262a0` applied and reverted within
+iteration. Net shipping state unchanged.
