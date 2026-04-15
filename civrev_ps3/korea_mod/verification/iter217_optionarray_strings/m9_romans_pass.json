@@ -1,0 +1,14 @@
+{
+  "milestone": "M9",
+  "slot": 0,
+  "label": "romans",
+  "pass": true,
+  "oracle": "OCR in-game HUD after selecting slot 0 (romans)",
+  "stages": {
+    "main_menu": true,
+    "difficulty_selected": true,
+    "highlighted_ok": true,
+    "in_game_hud": true
+  },
+  "select_ocr": "B )) Cleopatra Alexander Isabella | Pi, <= <7 Egyptians Greeks Spanish | = Ve) So a \u201c2 | LAS De WN T 9 4d Si * cone 0 ee en Ve | tf \u201d / * \u00bb ; eg \u2014 lay jatar arcana eatatamaalie\u2014 alan italia \u2014 neat 1 ="
+}

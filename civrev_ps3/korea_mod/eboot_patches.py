@@ -205,6 +205,16 @@ PATCHES: list[Patch] = [
     #   consumer B (0x01167a00-0x01167dc8):  TECH FAMOUS CITIES
     #                                         WONDERS WONDERS_FEM
     #                                         RULERS CIVS
+    # iter-217 DIAGNOSTIC RESULT: b . at 0x6c290 PASSED (Romans
+    # M9 clean). FUN_0006c290 is the 7th candidate function ruled
+    # out. Despite being a generic options-carousel constructor
+    # that reads theOptionArray[%d].unitStack.* format strings,
+    # it's NOT invoked on the civ-select path. The PS3 civ-select
+    # carousel is genuinely Scaleform-side as iter-211/212
+    # established.
+    # Patch(0x0006c290, b"\xf8\x21\xff\x11", b"\x48\x00\x00\x00",
+    #       "DIAG iter-217: b . trap at FUN_0006c290 (carousel ctor)"),
+
     # iter-210 SELECTIVE TEST RESULT: 2 CIVS-only sites are SAFE
     # (boot passes) but INERT. No shipping value alone.
     #

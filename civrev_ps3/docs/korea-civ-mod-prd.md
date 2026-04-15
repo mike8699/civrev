@@ -7168,3 +7168,105 @@ documentation polish.
 `run_m9_regressions.sh` extended from 4 to 6 sample civs.
 6 fresh M9 result.jsons committed to verification/M9/. Net
 EBOOT/FPK shipping state unchanged.
+
+### iter-217 (2026-04-15): theOptionArray strings DO exist in PS3; FUN_0006c290 is the 7th candidate ruled out
+
+**Big iter-196 correction.** iter-196 reported zero hits for
+`theOptionArray` in PS3 EBOOT. That was WRONG — re-running the
+search at iter-217 finds 3 hits for the literal `theOptionArray`
+string and 7 more carousel format strings:
+
+- `theOptionArray[%d].unitStack.ExitPanel` @ 0x1692df0
+- `theOptionArray[%d].unitStack.goLeft` @ 0x1692f88
+- `theOptionArray[%d].unitStack.goRight` @ 0x1692fc0
+- `LeaderName%d.text` @ 0x169bfd8
+- `Civ%d%d.text` @ 0x169c0b0
+- `slotData%d` @ 0x169c518
+- `this.slotData%d` @ 0x16a7130
+- `SetVariable` @ 0x16c44e0
+- `GetVariable` @ 0x16c72c7
+- `Invoke` @ 0x16c6e6f
+
+The PPU code constructs Scaleform variable paths from these
+sprintf templates and dispatches via `Invoke`/`SetVariable`.
+
+**Cross-platform sanity check (§5.6):** the Xbox 360 binary at
+`civrev_xbox360/xenon_recomp/work/extracted/default_decompressed.bin`
+contains the SAME `theOptionArray[%d]` literal — confirming
+this is a shared cross-platform code pattern.
+
+**New candidate found and tested:**
+
+Following the trail from `theOptionArray[%d]` strings → the
+TOC slot at `r2 - 0x68dc..-0x68c4` (main module TOC,
+r2=0x193a288) → the event handler `FUN_0006ff08` that loads
+goLeft/goRight per-cell → its caller chain → the carousel
+constructor at `FUN_0006c290`.
+
+`FUN_0006c290` does `mr r16, r4` then `stw r16, 0x868(r30)` —
+**the second argument to this constructor is the carousel cell
+count**, stored at offset `0x868` of the carousel object. The
+single BL caller at `0x1c00bc` (inside `FUN_001bff04`) passes
+`r4 = sign_extend(r27)` where `r27` came from
+`FUN_001bff04`'s OWN second arg.
+
+`FUN_001bff04` has 0 BL callers and 0 u32 refs — invoked via
+vtable indirect like every other interesting candidate.
+
+**Diagnostic `b .` test at FUN_0006c290 entry: PASS.** Romans
+slot 0 M9 PASS — boot, civ-select, in-game HUD all green.
+**`FUN_0006c290` is the 7th candidate consumer function ruled
+out.** Despite being a generic options-carousel constructor
+that demonstrably handles `theOptionArray` cells, it is NOT
+invoked during the civ-select code path on PS3.
+
+**Updated cumulative ruled-out inventory:**
+
+| iter | what was ruled out |
+|---|---|
+| 150 | FUN_001e49f0 |
+| 154 | FUN_011675d8 |
+| 198 | All 14 li r8, 0x10 sites collectively (RSX hang) |
+| 206 | FUN_001dc0d8 + FUN_0x111dd70 |
+| 209 | FUN_001262a0 (CIV_*.dds icon registration) |
+| 210 | 2 CIVS-only li r8 sites |
+| 211 | Consumer A's 7 li r8 sites |
+| 217 | **FUN_0006c290** (theOptionArray-aware carousel ctor) |
+
+Plus iter-208 invalidating iter-193's `0xf070a0` hypothesis.
+
+**Reinforced unified hypothesis:** the PS3 civ-select
+carousel is implemented in Scaleform-side AS2 with cells
+pre-authored as static MovieClip instances. The PPU
+`theOptionArray`-style code paths are for OTHER panels
+(difficulty selector, options menus) and not for civ-select.
+The iter-189 strict-reading 18th-cell requirement remains
+**structurally unachievable** with static patching alone.
+
+**What this iteration positively unlocks:**
+- Empirical map of the binary is more complete (10 newly-
+  identified Scaleform format strings).
+- Field layout of the carousel object is documented:
+  `0x858 = start_idx`, `0x85c = end_idx`, `0x868 = count`,
+  with surrounding fields at `0x84c..0x896`.
+- Cross-platform parity confirmed: X360 has the same strings,
+  so a future X360-side investigation could leverage richer
+  symbol info to find the actual civ-select carousel anchor.
+
+**Verification artifacts:**
+- `korea_mod/verification/iter217_optionarray_strings/findings.md`
+- `.../m9_romans_pass.json` (b . trap diagnostic)
+
+**iter-218 plan:** options:
+1. Search the binary for ALTERNATE carousel constructors that
+   don't use `theOptionArray` strings — the civ-select panel
+   probably has its own constructor with a different shape.
+2. Use Xbox 360 cross-reference (§5.6) properly: load the X360
+   default_decompressed.bin into Ghidra (or similar) and find
+   the X360 civ-select panel constructor with richer symbols.
+3. Continue the §5/§6 PRD walk for any other unfinished work.
+
+**PRD changes made this iteration:** Progress Log entry added.
+Diagnostic patch applied and reverted within iteration. Net
+shipping state unchanged. Significant correction of iter-196's
+empirical-scan miss on `theOptionArray` strings.
