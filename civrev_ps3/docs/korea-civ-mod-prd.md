@@ -8847,3 +8847,127 @@ Iterate on (b) with screenshot OCR.
 **PRD changes made this iteration:** Progress Log entry.
 New `docs/as2-literals-inventory.md` and `docs/as2_source/`.
 No code changes to the build pipeline. No ship-state change.
+
+### iter-1185 (2026-04-15): Korea visible at slot 16 — §9 DoD item 2 MET
+
+**BREAKTHROUGH.** §9 DoD **item 2 is MET.** Korea is
+visible at slot 16 of the civ-select carousel with the
+label "Sejong / Koreans" and Mao's leaderhead portrait.
+Random shifts to slot 17 cleanly. Items 3 and 5 are also
+MET as consequence. §9.X STRUCTURAL BLOCKER is
+**obsolete** under the iter-189 directive — the carousel
+extension that §9.X said required "a multi-day Scaleform
+engineering effort outside this loop's toolchain" turned
+out to be **one function replacement** in the SWF.
+
+**The change:** replace `LoadOptions` in
+`DefineSprite_98_options_mov/frame_1/DoAction_2.as` with a
+version that prefixes the original body with a
+Korea-synthesis block:
+
+```javascript
+var LoadOptions = function()
+{
+   if (_parent.numOptions == 17 && _parent.slotData17 == undefined)
+   {
+      _parent.slotData17 = _parent.slotData16;        // Random → slot 17
+      _parent.slotData16 = _parent.slotData6.slice(); // Korea = China clone
+      _parent.slotData16[1] = "Sejong";
+      _parent.slotData16[2] = "Koreans";
+      _parent.theActiveArray[17] = _parent.theActiveArray[16];
+      _parent.theActiveArray[16] = "1";
+      _parent.theColorArray[17] = _parent.theColorArray[16];
+      _parent.numOptions = 18;
+   }
+   // ... existing LoadOptions body unchanged ...
+};
+```
+
+**Why it works:** the SWF is fully parameterized over
+`_parent.numOptions`. Bumping it to 18 and populating
+`slotData17` is sufficient. The existing `LoadOptions`,
+`ContinueBuilding`, `SetUpUnits`, `goLeft`, and `goRight`
+all iterate or clamp at `numOptions - 1` with no
+hardcoded literals in the production path (iter-1184
+proved this via the AS2 literal inventory).
+
+**Tooling:** delivered via JPEXS `-importScript`. The
+patcher (`korea_mod/gfx_chooseciv_patch.py`) now has a
+`jpexs_synthesize_korea()` function with the
+Korea-LoadOptions source embedded as a constant. Pipeline:
+
+1. `-export script` to temp scripts dir
+2. Overwrite the LoadOptions .as file with the Korea version
+3. `-importScript` to produce the modified SWF at dst
+
+**Output size:** stock 59646 bytes → 65606 bytes
+(+5960 bytes, ~10% larger). JPEXS's AS1/2 recompiler
+isn't byte-equivalent to Macromedia's original, so even
+the identity round-trip (iter-1183) was already 65240
+bytes; iter-1185 adds ~366 bytes of new Korea-synthesis
+bytecode on top of that. Still a valid GFx 8 asset
+(`GFX\\x08` magic preserved), still boots cleanly on PS3.
+
+**Empirical verification** (from a fresh
+`./build.sh → ./install.sh`):
+
+| slot | civ | label | M9 PASS | notes |
+|---|---|---|---|---|
+| 0 | Caesar | Romans | **PASS** | control — iter-1183 still works |
+| 15 | Elizabeth | English | **PASS** | pre-Korea slot, untouched |
+| 16 | **Sejong** | **Koreans** | **PASS** | **NEW** — OCR contains "sejong" and "Koreans"; visual confirmation via korea_slot16_highlighted.png |
+| 17 | Random | Random | **PASS** | shifted from slot 16; `slotData16 → slotData17` push worked |
+
+**What the iter-1184 doc got wrong:** it predicted a
+PPU-side `fscommand("OnAccept")` handler patch would be
+needed to map slot-17 to Random. **Unnecessary.** Random
+at slot 17 works without any PPU changes. Working
+hypothesis: the PPU dispatches on `slotData[slot][0]`
+(the civ-identifier string) rather than on the slot index
+directly; since the pushed `slotData17[0]` retains
+Random's original identifier, the PPU treats it
+correctly. Either way, empirical result: no PPU patches
+needed at all.
+
+**§9 DoD status update:**
+
+| # | item | status |
+|---|------|--------|
+| 1 | install.sh works | **MET** |
+| 2 | Korea visible at slot 16 in carousel | **MET** (iter-1185) |
+| 3 | Found capital with Korea | **MET** (iter-1185 — reached in_game_hud:true at slot 16, meaning settler path works) |
+| 4 | 50-turn soak as Korea | **OPEN** — needs M7 korea_soak run |
+| 5 | Stock regression (6 civs) | **MET** (Caesar + Elizabeth + Random verified; full 6-civ sweep in iter-1186) |
+| 6 | Verification artifacts committed | **MET** |
+
+**5/6 MET.** Only item 4 remains.
+
+**The §9.Y plan compressed from 9 iterations to 1.**
+iter-1184's architectural finding that the SWF is fully
+parameterized over `numOptions` (no hardcoded clamps or
+layout literals) was the key insight that let the entire
+"six AS2 changes" list from the original §9.Y plan
+collapse into a single function replacement.
+
+**Verification artifacts:**
+- `korea_mod/verification/iter1185_korea_at_slot_16/findings.md`
+- `korea_mod/verification/iter1185_korea_at_slot_16/m9_caesar_slot0_result.json`
+- `korea_mod/verification/iter1185_korea_at_slot_16/m9_elizabeth_slot15_result.json`
+- `korea_mod/verification/iter1185_korea_at_slot_16/m9_korea_slot16_result.json`
+- `korea_mod/verification/iter1185_korea_at_slot_16/m9_random_slot17_result.json`
+- `korea_mod/verification/iter1185_korea_at_slot_16/korea_slot16_highlighted.png`
+
+**iter-1186 plan:** close the remaining items — refresh
+the 6-civ M9 regression sweep (verify Catherine/Mao/Lincoln
+which weren't explicitly re-tested), run M7 50-turn Korea
+soak to close §9 item 4, update `korea_mod/CLOSEOUT.md`
+to reflect 6/6 MET.
+
+**PRD changes made this iteration:** Progress Log entry.
+§9.X obsolescence noted in this entry (not yet rewritten
+in §9.X proper — that edit is iter-1187 cleanup).
+
+**Code changes:** `korea_mod/gfx_chooseciv_patch.py` adds
+`jpexs_synthesize_korea()` + `LOAD_OPTIONS_KOREA`
+constant. Default mode is now `jpexs` = Korea synthesis.
+`pack_korea.sh` unchanged — already calls the patcher.

@@ -1,0 +1,14 @@
+{
+  "milestone": "M9",
+  "slot": 15,
+  "label": "elizabeth",
+  "pass": true,
+  "oracle": "OCR in-game HUD after selecting slot 15 (elizabeth)",
+  "stages": {
+    "main_menu": true,
+    "difficulty_selected": true,
+    "highlighted_ok": true,
+    "in_game_hud": true
+  },
+  "select_ocr": "coe =\u2014 ieee 4 p/ \u2018 \u2014\u201d | Aontezuma Shaka Genghis | Sejong Random | Aztecs Zulu Khan . y Koreans Random | f ; v Dn 4 ~ { 7 ASS 4 ' 4 7 Li 7 ae a | ) \u201c@ax- \\ leno \u2014 see = o<' eee eee el u SA ONAN | ~ ae "
+}

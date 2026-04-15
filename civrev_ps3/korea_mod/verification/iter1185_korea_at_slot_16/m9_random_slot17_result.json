@@ -1,0 +1,14 @@
+{
+  "milestone": "M9",
+  "slot": 17,
+  "label": "random",
+  "pass": true,
+  "oracle": "OCR in-game HUD after selecting slot 17 (random)",
+  "stages": {
+    "main_menu": true,
+    "difficulty_selected": true,
+    "highlighted_ok": true,
+    "in_game_hud": true
+  },
+  "select_ocr": "Genghis Elizabeth Sejong |_| | Khan English Koreans \u201ci | EEN Ig ye were: ; (USS i Ee \\ | , ~ <d 4 =a x \\ | yay 4 \u2019 =e eX | =\" > oun. oP ) Random oP) Te irog/ } aA | \\? be hohe! :: 7 Random 7 Amy ay | "
+}
