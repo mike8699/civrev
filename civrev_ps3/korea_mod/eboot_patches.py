@@ -144,6 +144,19 @@ PATCHES: list[Patch] = [
     # 0x38a00011). Bumping to `li r5, 0x12` = 0x38a00012. One byte
     # change per site: low byte (file offset +3) goes from 0x11 to
     # 0x12.
+    # iter-202: empirically verified these patches are ACTIVE (not
+    # inert). Removing them and booting produced an RSX init hang,
+    # which confirms the dispatcher at FUN_00a2ec54 IS called at
+    # runtime (via function descriptor + bctrl, not a direct bl,
+    # which is why Python's bl-scan found 0 callers and why iter-
+    # 201's "dead code" hypothesis was wrong).
+    #
+    # iter-202 ALSO corrected the TOC base for this dispatcher from
+    # 0x193a288 to 0x194a1f8 — the function descriptor at
+    # 0x18f0380..0x18f038c holds `entry = 0xa2ec54, toc = 0x194a1f8`.
+    # With the correct r2, all 8 name-file buffer-holder slots
+    # resolve to writable .bss addresses at 0x1ac939c..0x1ac93b8
+    # (the civs holder is at 0x1ac93b8 specifically).
     Patch(
         offset=0x00a2ee38,
         expected_old=b"\x38\xa0\x00\x11",

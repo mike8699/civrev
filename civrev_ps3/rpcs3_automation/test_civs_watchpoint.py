@@ -41,8 +41,12 @@ from config import RPCS3_BIN, RPCS3_BOOT_TIMEOUT  # noqa: E402
 from gdb_client import GDBClient  # noqa: E402
 
 
-# r2 base = 0x193a288, r2+0x141c = civnames buffer pointer slot
-CIVS_BUF_PTR_SLOT = 0x193b6a4
+# iter-202 correction: the parser dispatcher at 0xa2ec54 uses TOC
+# base r2 = 0x194a1f8 (from its function descriptor at 0x18f0380),
+# not the main-module 0x193a288. With the correct TOC, the civs
+# buffer-pointer HOLDER is at .bss address 0x1ac93b8 (reachable via
+# *(0x194b614) = 0x1ac93b8 at runtime).
+CIVS_BUF_PTR_SLOT = 0x1ac93b8
 # Entry layout is 12 bytes per civ: { FStringA name, int gender, int plurality }.
 # Korea at index 16 sits at buf_ptr + 16*12 = buf_ptr + 192
 KOREA_ENTRY_BYTE_OFFSET = 16 * 12

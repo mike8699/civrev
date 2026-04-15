@@ -89,10 +89,47 @@ KOREA_MOD_ADJ_FLAT_CALLSITES = (
 # accept an 18-entry input file (harmless no-op on the v0.9 path since
 # the stock files still have exactly 17 rows — the parser bails at
 # EOF regardless of the count ceiling).
-KOREA_MOD_INIT_GENDERED_NAMES_DISPATCH = 0x00a21ce8  # FUN_00a21ce8
-KOREA_MOD_INIT_GENDERED_NAMES_WORKER   = 0x00a216d4  # FUN_00a216d4
+KOREA_MOD_INIT_GENDERED_NAMES_DISPATCH = 0x00a21ce8  # (iter-14 stale name)
+KOREA_MOD_INIT_GENDERED_NAMES_WORKER   = 0x00a216d4  # (iter-14 stale name)
 KOREA_MOD_RULERNAMES_COUNT_LI_R5_SITE  = 0x00a2ee38  # li r5, 0x11
 KOREA_MOD_CIVNAMES_COUNT_LI_R5_SITE    = 0x00a2ee7c  # li r5, 0x11
+
+# iter-17..22 renamed these to "real_parser_dispatcher/worker":
+KOREA_MOD_PARSER_DISPATCHER = 0x00a2ec54  # FUN_00a2ec54 (contains the 2 li r5 sites)
+KOREA_MOD_PARSER_WORKER     = 0x00a2e640  # FUN_00a2e640 (called 8× by dispatcher)
+
+# iter-202 CRITICAL correction: the dispatcher at 0xa2ec54 uses a
+# DIFFERENT TOC base than the rest of the binary. Its function
+# descriptor at 0x18f0380..0x18f038c holds {entry=0xa2ec54, toc=0x194a1f8}.
+# All TOC-relative loads inside the dispatcher and worker reference
+# 0x194a1f8, NOT 0x193a288. iter-197's TOC slot mapping was based on
+# the wrong r2 and resolved half the "buffer holder" slots to rodata
+# string literals. The correct slots are:
+#   r2+0x1400 = 0x194b5f8 -> 0x1ac939c  (name file 1)
+#   r2+0x1404 = 0x194b5fc -> 0x1ac93a0  (name file 2)
+#   r2+0x1408 = 0x194b600 -> 0x1ac93a4
+#   r2+0x140c = 0x194b604 -> 0x1ac93a8
+#   r2+0x1410 = 0x194b608 -> 0x1ac93ac
+#   r2+0x1414 = 0x194b60c -> 0x1ac93b0
+#   r2+0x1418 = 0x194b610 -> 0x1ac93b4  (rulers name file)
+#   r2+0x141c = 0x194b614 -> 0x1ac93b8  (civs name file)
+# All 8 destinations are in writable .bss — the parser's
+# `*param_2 = new_buf_ptr` write is valid.
+#
+# The dispatcher is called INDIRECTLY via
+#   ld r11, <desc>
+#   ld r0, 0(r11)   ; entry = 0xa2ec54
+#   ld r2, 8(r11)   ; toc = 0x194a1f8  <<< NEW r2!
+#   mtctr r0
+#   bctrl
+# which is why a direct-bl caller scan finds 0 callers.
+KOREA_MOD_PARSER_DISPATCHER_TOC_BASE = 0x0194a1f8  # r2 when dispatcher runs
+KOREA_MOD_PARSER_DISPATCHER_DESCRIPTOR = 0x018f0380  # {entry, toc} words
+
+# .bss buffer-pointer holders for each name file (per-iteration
+# writes happen here at parser_worker line 0xa2e708: stw r0, 0(r25))
+KOREA_MOD_CIVS_BUFFER_HOLDER    = 0x01ac93b8  # civs, *r25 for civs bl
+KOREA_MOD_RULERS_BUFFER_HOLDER  = 0x01ac93b4  # rulers
 
 # FUN_00029f18 — the std::vector::insert/reserve variant whose
 # instruction at 0x0002a12c is the fault-address target whenever the

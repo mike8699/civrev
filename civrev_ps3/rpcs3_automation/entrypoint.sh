@@ -286,6 +286,9 @@ elif [ "${1:-}" = "gdb_bp_poll" ]; then
 elif [ "${1:-}" = "civs_watch" ]; then
     shift
     exec python3 test_civs_watchpoint.py "$@"
+elif [ "${1:-}" = "civs_z0" ]; then
+    shift
+    exec python3 test_civs_z0_probe.py "$@"
 else
     exec python3 test_map.py "$@"
 fi

@@ -5879,3 +5879,100 @@ parsing the 18-row overlay.
 **PRD changes made this iteration:** Progress Log entry added.
 New dynamic probe harness + entrypoint wiring. No shipping
 state change.
+
+### iter-202 (2026-04-15): PARSER DISPATCHER TOC CORRECTION — civs buffer is live at `0x1ac93b8`
+
+**Major correction of iter-197, iter-201.** The parser dispatcher
+at `FUN_00a2ec54` uses a DIFFERENT TOC base than the rest of the
+binary. Its function descriptor at `0x18f0380..0x18f038c` holds
+`{entry=0xa2ec54, toc=0x194a1f8}`. All iter-197/iter-201 TOC-slot
+resolution for this function was using the wrong `r2 = 0x193a288`.
+With the correct `r2 = 0x194a1f8`, the 8 name-file buffer-holder
+slots all resolve to writable `.bss` addresses:
+
+| slot (r2+N) | resolved vaddr | .bss buf holder |
+|---|---|---|
+| r2+0x1400 | 0x194b5f8 | 0x1ac939c |
+| r2+0x1404 | 0x194b5fc | 0x1ac93a0 |
+| r2+0x1408 | 0x194b600 | 0x1ac93a4 |
+| r2+0x140c | 0x194b604 | 0x1ac93a8 |
+| r2+0x1410 | 0x194b608 | 0x1ac93ac |
+| r2+0x1414 | 0x194b60c | 0x1ac93b0 |
+| r2+0x1418 | 0x194b610 | 0x1ac93b4 (rulers) |
+| r2+0x141c | 0x194b614 | **0x1ac93b8 (civs)** |
+
+**Chain of discoveries this iteration:**
+
+1. Wrote `test_civs_z0_probe.py` and set Z0 breakpoints at
+   dispatcher entry + both BL sites. All installed OK but none
+   fired during boot — suggested "dead code".
+2. Python bl-caller scan for `FUN_00a2ec54` returned **zero**
+   direct callers. Reinforced the dead-code hypothesis.
+3. Empirical A/B test: disabled the iter-14
+   `li r5, 0x11 → 0x12` patches, rebuilt, booted. **RSX init
+   hung.** Re-enabled them and boot returned to green.
+   **iter-14 patches are ACTIVE** — the function they're inside
+   IS called at runtime. Previous "dead code" hypothesis wrong.
+4. Found `0xa2ec54` referenced as a 32-bit word exactly ONCE at
+   `0x18f0380` — a PPC64 function-descriptor table entry with
+   the correct TOC as the adjacent word (`0x194a1f8`). The
+   dispatcher is called indirectly via
+   `ld r0, <desc>; ld r2, <desc>+8; mtctr r0; bctrl`, which
+   Python's direct-bl scan misses.
+5. Re-ran `test_civs_watchpoint.py` with the CORRECTED civs
+   buffer holder address `0x1ac93b8`. Runtime result:
+   ```
+   *(0x1ac93b8) = 0x4002a0e0    (heap-allocated civs buffer)
+   count @ 0x4002a0dc = 18      (iter-198 18-row overlay)
+   ```
+   First 48 bytes of the buffer show 6 valid FStringA pointers
+   `0x40029580`, `0x400295b0`, `0x400295e0`, `0x40029610`,
+   `0x40029640`, `0x40029670`. Korea's entry at `0x4002a1a0`
+   (= buf + 16×12).
+
+**This is the first fully-verified runtime view of the civnames
+parser buffer in the entire iter-7..202 chase.** iter-198's
+"18-row boots clean" is correct, iter-14's patches are genuinely
+active, the parser path is sound.
+
+**What iter-202 invalidates:**
+- iter-197's TOC-slot-to-buffer-holder mapping (wrong r2)
+- iter-201's "r2+0x141c holds civs buffer ptr" (same root cause)
+- iter-201's "FUN_00a2ec54 is dead code" (it's called indirectly)
+
+**What iter-202 unlocks:**
+- Reliable runtime memory reads of the civnames buffer
+- Known `.bss` addresses for every name file holder
+- A correct anchor point for future Z0 breakpoints and memory
+  reads
+- `test_civs_watchpoint.py` is a working runtime probe template
+
+**Updated `korea_mod/addresses.py`:**
+- Added `KOREA_MOD_PARSER_DISPATCHER = 0xa2ec54`
+- Added `KOREA_MOD_PARSER_WORKER = 0xa2e640`
+- Added `KOREA_MOD_PARSER_DISPATCHER_TOC_BASE = 0x0194a1f8`
+- Added `KOREA_MOD_PARSER_DISPATCHER_DESCRIPTOR = 0x018f0380`
+- Added `KOREA_MOD_CIVS_BUFFER_HOLDER = 0x01ac93b8`
+- Added `KOREA_MOD_RULERS_BUFFER_HOLDER = 0x01ac93b4`
+
+**iter-203 plan:**
+1. Dump all 18 entries + their FString contents from the runtime
+   buffer to confirm Korea is at index 16.
+2. Find the FStringA address of Korea's name at runtime.
+3. Scan runtime memory (via GDB `m` packet) for any occurrence
+   of Korea's FStringA address — any match is a cache/copy of
+   the buffer, potentially the carousel.
+4. Use Z0 code breakpoints at `*r25`-read sites to catch readers
+   of `0x1ac93b8` during civ-select panel init.
+
+**Verification artifacts:**
+- `korea_mod/verification/iter202_toc_correction/findings.md`
+- `.../watchpoint_probe_corrected.json` (the successful probe)
+- `.../z0_probe_no_hits.json`
+
+**PRD changes made this iteration:** Progress Log entry added.
+Updated `addresses.py` with the corrected dispatcher TOC base,
+civs/rulers buffer holders, and dispatcher anchor addresses.
+New Z0 probe harness `test_civs_z0_probe.py` committed.
+Shipping EBOOT state unchanged (iter-14 patches are re-enabled
+— they were never really disabled in committed state).
