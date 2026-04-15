@@ -172,6 +172,9 @@ ALLOW_FALSE = {
     "iter151_dod_signoff",  # korea_m7 still_in_game_at_end OCR over-strict;
                             # end_turn_loop=true and in_game=true confirm
                             # 50-turn soak ran clean (DoD §9 item 4 met)
+    "iter201_watchpoint_probe",  # documents capability gap: RPCS3 GDB stub
+                                  # rejects Z2/Z3/Z4 watchpoints. Empirical
+                                  # negative result, not a failed shipping run.
 }
 
 results = {"checked": 0, "failures": [], "allowed_false": []}
