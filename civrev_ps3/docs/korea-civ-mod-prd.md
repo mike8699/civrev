@@ -4893,3 +4893,138 @@ The next iterations must pursue steps 1–6 above until DoD §9 item
     confirm reachability, not screenshot interpretation.
   - Finally, wire Korea's civ data to slot 17 and land the
     end-to-end M6 PASS (Korea selectable and playable).
+
+### iter-190 (2026-04-15): v0.9 reverted, Elizabeth restored — clean baseline
+
+Step 1 of iter-189's strict-reading plan complete. See
+`korea_mod/verification/iter190_england_restored/findings.md`.
+`fpk_byte_patch.py`'s `_build_patches()` now returns an empty
+list. `Pregame_korea.FPK` is byte-identical to stock
+`Pregame.FPK` (SHA-256 `69d771f4...`). 4-way regression PASS
+(Caesar/Mao/Elizabeth/Random). Elizabeth M6 `highlighted_ok: true`
+with updated OCR keyword dict. DoD §9 item 5 MET; item 2 still
+NOT MET (no Korea cell exists yet).
+
+### iter-191 (2026-04-15): MAJOR — carousel cells are DYNAMICALLY spawned via `attachMovie`, NOT pre-authored
+
+**Iter-188's "theOptionArray = pre-authored 17-element MovieClip
+array" conclusion was partially wrong.** The real architecture:
+
+**`gfx_chooseciv.gfx` tag[180] is a `DefineSprite` with char_id=98
+— this is the `options_mov` carousel parent sprite.** Its inner
+tag stream has a DoAction (at sprite-body offset 407, 456 bytes)
+that defines a method `LoadOptions` on the sprite's prototype.
+
+**Full disassembly of `options_mov.LoadOptions()`:**
+
+```javascript
+LoadOptions = function() {
+    // Determine starting index (hot-seat / normal)
+    if (testingMode == 1) {
+        this.numLoaded = this.numOptions - 1;
+    } else {
+        this.numLoaded = 0;
+    }
+
+    // Sanity check
+    if (this.numOptions != undefined) {
+        for (i = 0; i < this.numOptions; i++) {
+            this.attachMovie(
+                "ChooseCivLeader",              // template sprite
+                "option_" + i,                  // instance name
+                this.getNextHighestDepth(),     // depth
+                {
+                    _name: "option_" + i,
+                    _x: parseInt(xloc),
+                    _y: parseInt(yloc),
+                }
+            );
+        }
+    } else {
+        trace("PROBLEM LOADING: numOptions = " + this.numOptions);
+    }
+};
+```
+
+**Constant pool of this DoAction** (16 entries):
+  `[ 0] "LoadOptions"`
+  `[ 1] "testingMode"`
+  `[ 2] "numLoaded"`
+  `[ 3] "numOptions"`
+  `[ 4] "i"`
+  `[ 5] "_name"`
+  `[ 6] "option_"`
+  `[ 7] "_x"`, `[ 8] "xloc"`, `[ 9] "parseInt"`
+  `[10] "_y"`, `[11] "yloc"`
+  `[12] "getNextHighestDepth"`
+  `[13] "ChooseCivLeader"`
+  `[14] "attachMovie"`
+  `[15] "PROBLEM LOADING: numOptions = "`
+
+**Implications — completely changes the 18-cell path:**
+
+1. **The carousel has NO pre-authored 17 child clips.** There is
+   no fixed `theOptionArray[0..16]` baked in at authoring time.
+   Instead, `LoadOptions` dynamically spawns N instances of the
+   `ChooseCivLeader` DefineSprite (a pre-authored TEMPLATE, NOT
+   17 separate clips) by calling `attachMovie` N times. Each
+   instance is named `option_0`, `option_1`, ..., `option_{N-1}`.
+
+2. **`numOptions` is the ONLY cell-count control.** The `for (i = 0;
+   i < numOptions; i++)` loop in `LoadOptions` is the authoritative
+   bound. Bump `numOptions` to 18 before `LoadOptions` runs and the
+   carousel will dynamically spawn 18 cells.
+
+3. **iter-188's "`theOptionArray` is 17-element because pre-authored"
+   is WRONG.** `theOptionArray` must be populated dynamically
+   somewhere (probably by each spawned cell's `onLoad` pushing
+   itself into the array, or by a post-spawn loop in tag[185] or
+   tag[184]). It would grow to 18 naturally if 18 cells are spawned.
+
+4. **iter-181..187's clamp-patch failures were NOT because the
+   cursor was hitting a hard-coded 17-element `theOptionArray`.**
+   They were because `numOptions` is still 17 at runtime (set by
+   PPU per iter-180, with the Scaleform tag[184] setter being
+   either redundant or overridden). Bumping the value that
+   `LoadOptions` sees to 18 is the actual unblock.
+
+**Revised strict-reading path (supersedes iter-188's §6 steps 2–3):**
+
+  1. **Bump `numOptions` to 18 at the correct point in the init
+     sequence, BEFORE `LoadOptions` is called.** Two candidate
+     patch sites:
+       - Scaleform tag[184] bc@0xd8: `PUSH "numOptions", i32=17;
+         SetVariable`. Bumping to 18 already tried in iter-178/179
+         — probably overridden by PPU. Re-test now that we
+         understand the flow.
+       - PPU-side `Flash.Invoke("SetVariable", "numOptions",
+         value)` call — iter-180 found 10 TOC slots pointing at
+         the "numOptions" string and 43 `lwz` call sites, but no
+         `li rN, 17` literals nearby. The value 17 is loaded from
+         a data struct. Find the struct and the field offset.
+  2. **Populate `slotData17` with Korea data** (Scaleform tag[184]
+     constant pool + setVariable block, iter-178 technique).
+  3. **Verify with distinctive-marker OCR** (iter-185 technique).
+     Add `KOREA18`/`SEJONG18` to slotData17's Array elements
+     [6..7] and run `korea_play 17 marker_test`. If OCR captures
+     the markers, slot 17 is definitively reached.
+  4. **Route slot 17 to a playable civ.** Either via EBOOT
+     slot-index→civ-data map patch, OR via Scaleform `onOption`
+     handler that maps slot 17 → slot 6 (China) internally.
+
+**iter-191 made no patch edits.** This is a pure architectural
+redirect: the iter-188 "pre-authored cells, theOptionArray is the
+blocker" model is replaced with the correct "dynamic attachMovie
+spawn, numOptions is the single authoritative bound" model. Future
+iterations can now start from the correct premise.
+
+**Why iter-188's root-cause analysis was partially wrong:** I
+disassembled `goRight` and saw `theOptionArray[idx].method()`
+calls and assumed `theOptionArray` was pre-populated. I never
+checked whether `theOptionArray` is POPULATED or whether the
+cells are DYNAMICALLY created. LoadOptions' attachMovie loop
+was visible in tag[183]'s pool (it references `attachMovie`) but
+I didn't trace to where it's defined — I assumed tag[183] was
+the keyboard handler and dismissed it. This iteration's sprite
+walk (find `LoadOptions` in DefineSprite bodies) was the key
+discovery.
