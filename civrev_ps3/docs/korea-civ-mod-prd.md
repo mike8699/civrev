@@ -6275,3 +6275,83 @@ Option 2 is first — lowest cost, highest potential insight.
 **PRD changes made this iteration:** Progress Log entry added.
 Net EBOOT state unchanged — diagnostic traps applied and
 reverted within the iteration, iter-198 baseline restored.
+
+### iter-207 (2026-04-15): panel-loader TOC correction + only 4 ChooseCiv descriptor loaders
+
+**TOC-base correction.** iter-193's decomp at `0xf07078` /
+`0xf070a0` used `r2 = 0x193a288`. Wrong. Function-descriptor
+scan reveals the panel-loader family all uses
+**`r2 = 0x195a1a8`** — a THIRD major TOC base (the UI/panel
+module, ~17,320 functions).
+
+Three TOC bases confirmed: `0x194a1f8` (parser + main, 28.5k),
+`0x193a288` (other systems, 17.9k), `0x195a1a8` (panels, 17.3k).
+
+**ChooseCiv descriptor TOC slot:** at `r2 - 0x2998 = 0x1957810`,
+holding `0x191a7f0` (the function descriptor pointing at
+`0xf070a0`).
+
+**Exactly 4 `lwz r, -0x2998(r2)` sites:**
+
+| site | containing fn | shape |
+|---|---|---|
+| `0x11b324` | `FUN_0011b17c` | `bl 0xc649e4` — retain |
+| `0x11b360` | `FUN_0011b17c` | `bl 0xc6499c` — release |
+| `0x932bf4` | `FUN_00932a20` | `stw r0, 0(r9)` — stores desc into class field |
+| `0xf058c8` | `FUN_00f057b0` tail | `li r7, 3; b 0xf057b0` — panel-by-index case |
+
+`FUN_0011b17c` is a generic refcount wrapper. `FUN_00f057b0` is
+a panel-register function that calls `func_0x00f060d8` (the
+real loader) and stores the panel handle into
+`*(param_1 + 0x48)` of the caller's class instance.
+
+**`FUN_00932a20` is a jumptable-based panel-state dispatcher:**
+
+```c
+undefined8 FUN_00932a20(longlong param_1, uint param_2, u32 *param_3) {
+    if (5 < *(param_1 + 0x18)) {
+        *param_2 = *(r2 - 0x2990);   // default descriptor
+        return 0;
+    }
+    // jumptable at (r2 - 0x29a8) = 0x1957800 (panel registry)
+    // indexed by *(param_1 + 0x18) = menu state enum
+    ...
+}
+```
+
+Ghidra can't fully recover the jumptable. The `-0x2998` load
+pulling the ChooseCiv descriptor is one of the case arms. The
+dispatcher takes a menu-state enum and returns the matching
+panel descriptor.
+
+**Only 2 direct BL callers of `FUN_00932a20`**: `0x9099ac`,
+`0x932ddc`. Very narrow signal — likely the menu-state machine.
+
+**Likely (unverified) call chain:**
+1. Menu-state manager calls `FUN_00932a20(state_obj, ...)`.
+2. Dispatcher returns the ChooseCiv descriptor when state says
+   "civ-select".
+3. Descriptor fed to a panel loader (likely `FUN_00f057b0`)
+   which loads and stores panel handle in `owner->[0x48]`.
+4. Rendering calls a method on owner that invokes Scaleform
+   SetVariable for numOptions/slotDataN — **the carousel setup
+   step**. Step 4 is still unidentified.
+
+**iter-208 plan:**
+1. Decompile the 2 callers of `FUN_00932a20` (`0x9099ac`,
+   `0x932ddc`) to understand the menu-state machine that
+   dispatches panels.
+2. Decompile `func_0x00f060d8` (the real panel-loader) and
+   follow where the loaded panel handle is stored — find the
+   class that OWNS civ-select (`owner->[0x48] = panel`).
+3. Plant a diagnostic `b .` trap at `FUN_00932a20` entry to
+   verify it runs at civ-select transition. If korea_play slot 0
+   PASSes, the state dispatcher is another dead end.
+
+**Verification artifacts:**
+- `korea_mod/verification/iter207_choose_civ_owners/findings.md`
+- `.../jython_dump.txt` (246 lines)
+- `Iter207ChooseCivOwners.py` under `scripts/ghidra_helpers/`
+
+**PRD changes made this iteration:** Progress Log entry added.
+Static analysis only — no shipping changes.

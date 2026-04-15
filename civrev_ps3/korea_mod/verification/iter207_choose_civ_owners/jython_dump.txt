@@ -1,0 +1,246 @@
+INFO  Using log config file: jar:file:/home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Framework/Generic/lib/Generic.jar!/generic.log4j.xml (LoggingInitialization)  
+INFO  Using log file: /home/mike/.config/ghidra/ghidra_11.3.1_PUBLIC/application.log (LoggingInitialization)  
+INFO  Loading user preferences: /home/mike/.config/ghidra/ghidra_11.3.1_PUBLIC/preferences (Preferences)  
+INFO  Loading previous preferences: /home/mike/.ghidra/.ghidra_11.0.3_PUBLIC/preferences (Preferences)  
+INFO  Searching for classes... (ClassSearcher)  
+INFO  Class search complete (540 ms) (ClassSearcher)  
+INFO  Initializing SSL Context (SSLContextInitializer)  
+INFO  Initializing Random Number Generator... (SecureRandomFactory)  
+INFO  Random Number Generator initialization complete: NativePRNGNonBlocking (SecureRandomFactory)  
+INFO  Trust manager disabled, cacerts have not been set (ApplicationTrustManagerFactory)  
+INFO  Headless startup complete (1297 ms) (AnalyzeHeadless)  
+INFO  Class searcher loaded 57 extension points (18 false positives) (ClassSearcher)  
+INFO  HEADLESS Script Paths:
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Processors/PIC/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Debug/Debugger/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/PyGhidra/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Processors/8051/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/SystemEmulation/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/GnuDemangler/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Processors/Atmel/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/BytePatterns/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/Decompiler/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/WildcardAssembler/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Processors/DATA/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/FileFormats/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/Jython/ghidra_scripts
+    /home/mike/.config/ghidra/ghidra_11.3.1_PUBLIC/Extensions/Ps3GhidraScripts/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/Base/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Processors/JVM/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/BSim/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/FunctionID/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Debug/Debugger-rmi-trace/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/VersionTracking/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/SwiftDemangler/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/DecompilerDependent/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/PDB/ghidra_scripts
+    /home/mike/ghidra/ghidra_11.3.1_PUBLIC/Ghidra/Features/MicrosoftCodeAnalyzer/ghidra_scripts (HeadlessAnalyzer)  
+INFO  HEADLESS: execution starts (HeadlessAnalyzer)  
+INFO  Opening existing project: /home/mike/Desktop/civrev/civrev_ps3/ghidra_v130/v130 (HeadlessAnalyzer)  
+INFO  Opening project: /home/mike/Desktop/civrev/civrev_ps3/ghidra_v130/v130 (HeadlessProject)  
+INFO  REPORT: Processing project file: /EBOOT_v130_clean.ELF (HeadlessAnalyzer)  
+INFO  SCRIPT: /home/mike/Desktop/civrev/civrev_ps3/korea_mod/scripts/ghidra_helpers/Iter207ChooseCivOwners.py (HeadlessAnalyzer)  
+
+##############################################################################
+# iter-207: ChooseCiv panel descriptor owners
+##############################################################################
+INFO  Function FUN_00932a20 (ConsoleTaskMonitor)  
+==============================================================================
+FUN_00932a20 (stores ChooseCiv desc into class field)  FUN_00932a20 (size=204)
+==============================================================================
+   1  
+   2  undefined8 FUN_00932a20(longlong param_1,uint param_2,undefined4 *param_3)
+   3  
+   4  {
+   5    longlong unaff_r2;
+   6    undefined8 uVar1;
+   7    undefined4 *puVar2;
+   8    undefined4 uStack_40;
+   9    undefined4 auStack_3c [5];
+  10    
+  11    puVar2 = (undefined4 *)(ulonglong)param_2;
+  12    auStack_3c[0] = 0;
+  13    uStack_40 = 0;
+  14    if (param_2 == 0) {
+  15      puVar2 = &uStack_40;
+  16    }
+  17    if ((int)param_3 == 0) {
+  18      param_3 = auStack_3c;
+  19    }
+  20    if (5 < (ulonglong)*(uint *)(param_1 + 0x18)) {
+  21      *(undefined4 *)((ulonglong)puVar2 & 0xffffffff) = *(undefined4 *)(unaff_r2 + -0x2990);
+  22      *(int *)((ulonglong)param_3 & 0xffffffff) = (int)param_1;
+  23      return 0;
+  24    }
+  25                      /* WARNING: Could not recover jumptable at 0x00932a90. Too many branches */
+  26                      /* WARNING: Treating indirect jump as call */
+  27    uVar1 = (*(code *)((longlong)
+  28                       *(int *)((ulonglong)*(uint *)(param_1 + 0x18) * 4 +
+  29                               (ulonglong)*(uint *)(unaff_r2 + -0x29a8)) +
+  30                      (ulonglong)*(uint *)(unaff_r2 + -0x29a8)))();
+  31    return uVar1;
+  32  }
+  33  
+
+INFO  Function FUN_00f057b0 (ConsoleTaskMonitor)  
+==============================================================================
+FUN_00f057b0 (panel-by-index dispatcher)  FUN_00f057b0 (size=180)
+==============================================================================
+   1  
+   2  int FUN_00f057b0(longlong param_1,undefined8 param_2,undefined8 param_3,undefined8 param_4,
+   3                  undefined8 param_5,ulonglong param_6)
+   4  
+   5  {
+   6    int iVar2;
+   7    longlong lVar1;
+   8    int iVar3;
+   9    
+  10    iVar2 = func_0x00f060d8(param_1,param_5,param_2,param_3,param_4);
+  11    iVar3 = iVar2;
+  12    if (iVar2 != 0) {
+  13      lVar1 = (*(code *)(ulonglong)*(uint *)(param_6 & 0xffffffff))(iVar2);
+  14      *(int *)(param_1 + 0x48) = (int)lVar1;
+  15      if (lVar1 != 0) {
+  16        iVar3 = 0;
+  17        func_0x00f05cb0(iVar2);
+  18      }
+  19    }
+  20    return iVar3;
+  21  }
+  22  
+
+INFO  Function FUN_0011b17c (ConsoleTaskMonitor)  
+==============================================================================
+FUN_0011b17c (panel refcount wrapper)  FUN_0011b17c (size=580)
+==============================================================================
+   1  
+   2  void FUN_0011b17c(int param_1,int param_2)
+   3  
+   4  {
+   5    uint uVar1;
+   6    longlong unaff_r2;
+   7    undefined4 uVar2;
+   8    longlong lVar3;
+   9    ulonglong uVar4;
+  10    byte in_cr7;
+  11    
+  12    if ((bool)(in_cr7 >> 1 & 1)) {
+  13      if (param_2 == 0xffff) {
+  14        uVar4 = (ulonglong)*(uint *)(unaff_r2 + -0x29c0);
+  15        func_0x00013760(uVar4 + 8);
+  16        func_0x000140a0(uVar4 + 9);
+  17        *(undefined4 *)(uVar4 + 0xc) =
+  18             *(undefined4 *)((ulonglong)*(uint *)(unaff_r2 + -0x2988) + 0x28);
+  19        uVar2 = func_0x002a8910();
+  20        *(undefined4 *)(uVar4 + 0x10) = uVar2;
+  21        uVar2 = func_0x00258d30();
+  22        *(undefined4 *)(uVar4 + 0x14) = uVar2;
+  23        uVar2 = func_0x002dbba0();
+  24        *(undefined4 *)(uVar4 + 0x18) = uVar2;
+  25        uVar2 = func_0x002598c8();
+  26        *(undefined4 *)(uVar4 + 0x1c) = uVar2;
+  27        uVar2 = func_0x002e17f8();
+  28        *(undefined4 *)(uVar4 + 0x20) = uVar2;
+  29        uVar2 = func_0x0025ad10();
+  30        *(undefined4 *)(uVar4 + 0x24) = uVar2;
+  31        uVar2 = func_0x00277f90();
+  32        *(undefined4 *)(uVar4 + 0x28) = uVar2;
+  33        uVar2 = func_0x0027cde8();
+  34        *(undefined4 *)(uVar4 + 0x2c) = uVar2;
+  35        uVar2 = func_0x0029e828();
+  36        *(undefined4 *)(uVar4 + 0x30) = uVar2;
+  37        uVar2 = func_0x002c0c98();
+  38        *(undefined4 *)(uVar4 + 0x34) = uVar2;
+  39        uVar2 = func_0x002c1478();
+  40        *(undefined4 *)(uVar4 + 0x38) = uVar2;
+  41        uVar2 = func_0x002c1cc0();
+  42        *(undefined4 *)(uVar4 + 0x3c) = uVar2;
+  43        uVar2 = func_0x002c26e0();
+  44        *(undefined4 *)(uVar4 + 0x40) = uVar2;
+  45        uVar2 = func_0x002e75b8();
+  46        *(undefined4 *)(uVar4 + 0x44) = uVar2;
+  47        uVar2 = func_0x002e8938();
+  48        *(undefined4 *)(uVar4 + 0x48) = uVar2;
+  49        uVar2 = func_0x002e5fa0();
+  50        *(undefined4 *)(uVar4 + 0x4c) = uVar2;
+  51        uVar2 = func_0x002e2d20();
+  52        *(undefined4 *)(uVar4 + 0x50) = uVar2;
+  53        uVar2 = func_0x002e3630();
+  54        *(undefined4 *)(uVar4 + 0x54) = uVar2;
+  55        uVar2 = func_0x002e3df8();
+  56        *(undefined4 *)(uVar4 + 0x58) = uVar2;
+  57        uVar2 = func_0x002e4640();
+  58        *(undefined4 *)(uVar4 + 0x5c) = uVar2;
+  59        uVar2 = func_0x002e5050();
+  60        *(undefined4 *)(uVar4 + 0x60) = uVar2;
+  61        func_0x0024c6f8(uVar4 + 100);
+  62        func_0x00013aa0(uVar4 + 0x65);
+  63        func_0x003621a0(uVar4,*(undefined4 *)(unaff_r2 + -0x2984),*(undefined4 *)(unaff_r2 + -0x2980))
+  64        ;
+  65        lVar3 = *(longlong *)(ulonglong)*(uint *)(unaff_r2 + -0x297c) + 1;
+  66        *(longlong *)(ulonglong)*(uint *)(unaff_r2 + -0x297c) = lVar3;
+  67        if (lVar3 == 1) {
+  68          FUN_00c649e4(*(undefined4 *)(unaff_r2 + -0x2994));
+  69        }
+  70        lVar3 = *(longlong *)(ulonglong)*(uint *)(unaff_r2 + -0x2978) + 1;
+  71        *(longlong *)(ulonglong)*(uint *)(unaff_r2 + -0x2978) = lVar3;
+  72        if (lVar3 == 1) {
+  73          FUN_00c649e4(*(undefined4 *)(unaff_r2 + -0x2998));
+  74        }
+  75      }
+  76    }
+  77    else if ((param_1 == 0) && (param_2 == 0xffff)) {
+  78      lVar3 = *(longlong *)(ulonglong)*(uint *)(unaff_r2 + -0x2978) + -1;
+  79      *(longlong *)(ulonglong)*(uint *)(unaff_r2 + -0x2978) = lVar3;
+  80      if (lVar3 == 0) {
+  81        func_0x00c6499c(*(undefined4 *)(unaff_r2 + -0x2998));
+  82      }
+  83      lVar3 = *(longlong *)(ulonglong)*(uint *)(unaff_r2 + -0x297c) + -1;
+  84      *(longlong *)(ulonglong)*(uint *)(unaff_r2 + -0x297c) = lVar3;
+  85      if (lVar3 == 0) {
+  86        func_0x00c6499c(*(undefined4 *)(unaff_r2 + -0x2994));
+  87      }
+  88      uVar1 = *(uint *)(unaff_r2 + -0x29c0);
+  89      func_0x00010a60((ulonglong)uVar1 + 9);
+  90      func_0x000126d0((ulonglong)uVar1 + 8);
+  91    }
+  92    return;
+  93  }
+  94  
+
+==============================================================================
+FUN_00c649e4 (panel acquire/retain)  FUN_00c649e4 (size=64)
+==============================================================================
+   1  
+   2  void FUN_00c649e4(undefined8 param_1)
+   3  
+   4  {
+   5    undefined4 local_10;
+   6    undefined4 local_c;
+   7    undefined1 local_8;
+   8    
+   9    local_10 = 2;
+  10    local_8 = 0;
+  11    local_c = 0x10;
+  12    FUN_0141f98c(param_1,&local_10);
+  13    return;
+  14  }
+  15  
+
+INFO  Function FUN_00c6499c (ConsoleTaskMonitor)  
+==============================================================================
+FUN_00c6499c (panel release)  FUN_00c6499c (size=36)
+==============================================================================
+   1  
+   2  void FUN_00c6499c(void)
+   3  
+   4  {
+   5    FUN_0141fb8c();
+   6    return;
+   7  }
+   8  
+
+##############################################################################
+# end iter-207
+##############################################################################
+INFO  REPORT: Save succeeded for processed file: /EBOOT_v130_clean.ELF (HeadlessAnalyzer)  
