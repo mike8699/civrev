@@ -6040,3 +6040,91 @@ New probe `test_civs_dump.py` committed. No shipping state
 change — iter-198 build remains the current shipping state and
 Korea/Sejong presence in the parser buffer is now end-to-end
 verified.
+
+### iter-204 (2026-04-15): second .data name-file holder table; new consumer `FUN_001dc0d8`
+
+**Static-analysis iteration — no runtime probe this time.**
+
+**Finding:** there is a SECOND .data table pointing at the .bss
+name-file buffer holders, in addition to the sparse 8-slot
+dispatcher table (`0x194b5f8..0x194b614`) iter-202 identified.
+The second table spans `0x194af2c..0x194af9c` (reachable via
+the dispatcher's TOC base `r2 = 0x194a1f8` at offsets
+`0xd34..0xda4`). This second table is a larger class-instance
+member layout: 29 pointer fields, interleaving the 8 .bss
+holders with other class pointers into rodata and .data.
+
+The civs buffer holder `0x1ac93b8` appears at `r2+0xd50`
+(`0x194af48`) in this second table. The rulers holder
+`0x1ac93ac`-ish appears at `r2+0xd4c`.
+
+**5 consumer lwz sites for `r2+0xd50` (civs):**
+1. `0x1dc134` — inside `FUN_001dc0d8`
+2. `0xa223b8` — near parser dispatcher
+3. `0xa2a8c4` — near parser dispatcher
+4. `0xa2a9c8` — near parser dispatcher
+5. `0x111dd90` — far function `FUN_0x111dd70`
+
+**`FUN_001dc0d8` reads the ENTIRE holder struct** via an
+unrolled sequence and calls `bl 0x11230` / `bl 0x12080` with
+each name-file holder as argument. The pattern is:
+
+```
+bl 0x11230(r3 = *(r28), r4 = holder_slot_n)
+bl 0x12080(r3, r4 = rulers_holder, r5 = civs_holder,
+           r6 = iter_idx, r7 = prev_result)
+```
+
+iter_idx increments 0, 1, 2, 3 — multiple calls per buffer. The
+`bl 0x12080` target is in the low address range (<0x20000) which
+is the PRX import stub region. This strongly suggests the
+function is making EXTERNAL PRX calls (cellSaveData,
+sysPrxForUser, or similar) passing the name-file holders to
+some OS service. **It's not the typical "iterate civs for
+carousel" shape** — it's likely init / persistence / OS-facing
+serialization code.
+
+But it hasn't been diagnostically tested yet. iter-150
+(`FUN_001e49f0`) and iter-154 (`FUN_011675d8`) ruled out OTHER
+consumer functions but not this one.
+
+**Ruled out by exhaustive scan:**
+- Direct `lis/addis + addi` immediate construction of
+  `0x1ac93b8`: **0 hits**. No code builds that address via
+  immediate-pair construction. All access is via TOC.
+- TOC access from `r2 = 0x193a288` or `r2 = 0x195a1a8` (the two
+  other major TOC bases among 1,961 found by descriptor scan):
+  neither can reach `0x1ac93b8` or `0x194af48` via signed-16
+  offset. Only `r2 = 0x194a1f8` can. So only functions in that
+  TOC group can directly access civnames data.
+- This means a function with r2 ≠ 0x194a1f8 wanting to read
+  civnames must either (a) have the holder address stored in a
+  heap field (class member populated at init), (b) call a
+  helper function with the correct r2, or (c) receive the
+  pointer via function argument.
+
+**Total unique consumer functions for the civnames holder
+(across all TOC slot types):**
+- `FUN_00a2ec54` dispatcher (already mapped)
+- `FUN_001dc0d8` (new — iter-204)
+- `FUN_0x111dd70` (new — iter-204)
+- Multiple functions in the 0xa22xxx and 0xa2axxx region (not
+  yet mapped)
+
+**iter-205 plan:**
+1. Plant a diagnostic `b .` trap at `FUN_001dc0d8` entry via a
+   temporary `eboot_patches.py` entry, build, run slot 0 Romans
+   boot test. If boot hangs, the function IS on the boot path
+   (expected, given the consumer refs). If boot succeeds, it's
+   off-path — similar to iter-150/154's negative results.
+2. Same for `FUN_0x111dd70`.
+3. Decompile both via analyzeHeadless + Jython, with the
+   CORRECT `0x194a1f8` TOC assumption, to see what they actually
+   do with the holder addresses.
+4. If one of them is reached during civ-select specifically,
+   it's the carousel reader candidate — set Z0 and capture.
+
+**PRD changes made this iteration:** Progress Log entry added.
+Static analysis only — no code/asset/EBOOT shipping changes.
+New verification artifact under `korea_mod/verification/
+iter204_holder_struct/`.
