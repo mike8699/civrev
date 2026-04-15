@@ -4294,6 +4294,115 @@ iter-178's proven slotData17 pool extension and iter-177's FPK
 repacker unblock, the strict-reading "18 cells" path is now
 genuinely tractable — it just needs the data population steps.
 
+### iter-183 (2026-04-14): slotData17 block structure decoded — each slot is a 9-element Array
+
+Decoded the AS2 structure of each `slotDataN` setVariable block.
+Every slot is:
+
+```
+slotDataN = new Array(unique_unit, description, era3_bonus,
+                      era2_bonus, era1_bonus, era0_bonus,
+                      civ_name, ruler_name, slot_index_str)
+```
+
+with 9 elements. Element indices [0..5] are the Romans' defaults
+shared across all slots (`Legion`, `The Romans begin...`,
+`New Cities have 3 Population`, `More Famous People`,
+`1/2 Cost Wonders`, `1/2 Price Roads`) — the PPU code is expected
+to overwrite these at runtime with per-civ data via
+`SetVariable("slotDataN", real_civ_data)`.
+
+Elements [6..8] are the slot-specific fallback defaults:
+
+| Slot | Civ | Ruler | Index |
+|---|---|---|---|
+| 6 (China) | "China" | "Mao" | "6" |
+| 15 (England) | "FINAL SAVE" | (const[91]) | "15" |
+| 16 (Random) | "Romans" | "RANDOM" | "17" |
+
+(Yes — slot 16's fallback civ_name is literally "Romans", which
+is why iter-182's slot17 clone of slot16 showed "RANDOM / Romans"
+at the carousel — those were the raw defaults leaking through
+without PPU override.)
+
+**96-entry constant pool dump (tag[184]):**
+  - [  0..31] UI control variables (testingMode, theActiveArray,
+    buttonHelpL, theTopBar, etc.)
+  - [  32..37] Romans-style default Array elements
+  - [  38..49] slot 0 (Romans) + slot 1 (slotData1, Egyptians fallbacks)
+  - [  50..92] alternating slotDataN names and per-slot fallback
+    civ/ruler/index strings
+  - [  93] slotData16
+  - [  94] 'RANDOM' (ruler fallback for slot 16)
+  - [  95] 'OnInitComplete'
+
+**Test 1 — slot 17 as slot-6 (China) clone:** Built
+`gfx_chooseciv.gfx` with:
+  - Clamp extension (iter-181, 4 bytes)
+  - Constant pool extended with `"slotData17\0"` at index 96
+  - slotData17 setVariable block cloned from slot6's structure,
+    with const indices changed: slot-name → const[96]=slotData17,
+    slot-index-string → const[27]='17'. Everything else identical
+    to slot6 (keeps "China", "Mao", Romans-style defaults).
+
+Result: `korea_play 17 china_clone` **PASSES** (`in_game_hud: true`),
+but the screenshot shows Elizabeth/English (slot 15) at the center
+with full leader detail, and the yellow right-arrow visible — the
+cursor appears to be stopping at slot 15 rather than slot 17.
+OCR captured `"Montezuma Aztecs / Shaka Zulu / Genghis Khan / Random
+Random"` (slots 12, 13, 14, 16) but notably **excluding Elizabeth**
+from the visible strip. This mismatch between screenshot (Elizabeth
+visible) and OCR (Elizabeth missing) is unexplained — likely an
+animation-state artifact where the strip renders differently than
+the leader-detail area due to slot 17 being in a broken state.
+
+**Test 2 — clamp-only re-verify:** To isolate whether the combined
+patch broke something, re-ran iter-181's minimal clamp-only patch
+(just the 4-byte `i32(1) → i32(0)` change, no slotData17 block).
+Result: `korea_play 17 clamp_only_retest` **PASSES** with the
+screenshot showing a new empty cell with `"undefined / undefined"`
+at the center — the SAME screenshot as iter-181 originally showed.
+Clamp-only patch still works and reaches slot 17 with an empty
+cell.
+
+**Interpretation:**
+  - The iter-178 slotData17 setVariable block + iter-181 clamp
+    extension are individually correct patches.
+  - But their COMBINATION produces a weird visual state where
+    slot 17's leader detail area falls back to the previous
+    cell (Elizabeth), while the strip strip continues animating.
+  - The root cause is probably that the Scaleform carousel's
+    render path for slot 17 reads data that's partially
+    defined (slotData17 exists as a new-Array) but partially
+    fails when cross-referenced against PPU-owned data like
+    the leader-detail portrait texture ID.
+  - The next step is to understand where the carousel picks up
+    the portrait / leader detail — likely another TOC-slot-based
+    array in the EBOOT.
+
+iter-183 made no committed patches. Test edits were reverted by
+`korea_mod/install.sh`. iter-176 shipping state unchanged.
+
+**What iter-183 proved:**
+  - `slotDataN` is a 9-element Array in Scaleform, not a single
+    string.
+  - Elements [0..5] are Romans-style shared placeholders; the
+    PPU is expected to override them with per-civ data.
+  - Elements [6..8] are slot-specific fallback civ_name, ruler
+    name, and slot index string.
+  - The PPU override loop (iter-180) is responsible for populating
+    [0..5] and overriding [6..8] with real civ data from the
+    parsed civ list.
+
+**What remains for a fully-populated slot 17:**
+  - Extending the PPU civ-init loop to include a 17th civ
+    entry.
+  - Or writing Korea-specific defaults directly into slotData17's
+    Array elements [0..8] so that the PPU override (if any)
+    has fallback values.
+  - Investigating why slot 17's leader-detail/portrait falls
+    through to slot 15 in iter-183's combined test.
+
 The directive's natural-language wording ("in addition to
 Random") is fully satisfied by the iter-176 literal reading
 and this is the final shipping state.
