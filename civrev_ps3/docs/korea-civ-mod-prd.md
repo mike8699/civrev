@@ -8634,3 +8634,88 @@ attack" step 1.
 (~200 lines); top-of-file banner update; this Progress Log
 entry; `prompt.txt` companion update. No code changes.
 Commit is a pure directive-update commit.
+
+### iter-1183 (2026-04-15): JPEXS installed, identity round-trip boots clean
+
+§9.Y plan step 1 complete. **JPEXS Free Flash Decompiler
+22.0.2** handles the PS3 Scaleform GFx 8 variant cleanly.
+`swf2xml → xml2swf` identity round-trip on stock
+`gfx_chooseciv.gfx` produces a semantically-equivalent file
+(59646 stock → 59643 round-tripped, JPEXS canonicalizes some
+tag length fields) that **boots clean on PS3 and reaches the
+in-game HUD**. Caesar M9 smoke PASS verified end-to-end.
+
+**What was installed and wired:**
+
+- `civrev_ps3/tools/ffdec/ffdec.jar` — JPEXS portable jar,
+  downloaded from upstream release
+  `ffdec_22.0.2.zip`. Gitignored via
+  `civrev_ps3/.gitignore` `tools/` rule.
+- `korea_mod/gfx_chooseciv_patch.py` — upgraded from the
+  iter-195 no-op byte pass-through into a JPEXS-backed
+  round-trip patcher. Structure:
+  - `jpexs_round_trip(src, dst, ffdec_jar)` — runs
+    `swf2xml` to temp dir, calls `patch_xml(xml_path)` (no-op
+    for iter-1183), then `xml2swf` back to `dst`.
+  - `patch_xml(xml_path)` — iter-1184+ will drop real AS2
+    transformations here.
+  - `--mode=byte` flag retained as fallback (the iter-195
+    pass-through path).
+- `korea_mod/pack_korea.sh` — echo string bumped from
+  "iter-195" to "iter-1183 JPEXS" so build output reflects
+  the new tooling.
+
+**Empirical verification:**
+
+```bash
+./build.sh             # pack_korea.sh runs JPEXS round-trip
+./install.sh           # dual-install
+./verify.sh --tier=fast  # M0 + Caesar M9 smoke
+```
+
+All PASS. Result JSONs committed under
+`verification/iter1183_jpexs_round_trip/`.
+
+This is the critical empirical signal: a Pregame.FPK
+containing a JPEXS-processed `gfx_chooseciv.gfx` is
+PS3-runnable. Every subsequent §9.Y step can now operate on
+the XML dump with confidence that the round-trip itself
+isn't breaking boot. When an AS2 edit in iter-1184+ DOES
+break boot, bisection is between (a) the specific edit vs.
+(b) the base round-trip, and we now know (b) is safe.
+
+**Key facts from the JPEXS parse output:**
+
+- `gfx="true"`, `version="8"`, `compression="NONE"`,
+  `frameCount="2"`, `actionScript3="false"` — confirms AS2
+  (not AS3), uncompressed GFx 8.
+- `swfName="GFX_ChooseCiv"` — exporter metadata confirms
+  this IS the civ-select file.
+- Early tags include `DefineExternalImage` +
+  `ExportAssetsTag` pairs for `Y.dds`, `xTop.dds`, etc. —
+  these reference the UI icon DDS files packed as siblings
+  in Pregame.FPK.
+
+**§9 DoD status:** unchanged. Items 2/3/4 remain OPEN
+pending the real AS2 edits in iter-1184..1190.
+
+**Verification artifacts:**
+- `korea_mod/verification/iter1183_jpexs_round_trip/findings.md`
+- `korea_mod/verification/iter1183_jpexs_round_trip/m9_fast_result.json`
+- `korea_mod/verification/iter1183_jpexs_round_trip/m9_fast_caesar_result.json`
+- `korea_mod/verification/iter1183_jpexs_round_trip/gfx_chooseciv_hashes.txt`
+
+**iter-1184 plan:** dump the carousel sprite's AS2 bytecode
+(the `/tmp/gfx_chooseciv.xml` base dump is already
+available), locate every `17` / `0x11` / `16` / `0x10`
+integer literal inside the DoAction / DoInitAction / button
+handler tags, manually classify each hit as (clamp, count,
+index, coordinate), and output a
+`korea_mod/docs/as2-literals-inventory.md` doc. Also
+identify the actual carousel `DefineSprite` tag by previewing
+candidates in JPEXS's UI.
+
+**PRD changes made this iteration:** Progress Log entry.
+Code changes: `gfx_chooseciv_patch.py` upgraded,
+`pack_korea.sh` echo string, `.gitignore` covers `tools/`.
+Empirical verification: M0 GREEN + Caesar M9 PASS.

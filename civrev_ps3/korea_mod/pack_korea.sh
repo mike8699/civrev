@@ -106,7 +106,7 @@ stage_pregame_repack() {
     done
 
     if [ -f "$HERE/gfx_chooseciv_patch.py" ]; then
-        echo "[pack_korea] Pregame: patching gfx_chooseciv.gfx (iter-195)"
+        echo "[pack_korea] Pregame: patching gfx_chooseciv.gfx (iter-1183 JPEXS)"
         python3 "$HERE/gfx_chooseciv_patch.py" \
             "$dst/gfx_chooseciv.gfx" \
             "$dst/gfx_chooseciv.gfx"

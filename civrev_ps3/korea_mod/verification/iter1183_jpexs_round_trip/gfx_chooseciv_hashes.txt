@@ -1,0 +1,2 @@
+caffce4ad251601fc37f99a53567e649  _build/Pregame_korea/gfx_chooseciv.gfx
+31f0e7acdca825558fc6538648005f8c  /home/mike/Desktop/civrev/civrev_ps3/extracted/Pregame/gfx_chooseciv.gfx

@@ -1,0 +1,14 @@
+{
+  "milestone": "M9",
+  "slot": 0,
+  "label": "caesar",
+  "pass": true,
+  "oracle": "OCR in-game HUD after selecting slot 0 (caesar)",
+  "stages": {
+    "main_menu": true,
+    "difficulty_selected": true,
+    "highlighted_ok": true,
+    "in_game_hud": true
+  },
+  "select_ocr": "s Sy rf q \u2014_\u2014 fee | (\u00a3& | \u00bb | 7 1. ; B /-\\\\} Cleopatra . Alexander Isabella | iS ee ' /)/fii Egyptians Greeks Spanish | i \\ ae ; RY ae | fy oD TN r : Ai a A eri) 4 al . So 9A S44 t R | v ~ Ts \u00ae : an \u2014"
+}

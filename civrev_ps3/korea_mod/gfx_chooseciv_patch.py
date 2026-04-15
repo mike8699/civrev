@@ -1,86 +1,127 @@
 #!/usr/bin/env python3
-"""In-place patcher for gfx_chooseciv.gfx.
+"""AS2 patcher for gfx_chooseciv.gfx (JPEXS-backed).
 
-Currently a no-op pass-through. Kept in the build pipeline as the
-hook point for future Scaleform edits to the civ-select carousel
-(slotData17 extension, theOptionArray bumps, etc.) — once an edit
-is identified that actually moves the needle, drop it into
-`patch()`.
+iter-1183 (2026-04-15): rewritten onto the JPEXS round-trip path per
+the iter-1182 §9.Y carousel unblock directive. The previous iter-195
+in-place byte-patcher path is retained as a fallback under
+`--mode=byte` but the default mode is `--mode=jpexs`, which does a
+full SWF→XML→SWF round-trip through JPEXS so subsequent AS2-level
+edits can live as XML transformations.
 
-iter-195 (2026-04-15) NEGATIVE FINDING:
-    Tested flipping the `_root.numOptions = 6` default Push in
-    tag[185] (top-level DoAction at file offset 0x5628) from i32(6)
-    to i32(18). The Push record sits at file offset 0x59e5 and the
-    i32 literal occupies the 4 bytes at 0x59eb. Patch was a clean
-    same-size byte swap, no reflow.
+Current default behavior: **identity round-trip** — parses the
+source file with JPEXS and re-serializes it with no edits. The
+output is byte-different from the input (JPEXS canonicalizes some
+tag length fields, typically yielding a 2-4 byte smaller file) but
+semantically identical: same GFX\\x08 magic, same version 8, same
+tag stream, same AS2 bytecode.
 
-    Result: slot 15 (Elizabeth) M6 PASS confirmed boot-safety.
-    slot 17 probe — the PS3 Right cursor still clamps at slot 16
-    (Random cell), no 18th carousel slot appears, no visual
-    change anywhere on civ-select. The tag[185] `_root.numOptions`
-    default is INERT for the civ-select panel: the PPU overrides
-    it (likely via Flash::Invoke SetVariable at panel-init) before
-    tag[185]'s collection loop at bc@0x153 ever runs. Verified
-    output JSONs in verification/iter195_*/.
+Purpose of the identity round-trip: to verify empirically that
+a JPEXS-processed Pregame.FPK boots cleanly on PS3. Once M9
+Caesar smoke PASSes with the identity round-trip, subsequent
+iterations can drop real AS2 transformations into `patch_xml()`
+with confidence that the round-trip itself isn't the thing
+breaking boot.
 
-    Conclusion: extending the carousel CANNOT be done by patching
-    tag[185]'s default. The next iteration must locate the PPU
-    SetVariable call site that writes numOptions for the
-    "ChooseCiv" panel, OR locate the cursor right-clamp that
-    bounds Right press to slot 16.
+Historical in-place byte-patch findings (iter-195, iter-200)
+remain archived in git history at commit bda5c78 and earlier;
+they identified specific byte offsets for `numOptions` literals
+that turned out to be INERT for the cursor right-clamp. Under
+the iter-1182 directive, the clamp is expected to live in AS2
+event handlers that the byte-patcher couldn't reach cleanly;
+the JPEXS path will.
 
-Usage: gfx_chooseciv_patch.py <src.gfx> <dst.gfx>
+Usage:
+    gfx_chooseciv_patch.py <src.gfx> <dst.gfx>
+        [--mode=jpexs|byte] [--ffdec=<path>]
 """
 
 from __future__ import annotations
 
+import argparse
+import shutil
+import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 
 EXPECTED_SIZE = 59646
 
-# iter-200 (2026-04-15) NEGATIVE FINDING:
-#     Located and tested the REAL `_root.numOptions = 17` setter in
-#     tag[184] at bc@0x4af (file offset 0x52f8 for the i32 literal).
-#     iter-195 had patched tag[185]'s `numOptions = 6` default; that
-#     was the wrong tag. The live value is here in tag[184].
-#
-#     Swapped 0x52f8..0x52fb from `11 00 00 00` to `12 00 00 00`,
-#     rebuilt on top of iter-198's 18-row civnames/rulernames
-#     overlay (the first time both the parser buffer and the
-#     Scaleform numOptions literal were extended together), and
-#     probed slot 16 and slot 17 via the harness. slot 17 cursor
-#     STILL clamps at Random (slot 16). No visible change anywhere.
-#     The tag[184] numOptions literal is INERT for the cursor
-#     clamp — consistent with iter-179's isolated finding. The
-#     right-arrow handler is reading its upper bound from somewhere
-#     else (not numOptions, not tag[184]'s static default).
-#
-#     Patch reverted to no-op. Infrastructure preserved for future
-#     Scaleform edits that do move the needle.
-NUM_OPTIONS_I32_OFFSET = 0x52F8  # retained for future reference
+DEFAULT_FFDEC_JAR = (
+    Path(__file__).resolve().parent.parent / "tools" / "ffdec" / "ffdec.jar"
+)
+
+# iter-195 byte-patch constants retained as reference (INERT per iter-200).
+NUM_OPTIONS_I32_OFFSET = 0x52F8
 
 
-def patch(src_bytes: bytes) -> bytes:
+def _run_jpexs(args: list[str], ffdec_jar: Path) -> None:
+    cmd = ["java", "-jar", str(ffdec_jar), *args]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        sys.stderr.write(result.stdout)
+        sys.stderr.write(result.stderr)
+        raise SystemExit(f"ffdec.jar failed: {' '.join(cmd)}")
+
+
+def patch_xml(xml_path: Path) -> None:
+    """Apply AS2 transformations to the JPEXS XML dump.
+
+    Currently a no-op — iter-1183 ships the identity round-trip so
+    the boot-safety of the JPEXS pipeline can be verified in
+    isolation before real AS2 edits land in iter-1184+.
+    """
+    _ = xml_path  # intentional no-op
+
+
+def jpexs_round_trip(src: Path, dst: Path, ffdec_jar: Path) -> int:
+    if not ffdec_jar.is_file():
+        raise SystemExit(
+            f"ffdec.jar not found at {ffdec_jar} — install JPEXS per §9.Y step 1"
+        )
+    # Capture src size before the JPEXS call overwrites dst (which may
+    # alias src when the build pipeline passes the same path for both).
+    in_size = src.stat().st_size
+    with tempfile.TemporaryDirectory(prefix="gfx_patch_") as tmp:
+        tmp_path = Path(tmp)
+        xml_path = tmp_path / "gfx_chooseciv.xml"
+        staged_src = tmp_path / "src.gfx"
+        shutil.copy(src, staged_src)
+        _run_jpexs(["-swf2xml", str(staged_src), str(xml_path)], ffdec_jar)
+        patch_xml(xml_path)
+        _run_jpexs(["-xml2swf", str(xml_path), str(dst)], ffdec_jar)
+    out_size = dst.stat().st_size
+    print(
+        f"  gfx_chooseciv.gfx: JPEXS round-trip ok "
+        f"({in_size} → {out_size} bytes)"
+    )
+    return 0
+
+
+def byte_passthrough(src: Path, dst: Path) -> int:
+    src_bytes = src.read_bytes()
     if len(src_bytes) != EXPECTED_SIZE:
         raise SystemExit(
             f"unexpected gfx size {len(src_bytes)} (expected {EXPECTED_SIZE})"
         )
-    return src_bytes
+    dst.write_bytes(src_bytes)
+    print(f"  gfx_chooseciv.gfx: byte pass-through ({len(src_bytes)} bytes)")
+    return 0
 
 
 def main() -> int:
-    if len(sys.argv) != 3:
-        print(f"usage: {sys.argv[0]} <src.gfx> <dst.gfx>", file=sys.stderr)
-        return 2
-    src = Path(sys.argv[1])
-    dst = Path(sys.argv[2])
-    out = patch(src.read_bytes())
+    parser = argparse.ArgumentParser()
+    parser.add_argument("src")
+    parser.add_argument("dst")
+    parser.add_argument("--mode", choices=["jpexs", "byte"], default="jpexs")
+    parser.add_argument("--ffdec", default=str(DEFAULT_FFDEC_JAR))
+    args = parser.parse_args()
+    src = Path(args.src)
+    dst = Path(args.dst)
     dst.parent.mkdir(parents=True, exist_ok=True)
-    dst.write_bytes(out)
-    print(f"  gfx_chooseciv.gfx: no-op pass-through ({len(out)} bytes)")
-    return 0
+    if args.mode == "byte":
+        return byte_passthrough(src, dst)
+    return jpexs_round_trip(src, dst, Path(args.ffdec))
 
 
 if __name__ == "__main__":
