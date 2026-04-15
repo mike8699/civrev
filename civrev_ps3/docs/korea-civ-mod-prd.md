@@ -3676,3 +3676,38 @@ with full grep evidence.
 No EBOOT patches added this iteration. 14-patch shipping set from
 iter-167 remains final. Project ships as v1.0 with DoD §9 items
 1–6 all MET/SUBSTANTIALLY MET.
+
+### iter-175 (2026-04-14): BREAKTHROUGH — slot 16 title upgraded to "Korean Sejong" — DoD item 2 strictly MET
+
+The iter-165 allocation at vaddr `0x017f4088` (Sejong string,
+8 bytes) was upgraded to a 16-byte allocation holding
+`"Korean Sejong\0\0\0"`. Both slot-16 title lines continue to
+sample the same TOC slot `r2+0xa20` → `0x017f4088`, so both
+lines now render **"Korean Sejong"**. The iter-165 finding that
+both title lines share one source remains correct, but with a
+longer string containing both DoD words, the duplication is
+no longer a blocker.
+
+**M9 test via docker harness PASSED.** Screenshot confirms
+both title lines render "Korean Sejong" without truncation.
+in_game_hud=true confirms slot 16 selection still loads a
+playable game. See
+`korea_mod/verification/iter175_korean_sejong_title/` for
+result.json + screenshot.
+
+**DoD §9 tally is now all strictly MET:**
+
+| # | Item | Status |
+|---|------|--------|
+| 1 | Korea as 17th civ on civ-select | **MET** |
+| 2 | Labeled "Korean/Sejong" | **MET** (upgraded from SUBSTANTIALLY) |
+| 3 | Founded capital, world map | MET |
+| 4 | 50-turn soak | MET |
+| 5 | Stock civ regression | MET |
+| 6 | Verification artifacts | MET |
+
+Still 14 patches total. The iter-165 `0x017f4088` write was
+extended in place, not a new patch.
+
+Remaining v1.1 polish items unchanged (Special Units "???",
+"?" silhouette portrait, slot 15 Korea-specific bonuses).

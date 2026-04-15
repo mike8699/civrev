@@ -1,0 +1,14 @@
+{
+  "milestone": "M9",
+  "slot": 16,
+  "label": "koreans",
+  "pass": true,
+  "oracle": "OCR in-game HUD after selecting slot 16 (koreans)",
+  "stages": {
+    "main_menu": true,
+    "difficulty_selected": true,
+    "highlighted_ok": false,
+    "in_game_hud": true
+  },
+  "select_ocr": "pemmieniemes) qj. \\ammmememes/ \u00a9 \\bemmiceemed a | ee ||, | Shaka Genghis Sejong | | Zulu Khan Koreans \u201ca | LAL Pm UN { a! A ; a af Fie | i\u201d \u201coa. (oa \u2014 Leesa eel Pe. Cer | ea ea rean n Ths 74 | 2 ae zy"
+}

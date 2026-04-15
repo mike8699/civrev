@@ -474,9 +474,9 @@ PATCHES: list[Patch] = [
     # full DoD item 2 compliance.
     Patch(
         offset=0x017f4088,
-        expected_old=b"\x00\x00\x00\x00\x00\x00\x00\x00",
-        new=b"Sejong\x00\x00",
-        description="iter-165: allocate Sejong\\0 in .rodata padding",
+        expected_old=b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00",
+        new=b"Korean Sejong\x00\x00\x00",
+        description="iter-175: allocate 'Korean Sejong\\0' in .rodata padding (upgrades iter-165's Sejong-only)",
     ),
     Patch(
         offset=0x0193aca8,
