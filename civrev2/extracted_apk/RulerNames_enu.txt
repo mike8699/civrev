@@ -1,0 +1,24 @@
+;Rulers
+Caesar, M
+Cleopatra, F
+Alexander, M
+Isabella, F
+Bismarck, M
+Catherine, F
+Mao, M
+Lincoln, M
+Tokugawa, M
+Napoleon, M
+Gandhi, M
+Saladin, M
+Montezuma, M
+Shaka, M
+Genghis Khan, M
+Elizabeth, F
+Sejong, M
+Winston Churchill, M
+John F. Kennedy, M
+Charles de Gaulle, M
+Lenin, M
+Taizong of Tang, M
+Grey Wolf, M

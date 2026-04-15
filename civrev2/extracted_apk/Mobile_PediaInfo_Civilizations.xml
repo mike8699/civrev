@@ -1,0 +1,420 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!-- edited with XMLSPY v2004 rel. 2 U (http://www.xmlspy.com) by lcollins (Firaxis Games) -->
+<CivRevPediaEntryInfos>
+	<EntryInfo>
+		<EntryType>TYPE_CIV</EntryType>
+		<EntryTag>CIV_AFRICA</EntryTag>
+		<WINDOW>
+			<title text="TXT_KEY_MEDIA_IMAGE_DESC"/>
+			<content type="image" file="PEDIA_ZULU_1.dds" caption="TXT_KEY_CAPTION_ZULU_1"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_MEDIA_IMAGE_DESC"/>
+			<content type="image" file="PEDIA_ZULU_2.dds" caption="TXT_KEY_CAPTION_ZULU_2"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC"/>
+			<content type="text" text="TXT_KEY_CIV_AFRICA_PEDIA"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_PEDIA_TITLE_FUN_DESC"/>
+			<content type="funfacts" text1="TXT_KEY_CIV_AFRICA_FUN1" text2="TXT_KEY_CIV_AFRICA_FUN2"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_PEDIA_TITLE_LINKS_DESC"/>
+			<content type="links" text1="LEADER_SHAKA_ZULU" text2="UNIT_WARRIOR" text3="UNIT_RIFLEMAN" text4="CONCEPT_CIVILIZATIONS" text5="CONCEPT_CITIES" text6="CONCEPT_COMBAT" text7="CONCEPT_WEALTH"/>
+		</WINDOW>
+	</EntryInfo>
+	<EntryInfo>
+		<EntryType>TYPE_CIV</EntryType>
+		<EntryTag>CIV_AMERICA</EntryTag>
+		<WINDOW>
+			<title text="TXT_KEY_MEDIA_VIDEO_DESC"/>
+			<content type="video" file="PEDIA_AMERICA_MOV_1.bik" caption="TXT_KEY_CAPTION_AMERICA_MOVIE"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_MEDIA_IMAGE_DESC"/>
+			<content type="image" file="PEDIA_AMERICA_1.dds" caption="TXT_KEY_CAPTION_AMERICA_1"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC"/>
+			<content type="text" text="TXT_KEY_CIV_AMERICA_PEDIA"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_PEDIA_TITLE_FUN_DESC"/>
+			<content type="funfacts" text1="TXT_KEY_CIV_AMERICA_FUN1" text2="TXT_KEY_CIV_AMERICA_FUN2"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_PEDIA_TITLE_LINKS_DESC"/>
+			<content type="links" text1="LEADER_LINCOLN" text2="BUILDING_FACTORY" text3="TERRAIN_PLAINS" text4="CONCEPT_CIVILIZATIONS" text5="CONCEPT_CITIES" text6="CONCEPT_GPS" text7="CONCEPT_WEALTH"/>
+		</WINDOW>
+	</EntryInfo>
+	<EntryInfo>
+		<EntryType>TYPE_CIV</EntryType>
+		<EntryTag>CIV_ARABIA</EntryTag>
+		<WINDOW>
+			<title text="TXT_KEY_MEDIA_VIDEO_DESC"/>
+			<content type="video" file="PEDIA_ARABIA_MOV_2.bik" caption="TXT_KEY_CAPTION_ARABIA_MOVIE"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_MEDIA_IMAGE_DESC"/>
+			<content type="image" file="PEDIA_ARABIA_1.dds" caption="TXT_KEY_CAPTION_ARABIA_1"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_MEDIA_IMAGE_DESC"/>
+			<content type="image" file="PEDIA_ARABIA_2.dds" caption="TXT_KEY_CAPTION_ARABIA_2"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC"/>
+			<content type="text" text="TXT_KEY_CIV_ARABIA_PEDIA"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_PEDIA_TITLE_FUN_DESC"/>
+			<content type="funfacts" text1="TXT_KEY_CIV_ARABIA_FUN1" text2="TXT_KEY_CIV_ARABIA_FUN2"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_PEDIA_TITLE_LINKS_DESC"/>
+			<content type="links" text1="LEADER_SALADIN" text2="UNIT_CARAVAN" text3="UNIT_HORSEMAN" text4="UNIT_KNIGHT" text5="TECH_MATHEMATICS" text6="TECH_RELIGION" text7="CONCEPT_CIVILIZATIONS" text8="CONCEPT_WEALTH"/>
+		</WINDOW>
+	</EntryInfo>
+	<EntryInfo>
+		<EntryType>TYPE_CIV</EntryType>
+		<EntryTag>CIV_AZTECS</EntryTag>
+		<WINDOW>
+			<title text="TXT_KEY_MEDIA_IMAGE_DESC"/>
+			<content type="image" file="PEDIA_AZTEC_1.dds" caption="TXT_KEY_CAPTION_AZTEC_1"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_MEDIA_IMAGE_DESC"/>
+			<content type="image" file="PEDIA_AZTEC_2.dds" caption="TXT_KEY_CAPTION_AZTEC_2"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC"/>
+			<content type="text" text="TXT_KEY_CIV_AZTECS_PEDIA"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_PEDIA_TITLE_FUN_DESC"/>
+			<content type="funfacts" text1="TXT_KEY_CIV_AZTECS_FUN1" text2="TXT_KEY_CIV_AZTECS_FUN2" text3="TXT_KEY_CIV_AZTECS_FUN3"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_PEDIA_TITLE_LINKS_DESC"/>
+			<content type="links" text1="LEADER_MONTEZUMA" text2="BUILDING_TEMPLE" text3="CONCEPT_CIVILIZATIONS" text4="CONCEPT_CITIES" text5="CONCEPT_UNITS" text6="CONCEPT_WEALTH"/>
+		</WINDOW>
+	</EntryInfo>
+	<EntryInfo>
+		<EntryType>TYPE_CIV</EntryType>
+		<EntryTag>CIV_CHINA</EntryTag>
+		<WINDOW>
+			<title text="TXT_KEY_MEDIA_IMAGE_DESC"/>
+			<content type="image" file="PEDIA_CHINA_1.dds" caption="TXT_KEY_CAPTION_CHINA_1"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_MEDIA_IMAGE_DESC"/>
+			<content type="image" file="PEDIA_CHINA_2.dds" caption="TXT_KEY_CAPTION_CHINA_2"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC"/>
+			<content type="text" text="TXT_KEY_CIV_CHINA_PEDIA"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_PEDIA_TITLE_FUN_DESC"/>
+			<content type="funfacts" text1="TXT_KEY_CIV_CHINA_FUN1" text2="TXT_KEY_CIV_CHINA_FUN2"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_PEDIA_TITLE_LINKS_DESC"/>
+			<content type="links" text1="LEADER_MAO" text2="BUILDING_LIBRARY" text3="TECH_WRITING" text4="TECH_LITERACY" text5="CONCEPT_CITIES" text6="CONCEPT_CIVILIZATIONS" text7="CONCEPT_CULTURE"/>
+		</WINDOW>
+	</EntryInfo>
+	<EntryInfo>
+		<EntryType>TYPE_CIV</EntryType>
+		<EntryTag>CIV_EGYPT</EntryTag>
+		<WINDOW>
+			<title text="TXT_KEY_MEDIA_VIDEO_DESC"/>
+			<content type="video" file="PEDIA_EGYPT_MOV_1.bik" caption="TXT_KEY_CAPTION_EGYPT_MOVIE"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_MEDIA_IMAGE_DESC"/>
+			<content type="image" file="PEDIA_EGYPT_1.dds" caption="TXT_KEY_CAPTION_EGYPT_1"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_MEDIA_IMAGE_DESC"/>
+			<content type="image" file="PEDIA_EGYPT_2.dds" caption="TXT_KEY_CAPTION_EGYPT_2"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC"/>
+			<content type="text" text="TXT_KEY_CIV_EGYPT_PEDIA"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_PEDIA_TITLE_FUN_DESC"/>
+			<content type="funfacts" text1="TXT_KEY_CIV_EGYPT_FUN1" text2="TXT_KEY_CIV_EGYPT_FUN2"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_PEDIA_TITLE_LINKS_DESC"/>
+			<content type="links" text1="LEADER_CLEO" text2="UNIT_CARAVAN" text3="UNIT_RIFLEMAN" text4="TERRAIN_DESERT" text5="TECH_IRRIGATION" text6="CONCEPT_CIVILIZATIONS" text7="CONCEPT_WONDERS"/>
+		</WINDOW>
+	</EntryInfo>
+	<EntryInfo>
+		<EntryType>TYPE_CIV</EntryType>
+		<EntryTag>CIV_ENGLAND</EntryTag>
+		<WINDOW>
+			<title text="TXT_KEY_MEDIA_IMAGE_DESC"/>
+			<content type="image" file="PEDIA_ENGLAND_1.dds" caption="TXT_KEY_CAPTION_ENGLAND_1"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_MEDIA_IMAGE_DESC"/>
+			<content type="image" file="PEDIA_ENGLAND_2.dds" caption="TXT_KEY_CAPTION_ENGLAND_2"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC"/>
+			<content type="text" text="TXT_KEY_CIV_ENGLAND_PEDIA"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_PEDIA_TITLE_FUN_DESC"/>
+			<content type="funfacts" text1="TXT_KEY_CIV_ENGLAND_FUN1" text2="TXT_KEY_CIV_ENGLAND_FUN2" text3="TXT_KEY_CIV_ENGLAND_FUN3" text4="TXT_KEY_CIV_ENGLAND_FUN4"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_PEDIA_TITLE_LINKS_DESC"/>
+			<content type="links" text1="LEADER_ELISABETH" text2="UNIT_ARCHER" text3="TECH_MONARCHY" text4="TERRAIN_HILLS" text5="CONCEPT_CIVILIZATIONS" text6="CONCEPT_COMBAT" text7="CONCEPT_UNITS"/>
+		</WINDOW>
+	</EntryInfo>
+	<EntryInfo>
+		<EntryType>TYPE_CIV</EntryType>
+		<EntryTag>CIV_FRANCE</EntryTag>
+		<WINDOW>
+			<title text="TXT_KEY_MEDIA_IMAGE_DESC"/>
+			<content type="image" file="PEDIA_FRANCE_1.dds" caption="TXT_KEY_CAPTION_FRANCE_1"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_MEDIA_IMAGE_DESC"/>
+			<content type="image" file="PEDIA_FRANCE_2.dds" caption="TXT_KEY_CAPTION_FRANCE_2"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC"/>
+			<content type="text" text="TXT_KEY_CIV_FRANCE_PEDIA"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_PEDIA_TITLE_FUN_DESC"/>
+			<content type="funfacts" text1="TXT_KEY_CIV_FRANCE_FUN1" text2="TXT_KEY_CIV_FRANCE_FUN2" text3="TXT_KEY_CIV_FRANCE_FUN3"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_PEDIA_TITLE_LINKS_DESC"/>
+			<content type="links" text1="LEADER_NAPOLEON" text2="UNIT_CANNON" text3="UNIT_RIFLEMAN" text4="BUILDING_CATHEDRAL" text5="TECH_POTTERY" text6="CONCEPT_CITIES" text7="CONCEPT_CIVILIZATIONS"/>
+		</WINDOW>
+	</EntryInfo>
+	<EntryInfo>
+		<EntryType>TYPE_CIV</EntryType>
+		<EntryTag>CIV_GERMANY</EntryTag>
+		<WINDOW>
+			<title text="TXT_KEY_MEDIA_IMAGE_DESC"/>
+			<content type="image" file="PEDIA_GERMANY_1.dds" caption="TXT_KEY_CAPTION_GERMANY_1"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_MEDIA_IMAGE_DESC"/>
+			<content type="image" file="PEDIA_GERMANY_2.dds" caption="TXT_KEY_CAPTION_GERMANY_2"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC"/>
+			<content type="text" text="TXT_KEY_CIV_GERMANY_PEDIA"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_PEDIA_TITLE_FUN_DESC"/>
+			<content type="funfacts" text1="TXT_KEY_CIV_GERMANY_FUN1" text2="TXT_KEY_CIV_GERMANY_FUN2" text3="TXT_KEY_CIV_GERMANY_FUN3"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_PEDIA_TITLE_LINKS_DESC"/>
+			<content type="links" text1="LEADER_BISMARK" text2="UNIT_WARRIOR" text3="BUILDING_BARRACKS" text4="TERRAIN_FOREST" text5="CONCEPT_CIVILIZATIONS" text6="CONCEPT_COMBAT" text7="CONCEPT_WEALTH"/>
+		</WINDOW>
+	</EntryInfo>
+	<EntryInfo>
+		<EntryType>TYPE_CIV</EntryType>
+		<EntryTag>CIV_GREECE</EntryTag>
+		<WINDOW>
+			<title text="TXT_KEY_MEDIA_IMAGE_DESC"/>
+			<content type="image" file="PEDIA_GREECE_1.dds" caption="TXT_KEY_CAPTION_GREECE_1"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_MEDIA_IMAGE_DESC"/>
+			<content type="image" file="PEDIA_GREECE_2.dds" caption="TXT_KEY_CAPTION_GREECE_2"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC"/>
+			<content type="text" text="TXT_KEY_CIV_GREECE_PEDIA"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_PEDIA_TITLE_FUN_DESC"/>
+			<content type="funfacts" text1="TXT_KEY_CIV_GREECE_FUN1" text2="TXT_KEY_CIV_GREECE_FUN2" text3="TXT_KEY_CIV_GREECE_FUN3"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_PEDIA_TITLE_LINKS_DESC"/>
+			<content type="links" text1="LEADER_ALEXANDER" text2="BUILDING_COURTHOUSE" text3="BUILDING_LIBRARY" text4="TERRAIN_SEA" text5="TECH_DEMOCRACY" text6="CONCEPT_CIVILIZATIONS" text7="CONCEPT_GPS"/>
+		</WINDOW>
+	</EntryInfo>
+	<EntryInfo>
+		<EntryType>TYPE_CIV</EntryType>
+		<EntryTag>CIV_INDIA</EntryTag>
+		<WINDOW>
+			<title text="TXT_KEY_MEDIA_VIDEO_DESC"/>
+			<content type="video" file="PEDIA_INDIA_MOV_1.bik" caption="TXT_KEY_CAPTION_INDIA_MOVIE"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_MEDIA_IMAGE_DESC"/>
+			<content type="image" file="PEDIA_INDIA_1.dds" caption="TXT_KEY_CAPTION_INDIA_1"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC"/>
+			<content type="text" text="TXT_KEY_CIV_INDIA_PEDIA"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_PEDIA_TITLE_FUN_DESC"/>
+			<content type="funfacts" text1="TXT_KEY_CIV_INDIA_FUN1" text2="TXT_KEY_CIV_INDIA_FUN2"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_PEDIA_TITLE_LINKS_DESC"/>
+			<content type="links" text1="LEADER_GANDHI" text2="UNIT_SETTLER" text3="BUILDING_COURTHOUSE" text4="TECH_RELIGION" text5="CONCEPT_CITIES" text6="CONCEPT_CIVILIZATIONS" text7="CONCEPT_GOVERNMENT" text8="CONCEPT_WORLD"/>
+		</WINDOW>
+	</EntryInfo>
+	<EntryInfo>
+		<EntryType>TYPE_CIV</EntryType>
+		<EntryTag>CIV_JAPAN</EntryTag>
+		<WINDOW>
+			<title text="TXT_KEY_MEDIA_VIDEO_DESC"/>
+			<content type="video" file="PEDIA_JAPAN_MOV_1.bik" caption="TXT_KEY_CAPTION_JAPAN_MOVIE"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_MEDIA_IMAGE_DESC"/>
+			<content type="image" file="PEDIA_JAPAN_1.dds" caption="TXT_KEY_CAPTION_JAPAN_1"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_MEDIA_IMAGE_DESC"/>
+			<content type="image" file="PEDIA_JAPAN_2.dds" caption="TXT_KEY_CAPTION_JAPAN_2"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC"/>
+			<content type="text" text="TXT_KEY_CIV_JAPAN_PEDIA"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_PEDIA_TITLE_FUN_DESC"/>
+			<content type="funfacts" text1="TXT_KEY_CIV_JAPAN_FUN1" text2="TXT_KEY_CIV_JAPAN_FUN2" text3="TXT_KEY_CIV_JAPAN_FUN3"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_PEDIA_TITLE_LINKS_DESC"/>
+			<content type="links" text1="LEADER_TOKUGAWA" text2="UNIT_KNIGHT" text3="TERRAIN_SEA" text4="UPGRADE_LOYALTY" text5="TECH_CEREMONIAL_BURIAL" text6="CONCEPT_CIVILIZATIONS" text7="CONCEPT_CULTURE" text8="CONCEPT_GOVERNMENT"/>
+		</WINDOW>
+	</EntryInfo>
+	<EntryInfo>
+		<EntryType>TYPE_CIV</EntryType>
+		<EntryTag>CIV_MONGOLIA</EntryTag>
+		<WINDOW>
+			<title text="TXT_KEY_MEDIA_IMAGE_DESC"/>
+			<content type="image" file="PEDIA_MONGOLIA_1.dds" caption="TXT_KEY_CAPTION_MONGOLIA_1"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_MEDIA_IMAGE_DESC"/>
+			<content type="image" file="PEDIA_MONGOLIA_2.dds" caption="TXT_KEY_CAPTION_MONGOLIA_2"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC"/>
+			<content type="text" text="TXT_KEY_CIV_MONGOLIA_PEDIA"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_PEDIA_TITLE_FUN_DESC"/>
+			<content type="funfacts" text1="TXT_KEY_CIV_MONGOLIA_FUN1" text2="TXT_KEY_CIV_MONGOLIA_FUN2"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_PEDIA_TITLE_LINKS_DESC"/>
+			<content type="links" text1="LEADER_GENGHIS_KHAN" text2="UNIT_HORSEMAN" text3="TERRAIN_MOUNTAIN" text4="TECH_COMMUNISM" text5="CONCEPT_CIVILIZATIONS" text6="CONCEPT_WEALTH"/>
+		</WINDOW>
+	</EntryInfo>
+	<EntryInfo>
+		<EntryType>TYPE_CIV</EntryType>
+		<EntryTag>CIV_ROME</EntryTag>
+		<WINDOW>
+			<title text="TXT_KEY_MEDIA_VIDEO_DESC"/>
+			<content type="video" file="PEDIA_ROME_MOV_1.bik" caption="TXT_KEY_CAPTION_ROME_MOVIE_1"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_MEDIA_VIDEO_DESC"/>
+			<content type="video" file="PEDIA_ROME_MOV_2.bik" caption="TXT_KEY_CAPTION_ROME_MOVIE_2"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_MEDIA_IMAGE_DESC"/>
+			<content type="image" file="PEDIA_ROME_1.dds" caption="TXT_KEY_CAPTION_ROME_1"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC"/>
+			<content type="text" text="TXT_KEY_CIV_ROME_PEDIA"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_PEDIA_TITLE_FUN_DESC"/>
+			<content type="funfacts" text1="TXT_KEY_CIV_ROME_FUN1" text2="TXT_KEY_CIV_ROME_FUN2" text3="TXT_KEY_CIV_ROME_FUN3"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_PEDIA_TITLE_LINKS_DESC"/>
+			<content type="links" text1="LEADER_CAESAR" text2="GOV_REPUBLIC" text3="CONCEPT_CITIES" text4="CONCEPT_CIVILIZATIONS" text5="CONCEPT_GPS"/>
+		</WINDOW>
+	</EntryInfo>
+	<EntryInfo>
+		<EntryType>TYPE_CIV</EntryType>
+		<EntryTag>CIV_RUSSIA</EntryTag>
+		<WINDOW>
+			<title text="TXT_KEY_MEDIA_IMAGE_DESC"/>
+			<content type="image" file="PEDIA_RUSSIA_1.dds" caption="TXT_KEY_CAPTION_RUSSIA_1"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_MEDIA_IMAGE_DESC"/>
+			<content type="image" file="PEDIA_RUSSIA_2.dds" caption="TXT_KEY_CAPTION_RUSSIA_2"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC"/>
+			<content type="text" text="TXT_KEY_CIV_RUSSIA_PEDIA"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_PEDIA_TITLE_FUN_DESC"/>
+			<content type="funfacts" text1="TXT_KEY_CIV_RUSSIA_FUN1" text2="TXT_KEY_CIV_RUSSIA_FUN2"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_PEDIA_TITLE_LINKS_DESC"/>
+			<content type="links" text1="LEADER_CATHERINE" text2="UNIT_RIFLEMAN" text3="UNIT_SPY" text4="TERRAIN_PLAINS" text5="UPGRADE_LOYALTY" text6="CONCEPT_CIVILIZATIONS" text7="CONCEPT_WORLD"/>
+		</WINDOW>
+	</EntryInfo>
+	<EntryInfo>
+		<EntryType>TYPE_CIV</EntryType>
+		<EntryTag>CIV_SPAIN</EntryTag>
+		<WINDOW>
+			<title text="TXT_KEY_MEDIA_VIDEO_DESC"/>
+			<content type="video" file="PEDIA_SPAIN_MOV_2.bik" caption="TXT_KEY_CAPTION_SPAIN_MOVIE_1"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_MEDIA_IMAGE_DESC"/>
+			<content type="image" file="PEDIA_SPAIN_1.dds" caption="TXT_KEY_CAPTION_SPAIN_1"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_MEDIA_IMAGE_DESC"/>
+			<content type="image" file="PEDIA_SPAIN_2.dds" caption="TXT_KEY_CAPTION_SPAIN_2"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC"/>
+			<content type="text" text="TXT_KEY_CIV_SPAIN_PEDIA"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_PEDIA_TITLE_FUN_DESC"/>
+			<content type="funfacts" text1="TXT_KEY_CIV_SPAIN_FUN1" text2="TXT_KEY_CIV_SPAIN_FUN2" text3="TXT_KEY_CIV_SPAIN_FUN3"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_PEDIA_TITLE_LINKS_DESC"/>
+			<content type="links" text1="LEADER_ISABELLA" text2="UNIT_GALLEON" text3="TERRAIN_HILLS" text4="TECH_NAVIGATION" text5="CONCEPT_CIVILIZATIONS" text6="CONCEPT_COMBAT" text7="CONCEPT_WEALTH" text8="CONCEPT_WORLD"/>
+		</WINDOW>
+	</EntryInfo>
+	<EntryInfo>
+		<EntryType>TYPE_CIV</EntryType>
+		<EntryTag>CIV_KOREA</EntryTag>
+		<WINDOW>
+			<title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC"/>
+			<content type="text" text="TXT_KEY_CIV_KOREA_PEDIA"/>
+		</WINDOW>
+		<WINDOW>
+			<title text="TXT_KEY_PEDIA_TITLE_FUN_DESC"/>
+			<content type="funfacts" text1="TXT_KEY_CIV_KOREA_FUN1"/>
+		</WINDOW>
+	</EntryInfo>
+</CivRevPediaEntryInfos>

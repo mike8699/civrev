@@ -7960,3 +7960,92 @@ investigation that hasn't been touched at all in this loop).
 **PRD changes made this iteration:** Progress Log entry added.
 Single-line fix in test_korea_play.py + verification artifact.
 Net shipping state unchanged.
+
+### iter-226 (2026-04-15): §5.7 step 1 — CivRev 2 APK extraction (v1.1 reference)
+
+Per the prompt.txt walk-PRD-top-to-bottom directive, the only
+§5 investigation completely untouched by this entire loop was
+**§5.7 (CivRev 2 APK extraction)**. Even though §5.7 is
+DEFERRED to v1.1+ and not a v1.0 prereq, **step 1** of the
+investigation ("APK extract, ~10 minutes") is concrete,
+bounded, and worth completing now so it's not blocking when
+v1.1 starts.
+
+**What was done:**
+
+```bash
+unzip Civilization-Revolution-2-v1-4-4.apk \
+   "assets/.../Pedia/Mobile_PediaInfo_Civilizations.xml" \
+   "assets/.../Pedia/Mobile_PediaInfo_Leaders.xml" \
+   "assets/.../Pedia/Mobile_PediaInfo_Units.xml" \
+   "assets/.../Localization/CivNames_enu.txt" \
+   "assets/.../Localization/RulerNames_enu.txt" \
+   "assets/.../Localization/Text.ini"
+```
+
+Files staged into `civrev2/extracted_apk/`. The APK is
+~250 MB and most of it is hash-named Unity bundles; only the
+human-readable XML/text under
+`assets/GameSrc/civrev1_ipad_u4/data/rom/` is useful for
+cross-reference.
+
+**Key findings (full write-up in
+`korea_mod/docs/civrev2-extraction.md`):**
+
+1. **CR2 has 17 civs at the data layer**, with Koreans at
+   index 16 and the same `, MP` (Male Plural) gender/number
+   tag the PS3 build uses. **The iter-198 PS3 overlays match
+   the CR2 source byte-for-byte** — `Koreans, MP` and
+   `Sejong, M` are the canonical values, not approximations.
+   This validates iter-198 against the upstream source.
+2. **CR2 has Sejong at rulers index 16** with `, M` tag.
+3. **`Hwacha` is NOT in `Mobile_PediaInfo_Units.xml`** — CR2's
+   pediainfo doesn't have a Hwacha entry. The Hwacha
+   `UCivUnitType` enum value lives in the native binary
+   (`libTkNativeDll.so`) and not in the data-layer XML. For
+   v1.1 Hwacha implementation, PRD §5.7 step 4 (Ghidra
+   cross-check on the native lib) is the forward path.
+4. **CR2 Korea pediainfo is MUCH sparser than PS3 console
+   pediainfo** — 2 windows for `CIV_KOREA` vs 4-5 windows in
+   PS3's `console_pediainfo_civilizations.xml`. The v1.0
+   strategy of "Korea reuses China's pediainfo wholesale" is
+   actually a richer fallback than "copy CR2 Korea pediainfo
+   directly".
+
+**§5.7 status update:**
+
+| step | description | status |
+|---|---|---|
+| 1 | APK extract (10 min) | **CLOSED iter-226** |
+| 2 | Pedia XML mining (1 hr) | **DEFERRED v1.1+** |
+| 3 | Localization mining (15 min) | **DEFERRED v1.1+** (Text.ini is variable-substitution dict, not TXT_KEY table — actual strings live elsewhere in the APK) |
+| 4 | Native cross-check on libTkNativeDll.so | **DEFERRED v1.1+** |
+| 5 | Live game cross-check via Android emulator | **DEFERRED v1.1+** |
+
+§5.7 itself remains DEFERRED to v1.1+; only step 1 is done.
+
+**§9 DoD status (unchanged):**
+
+| # | item | status |
+|---|------|--------|
+| 1 | install.sh works | **MET** |
+| 2 | Korea visible at slot 16 in carousel | **OPEN — STRUCTURALLY BLOCKED** (§9.X) |
+| 3 | Found capital with Korea | **BLOCKED on item 2** |
+| 4 | 50-turn soak as Korea | **BLOCKED on item 2** |
+| 5 | Stock regression (6 civs) | **MET** |
+| 6 | Verification artifacts committed | **MET** |
+
+**Verification artifacts:**
+- `korea_mod/docs/civrev2-extraction.md` — full write-up
+- `civrev2/extracted_apk/` — 5 staged source files
+
+**iter-227 plan:** all §5 investigations now have at least
+their first concrete step closed. §6.x implementation work
+is either MET or STRUCTURALLY BLOCKED. §9 DoD is at maximum
+reachable state. Remaining options: closeout commit, more
+PRD polish, or §5.7 step 2/3 (pedia mining) — but step 2/3
+are explicitly deferred and the loop should respect that.
+
+**PRD changes made this iteration:** Progress Log entry added.
+§5.7 step 1 closeout. New `korea_mod/docs/civrev2-extraction.md`.
+Net shipping state unchanged.

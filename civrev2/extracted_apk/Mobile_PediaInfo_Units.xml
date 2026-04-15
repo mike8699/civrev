@@ -1,0 +1,907 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!-- edited with XMLSPY v2004 rel. 2 U (http://www.xmlspy.com) by lcollins (Firaxis Games) -->
+<CivRevPediaEntryInfos>
+  <EntryInfo>
+    <EntryType>TYPE_UNIT</EntryType>
+    <EntryTag>UNIT_SETTLER</EntryTag>
+    <GAMEPLAY text="TXT_KEY_UNIT_SETTLER_STRAT" />
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="44275.dds" caption="TXT_KEY_CAPTION_SETTLER_44275" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="PEDIA_SETTLEMENT_2.dds" caption="TXT_KEY_CAPTION_SETTLER_2" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC" />
+      <content type="text" text="TXT_KEY_UNIT_SETTLER_PEDIA" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_FUN_DESC" />
+      <content type="funfacts" text1="TXT_KEY_UNIT_SETTLER_FUN1" text2="TXT_KEY_UNIT_SETTLER_FUN2" text3="TXT_KEY_UNIT_SETTLER_FUN3" text4="TXT_KEY_UNIT_SETTLER_FUN4" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_LINKS_DESC" />
+      <content type="links" text1="CONCEPT_CITIES" text2="CONCEPT_UNITS" />
+    </WINDOW>
+  </EntryInfo>
+  <EntryInfo>
+    <EntryType>TYPE_UNIT</EntryType>
+    <EntryTag>UNIT_WARRIOR</EntryTag>
+    <GAMEPLAY text="TXT_KEY_UNIT_WARRIOR_STRAT" />
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_VIDEO_DESC" />
+      <content type="video" file="PEDIA_WARRIOR_MOV_1.bik" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="645733.dds" caption="TXT_KEY_CAPTION_WARRIOR_645733" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="PEDIA_WARRIOR_1.dds" caption="TXT_KEY_CAPTION_WARRIOR_1" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC" />
+      <content type="text" text="TXT_KEY_UNIT_WARRIOR_PEDIA" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_FUN_DESC" />
+      <content type="funfacts" text1="TXT_KEY_UNIT_WARRIOR_FUN1" text2="TXT_KEY_UNIT_WARRIOR_FUN2" text3="TXT_KEY_UNIT_WARRIOR_FUN3" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_LINKS_DESC" />
+      <content type="links" text1="UNIT_LEGION" text2="CONCEPT_COMBAT" text3="CONCEPT_UNITS" />
+    </WINDOW>
+  </EntryInfo>
+  <EntryInfo>
+    <EntryType>TYPE_UNIT</EntryType>
+    <EntryTag>UNIT_MILITIA</EntryTag>
+    <GAMEPLAY text="TXT_KEY_UNIT_MILITIA_STRAT" />
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="611507.dds" caption="TXT_KEY_CAPTION_MILITIA_611507" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="PEDIA_MILITIA_2.dds" caption="TXT_KEY_CAPTION_MILITIA_2" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC" />
+      <content type="text" text="TXT_KEY_UNIT_MILITIA_PEDIA" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_FUN_DESC" />
+      <content type="funfacts" text1="TXT_KEY_UNIT_MILITIA_FUN1" text2="TXT_KEY_UNIT_MILITIA_FUN2" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_LINKS_DESC" />
+      <content type="links" text1="UNIT_GALLEY" text2="UNIT_GALLEON" text3="CONCEPT_COMBAT" text4="CONCEPT_UNITS" />
+    </WINDOW>
+  </EntryInfo>
+  <EntryInfo>
+    <EntryType>TYPE_UNIT</EntryType>
+    <EntryTag>UNIT_LEGION</EntryTag>
+    <GAMEPLAY text="TXT_KEY_UNIT_LEGION_STRAT" />
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="PEDIA_LEGION_1.dds" caption="TXT_KEY_CAPTION_LEGION_1" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="PEDIA_LEGION_2.dds" caption="TXT_KEY_CAPTION_LEGION_2" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC" />
+      <content type="text" text="TXT_KEY_UNIT_LEGION_PEDIA" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_FUN_DESC" />
+      <content type="funfacts" text1="TXT_KEY_UNIT_LEGION_FUN1" text2="TXT_KEY_UNIT_LEGION_FUN2" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_LINKS_DESC" />
+      <content type="links" text1="UNIT_KNIGHT" text2="UNIT_WARRIOR" text3="TECH_IRON_WORKING" text4="CONCEPT_COMBAT" text5="CONCEPT_UNITS" />
+    </WINDOW>
+  </EntryInfo>
+  <EntryInfo>
+    <EntryType>TYPE_UNIT</EntryType>
+    <EntryTag>UNIT_PHALANX</EntryTag>
+    <GAMEPLAY text="TXT_KEY_UNIT_PHALANX_STRAT" />
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="PEDIA_PHALANX_1.dds" caption="TXT_KEY_CAPTION_PHALANX_1" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="PEDIA_PHALANX_2.dds" caption="TXT_KEY_CAPTION_PHALANX_2" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC" />
+      <content type="text" text="TXT_KEY_UNIT_PHALANX_PEDIA" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_FUN_DESC" />
+      <content type="funfacts" text1="TXT_KEY_UNIT_PHALANX_FUN1" text2="TXT_KEY_UNIT_PHALANX_FUN3" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_LINKS_DESC" />
+      <content type="links" text1="UNIT_RIFLEMAN" text2="UNIT_MODERN_SOLDIER" text3="UNIT_ARCHER" text4="TECH_DEMOCRACY" text5="CONCEPT_COMBAT" text6="CONCEPT_UNITS" />
+    </WINDOW>
+  </EntryInfo>
+  <EntryInfo>
+    <EntryType>TYPE_UNIT</EntryType>
+    <EntryTag>UNIT_RIFLEMAN</EntryTag>
+    <GAMEPLAY text="TXT_KEY_UNIT_RIFLEMAN_STRAT" />
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="PEDIA_RIFLEMEN_1.dds" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="PEDIA_RIFLEMEN_2.dds" caption="TXT_KEY_CAPTION_RIFLEMAN_2" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC" />
+      <content type="text" text="TXT_KEY_UNIT_RIFLEMAN_PEDIA" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_FUN_DESC" />
+      <content type="funfacts" text1="TXT_KEY_UNIT_RIFLEMAN_FUN1" text2="TXT_KEY_UNIT_RIFLEMAN_FUN2" text3="TXT_KEY_UNIT_RIFLEMAN_FUN3" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_LINKS_DESC" />
+      <content type="links" text1="UNIT_MODERN_SOLDIER" text2="UNIT_PHALANX" text3="TECH_GUNPOWDER" text4="CONCEPT_COMBAT" text5="CONCEPT_UNITS" />
+    </WINDOW>
+  </EntryInfo>
+  <EntryInfo>
+    <EntryType>TYPE_UNIT</EntryType>
+    <EntryTag>UNIT_MODERN_SOLDIER</EntryTag>
+    <GAMEPLAY text="TXT_KEY_UNIT_MODERN_SOLDIER_STRAT" />
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_VIDEO_DESC" />
+      <content type="video" file="PEDIA_MODERNINF_MOV_1.bik" caption="TXT_KEY_CAPTION_MODERN_SOLDIER_MOVIE" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="1016746.dds" caption="TXT_KEY_CAPTION_MODERN_SOLDIER_1016746" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="433888.dds" caption="TXT_KEY_CAPTION_MODERN_SOLDIER_433888" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC" />
+      <content type="text" text="TXT_KEY_UNIT_MODERN_SOLDIER_PEDIA" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_FUN_DESC" />
+      <content type="funfacts" text1="TXT_KEY_UNIT_MODERN_SOLDIER_FUN1" text2="TXT_KEY_UNIT_MODERN_SOLDIER_FUN2" text3="TXT_KEY_UNIT_MODERN_SOLDIER_FUN3" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_LINKS_DESC" />
+      <content type="links" text1="UNIT_RIFLEMAN" text2="TECH_MASS_PRODUCTION" text3="CONCEPT_COMBAT" text4="CONCEPT_UNITS" />
+    </WINDOW>
+  </EntryInfo>
+  <EntryInfo>
+    <EntryType>TYPE_UNIT</EntryType>
+    <EntryTag>UNIT_HORSEMAN</EntryTag>
+    <GAMEPLAY text="TXT_KEY_UNIT_HORSEMAN_STRAT" />
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="PEDIA_HORSEMAN_1.dds" caption="TXT_KEY_CAPTION_HORSEMAN_1" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC" />
+      <content type="text" text="TXT_KEY_UNIT_HORSEMAN_PEDIA" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_FUN_DESC" />
+      <content type="funfacts" text1="TXT_KEY_UNIT_HORSEMAN_FUN1" text2="TXT_KEY_UNIT_HORSEMAN_FUN2" text3="TXT_KEY_UNIT_HORSEMAN_FUN3" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_LINKS_DESC" />
+      <content type="links" text1="UNIT_KNIGHT" text2="TECH_HORSEBACK_RIDING" text3="CONCEPT_COMBAT" text4="CONCEPT_UNITS" />
+    </WINDOW>
+  </EntryInfo>
+  <EntryInfo>
+    <EntryType>TYPE_UNIT</EntryType>
+    <EntryTag>UNIT_KNIGHT</EntryTag>
+    <GAMEPLAY text="TXT_KEY_UNIT_KNIGHT_STRAT" />
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_VIDEO_DESC" />
+      <content type="video" file="PEDIA_KNIGHT_MOV_1.bik" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="PEDIA_KNIGHT_1.dds" caption="TXT_KEY_CAPTION_KNIGHT_1" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC" />
+      <content type="text" text="TXT_KEY_UNIT_KNIGHT_PEDIA" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_FUN_DESC" />
+      <content type="funfacts" text1="TXT_KEY_UNIT_KNIGHT_FUN1" text2="TXT_KEY_UNIT_KNIGHT_FUN2" text3="TXT_KEY_UNIT_KNIGHT_FUN3" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_LINKS_DESC" />
+      <content type="links" text1="UNIT_TANK" text2="UNIT_HORSEMAN" text3="UNIT_LEGION" text4="TECH_FEUDALISM" text5="CONCEPT_COMBAT" text6="CONCEPT_UNITS" />
+    </WINDOW>
+  </EntryInfo>
+  <EntryInfo>
+    <EntryType>TYPE_UNIT</EntryType>
+    <EntryTag>UNIT_TANK</EntryTag>
+    <GAMEPLAY text="TXT_KEY_UNIT_TANK_STRAT" />
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_VIDEO_DESC" />
+      <content type="video" file="PEDIA_TANK_MOV_1.bik" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="963189.dds" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="PEDIA_TANK_2.dds" caption="TXT_KEY_CAPTION_TANK_2" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC" />
+      <content type="text" text="TXT_KEY_UNIT_TANK_PEDIA" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_FUN_DESC" />
+      <content type="funfacts" text1="TXT_KEY_UNIT_TANK_FUN1" text2="TXT_KEY_UNIT_TANK_FUN2" text3="TXT_KEY_UNIT_TANK_FUN3" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_LINKS_DESC" />
+      <content type="links" text1="UNIT_KNIGHT" text2="TECH_COMBUSTION" text3="CONCEPT_COMBAT" text4="CONCEPT_UNITS" />
+    </WINDOW>
+  </EntryInfo>
+  <EntryInfo>
+    <EntryType>TYPE_UNIT</EntryType>
+    <EntryTag>UNIT_ARCHER</EntryTag>
+    <GAMEPLAY text="TXT_KEY_UNIT_ARCHER_STRAT" />
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_VIDEO_DESC" />
+      <content type="video" file="PEDIA_ARCHER_MOV_1.bik" caption="TXT_KEY_CAPTION_ARCHER_MOVIE" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="664182.dds" caption="TXT_KEY_CAPTION_ARCHER_664182" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="740010.dds" caption="TXT_KEY_CAPTION_ARCHER_740010" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC" />
+      <content type="text" text="TXT_KEY_UNIT_ARCHER_PEDIA" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_FUN_DESC" />
+      <content type="funfacts" text1="TXT_KEY_UNIT_ARCHER_FUN1" text2="TXT_KEY_UNIT_ARCHER_FUN2" text3="TXT_KEY_UNIT_ARCHER_FUN3" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_LINKS_DESC" />
+      <content type="links" text1="UNIT_PHALANX" text2="TECH_BRONZE_WORKING" text3="CONCEPT_COMBAT" text4="CONCEPT_UNITS" />
+    </WINDOW>
+  </EntryInfo>
+  <EntryInfo>
+    <EntryType>TYPE_UNIT</EntryType>
+    <EntryTag>UNIT_CATAPULT</EntryTag>
+    <GAMEPLAY text="TXT_KEY_UNIT_CATAPULT_STRAT" />
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="PEDIA_CATAPULT_1.dds" caption="TXT_KEY_CAPTION_CATAPULT_1" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC" />
+      <content type="text" text="TXT_KEY_UNIT_CATAPULT_PEDIA" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_FUN_DESC" />
+      <content type="funfacts" text1="TXT_KEY_UNIT_CATAPULT_FUN1" text2="TXT_KEY_UNIT_CATAPULT_FUN2" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_LINKS_DESC" />
+      <content type="links" text1="UNIT_CANNON" text2="TECH_MATHEMATICS" text3="CONCEPT_COMBAT" text4="CONCEPT_UNITS" />
+    </WINDOW>
+  </EntryInfo>
+  <EntryInfo>
+    <EntryType>TYPE_UNIT</EntryType>
+    <EntryTag>UNIT_CANNON</EntryTag>
+    <GAMEPLAY text="TXT_KEY_UNIT_CANNON_STRAT" />
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_VIDEO_DESC" />
+      <content type="video" file="PEDIA_CANNON_MOV_1.bik" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="2903.dds" caption="TXT_KEY_CAPTION_CANNON_2903" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="PEDIA_CANNON_1.dds" caption="TXT_KEY_CAPTION_CANNON_1" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC" />
+      <content type="text" text="TXT_KEY_UNIT_CANNON_PEDIA" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_FUN_DESC" />
+      <content type="funfacts" text1="TXT_KEY_UNIT_CANNON_FUN1" text2="TXT_KEY_UNIT_CANNON_FUN2" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_LINKS_DESC" />
+      <content type="links" text1="UNIT_ARTILLERY" text2="UNIT_CATAPULT" text3="TECH_METALLURGY" text4="CONCEPT_COMBAT" text5="CONCEPT_UNITS" />
+    </WINDOW>
+  </EntryInfo>
+  <EntryInfo>
+    <EntryType>TYPE_UNIT</EntryType>
+    <EntryTag>UNIT_ARTILLERY</EntryTag>
+    <GAMEPLAY text="TXT_KEY_UNIT_ARTILLERY_STRAT" />
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_VIDEO_DESC" />
+      <content type="video" file="PEDIA_ARTILLERY_MOV_1.bik" caption="TXT_KEY_CAPTION_ARTILLERY_MOVIE" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="PEDIA_ARTILLERY_1.dds" caption="TXT_KEY_CAPTION_ARTILLERY_1" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC" />
+      <content type="text" text="TXT_KEY_UNIT_ARTILLERY_PEDIA" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_FUN_DESC" />
+      <content type="funfacts" text1="TXT_KEY_UNIT_ARTILLERY_FUN1" text2="TXT_KEY_UNIT_ARTILLERY_FUN2" text3="TXT_KEY_UNIT_ARTILLERY_FUN3" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_LINKS_DESC" />
+      <content type="links" text1="UNIT_CANNON" text2="TECH_AUTOMOBILE" text3="CONCEPT_COMBAT" text4="CONCEPT_UNITS" />
+    </WINDOW>
+  </EntryInfo>
+  <EntryInfo>
+    <EntryType>TYPE_UNIT</EntryType>
+    <EntryTag>UNIT_GALLEY</EntryTag>
+    <GAMEPLAY text="TXT_KEY_UNIT_GALLEY_STRAT" />
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_VIDEO_DESC" />
+      <content type="video" file="PEDIA_GALLEY_MOV_4.bik" caption="TXT_KEY_CAPTION_GALLEY_MOVIE" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="PEDIA_GALLEY_1.dds" caption="TXT_KEY_CAPTION_GALLEY_1" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="PEDIA_GALLEY_2.dds" caption="TXT_KEY_CAPTION_GALLEY_2" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC" />
+      <content type="text" text="TXT_KEY_UNIT_GALLEY_PEDIA" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_FUN_DESC" />
+      <content type="funfacts" text1="TXT_KEY_UNIT_GALLEY_FUN1" text2="TXT_KEY_UNIT_GALLEY_FUN2" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_LINKS_DESC" />
+      <content type="links" text1="UNIT_MILITIA" text2="UNIT_GALLEON" text3="UNIT_CRUISER" text4="CONCEPT_COMBAT" text5="CONCEPT_UNITS" />
+    </WINDOW>
+  </EntryInfo>
+  <EntryInfo>
+    <EntryType>TYPE_UNIT</EntryType>
+    <EntryTag>UNIT_GALLEON</EntryTag>
+    <GAMEPLAY text="TXT_KEY_UNIT_GALLEON_STRAT" />
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="PEDIA_GALLEON_1.dds" caption="TXT_KEY_CAPTION_GALLEON_1" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="PEDIA_GALLEON_2.dds" caption="TXT_KEY_CAPTION_GALLEON_2" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC" />
+      <content type="text" text="TXT_KEY_UNIT_GALLEON_PEDIA" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_FUN_DESC" />
+      <content type="funfacts" text1="TXT_KEY_UNIT_GALLEON_FUN1" text2="TXT_KEY_UNIT_GALLEON_FUN2" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_LINKS_DESC" />
+      <content type="links" text1="UNIT_CRUISER" text2="UNIT_GALLEY" text3="UNIT_MILITIA" text4="TECH_NAVIGATION" text5="CONCEPT_COMBAT" text6="CONCEPT_UNITS" />
+    </WINDOW>
+  </EntryInfo>
+  <EntryInfo>
+    <EntryType>TYPE_UNIT</EntryType>
+    <EntryTag>UNIT_CRUISER</EntryTag>
+    <GAMEPLAY text="TXT_KEY_UNIT_CRUISER_STRAT" />
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="PEDIA_CRUISER_1.dds" caption="TXT_KEY_CAPTION_CRUISER_1" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="PEDIA_CRUISER_2.dds" caption="TXT_KEY_CAPTION_CRUISER_2" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC" />
+      <content type="text" text="TXT_KEY_UNIT_CRUISER_PEDIA" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_FUN_DESC" />
+      <content type="funfacts" text1="TXT_KEY_UNIT_CRUISER_FUN1" text2="TXT_KEY_UNIT_CRUISER_FUN2" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_LINKS_DESC" />
+      <content type="links" text1="UNIT_GALLEON" text2="UNIT_GALLEY" text3="TECH_STEAM_POWER" text4="CONCEPT_COMBAT" text5="CONCEPT_UNITS" />
+    </WINDOW>
+  </EntryInfo>
+  <EntryInfo>
+    <EntryType>TYPE_UNIT</EntryType>
+    <EntryTag>UNIT_BATTLESHIP</EntryTag>
+    <GAMEPLAY text="TXT_KEY_UNIT_BATTLESHIP_STRAT" />
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_VIDEO_DESC" />
+      <content type="video" file="PEDIA_BATTLESHIP_MOV_1.bik" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="PEDIA_BATTLESHIP_1.dds" caption="TXT_KEY_CAPTION_BATTLESHIP_1" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="PEDIA_BATTLESHIP_2.dds" caption="TXT_KEY_CAPTION_BATTLESHIP_2" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC" />
+      <content type="text" text="TXT_KEY_UNIT_BATTLESHIP_PEDIA" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_FUN_DESC" />
+      <content type="funfacts" text1="TXT_KEY_UNIT_BATTLESHIP_FUN1" text2="TXT_KEY_UNIT_BATTLESHIP_FUN2" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_LINKS_DESC" />
+      <content type="links" text1="TECH_STEEL" text2="CONCEPT_COMBAT" text3="CONCEPT_UNITS" />
+    </WINDOW>
+  </EntryInfo>
+  <EntryInfo>
+    <EntryType>TYPE_UNIT</EntryType>
+    <EntryTag>UNIT_SUBMARINE</EntryTag>
+    <GAMEPLAY text="TXT_KEY_UNIT_SUBMARINE_STRAT" />
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_VIDEO_DESC" />
+      <content type="video" file="PEDIA_SUBMARINE_MOV_1.bik" caption="TXT_KEY_CAPTION_SUBMARINE_MOVIE" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="PEDIA_SUBMARINE_1.dds" caption="TXT_KEY_CAPTION_SUBMARINE_1" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC" />
+      <content type="text" text="TXT_KEY_UNIT_SUBMARINE_PEDIA" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_FUN_DESC" />
+      <content type="funfacts" text1="TXT_KEY_UNIT_SUBMARINE_FUN1" text2="TXT_KEY_UNIT_SUBMARINE_FUN2" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_LINKS_DESC" />
+      <content type="links" text1="TECH_ELECTRICITY" text2="CONCEPT_COMBAT" text3="CONCEPT_UNITS" />
+    </WINDOW>
+  </EntryInfo>
+  <EntryInfo>
+    <EntryType>TYPE_UNIT</EntryType>
+    <EntryTag>UNIT_BOMBER</EntryTag>
+    <GAMEPLAY text="TXT_KEY_UNIT_BOMBER_STRAT" />
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_VIDEO_DESC" />
+      <content type="video" file="PEDIA_BOMBER_MOV_1.bik" caption="TXT_KEY_CAPTION_BOMBER_MOVIE" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="PEDIA_BOMBER_1.dds" caption="TXT_KEY_CAPTION_BOMBER_1" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="PEDIA_BOMBER_2.dds" caption="TXT_KEY_CAPTION_BOMBER_2" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC" />
+      <content type="text" text="TXT_KEY_UNIT_BOMBER_PEDIA" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_FUN_DESC" />
+      <content type="funfacts" text1="TXT_KEY_UNIT_BOMBER_FUN1" text2="TXT_KEY_UNIT_BOMBER_FUN2" text3="TXT_KEY_UNIT_BOMBER_FUN3" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_LINKS_DESC" />
+      <content type="links" text1="UNIT_FIGHTER" text2="TECH_ADVANCED_FLIGHT" text3="CONCEPT_COMBAT" text4="CONCEPT_UNITS" />
+    </WINDOW>
+  </EntryInfo>
+  <EntryInfo>
+    <EntryType>TYPE_UNIT</EntryType>
+    <EntryTag>UNIT_FIGHTER</EntryTag>
+    <GAMEPLAY text="TXT_KEY_UNIT_FIGHTER_STRAT" />
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_VIDEO_DESC" />
+      <content type="video" file="PEDIA_FIGHTER_MOV_1.bik" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="PEDIA_FIGHTER_1.dds" caption="TXT_KEY_CAPTION_FIGHTER_1" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="PEDIA_FIGHTER_2.dds" caption="TXT_KEY_CAPTION_FIGHTER_2" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC" />
+      <content type="text" text="TXT_KEY_UNIT_FIGHTER_PEDIA" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_FUN_DESC" />
+      <content type="funfacts" text1="TXT_KEY_UNIT_FIGHTER_FUN1" text2="TXT_KEY_UNIT_FIGHTER_FUN2" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_LINKS_DESC" />
+      <content type="links" text1="UNIT_BOMBER" text2="TECH_FLIGHT" text3="CONCEPT_COMBAT" text4="CONCEPT_UNITS" />
+    </WINDOW>
+  </EntryInfo>
+  <EntryInfo>
+    <EntryType>TYPE_UNIT</EntryType>
+    <EntryTag>UNIT_ICBM</EntryTag>
+    <GAMEPLAY text="TXT_KEY_UNIT_ICBM_STRAT" />
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_VIDEO_DESC" />
+      <content type="video" file="PEDIA_ICBM_MOV_2.bik" caption="TXT_KEY_CAPTION_ICBM_MOVIE_1" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="PEDIA_ICBM_1.dds" caption="TXT_KEY_CAPTION_ICBM_1" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="PEDIA_ICBM_2.dds" caption="TXT_KEY_CAPTION_ICBM_2" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC" />
+      <content type="text" text="TXT_KEY_UNIT_ICBM_PEDIA" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_FUN_DESC" />
+      <content type="funfacts" text1="TXT_KEY_UNIT_ICBM_FUN1" text2="TXT_KEY_UNIT_ICBM_FUN2" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_LINKS_DESC" />
+      <content type="links" text1="WONDER_MANHATTAN_PROJECT" text2="GOV_DESPOTISM" text3="TECH_ATOMIC_THEORY" text4="CONCEPT_COMBAT" text5="CONCEPT_UNITS" />
+    </WINDOW>
+  </EntryInfo>
+  <EntryInfo>
+    <EntryType>TYPE_UNIT</EntryType>
+    <EntryTag>UNIT_SPY</EntryTag>
+    <GAMEPLAY text="TXT_KEY_UNIT_SPY_STRAT" />
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="PEDIA_SPY_1.dds" caption="TXT_KEY_CAPTION_SPY_1" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="PEDIA_SPY_2.dds" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC" />
+      <content type="text" text="TXT_KEY_UNIT_SPY_PEDIA" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_FUN_DESC" />
+      <content type="funfacts" text1="TXT_KEY_UNIT_SPY_FUN1" text2="TXT_KEY_UNIT_SPY_FUN2" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_LINKS_DESC" />
+      <content type="links" text1="TECH_WRITING" text2="CONCEPT_UNITS" />
+    </WINDOW>
+  </EntryInfo>
+  <EntryInfo>
+    <EntryType>TYPE_UNIT</EntryType>
+    <EntryTag>UNIT_CARAVAN</EntryTag>
+    <GAMEPLAY text="TXT_KEY_UNIT_CARAVAN_STRAT" />
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_VIDEO_DESC" />
+      <content type="video" file="PEDIA_CARAVAN_MOV_1.bik" caption="TXT_KEY_CAPTION_CARAVAN_MOVIE" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="PEDIA_CARAVAN_1.dds" caption="TXT_KEY_CAPTION_CARAVAN_1" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="PEDIA_CARAVAN_2.dds" caption="TXT_KEY_CAPTION_CARAVAN_2" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC" />
+      <content type="text" text="TXT_KEY_UNIT_CARAVAN_PEDIA" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_FUN_DESC" />
+      <content type="funfacts" text1="TXT_KEY_UNIT_CARAVAN_FUN1" text2="TXT_KEY_UNIT_CARAVAN_FUN2" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_LINKS_DESC" />
+      <content type="links" text1="TECH_CURRENCY" text2="CONCEPT_UNITS" text3="CONCEPT_WEALTH" />
+    </WINDOW>
+  </EntryInfo>
+  <EntryInfo>
+    <EntryType>TYPE_UNIT</EntryType>
+    <EntryTag>UNIT_GENERAL</EntryTag>
+    <GAMEPLAY text="TXT_KEY_UNIT_GENERAL_STRAT" />
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="PEDIA_GENERAL_1.dds" caption="TXT_KEY_CAPTION_GENERAL_1" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="PEDIA_GENERAL_2.dds" caption="TXT_KEY_CAPTION_GENERAL_2" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC" />
+      <content type="text" text="TXT_KEY_UNIT_GENERAL_PEDIA" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_FUN_DESC" />
+      <content type="funfacts" text1="TXT_KEY_UNIT_GENERAL_FUN1" text2="TXT_KEY_UNIT_GENERAL_FUN2" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_LINKS_DESC" />
+      <content type="links" text1="CONCEPT_GPS" text2="CONCEPT_COMBAT" />
+    </WINDOW>
+  </EntryInfo>
+  <EntryInfo>
+    <EntryType>TYPE_UNIT</EntryType>
+    <EntryTag>UNIT_SPECOPS</EntryTag>
+    <GAMEPLAY text="TXT_KEY_UNIT_SPECOPS_STRAT" />
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC" />
+      <content type="text" text="TXT_KEY_UNIT_SPECOPS_PEDIA" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_FUN_DESC" />
+      <content type="funfacts" text1="TXT_KEY_UNIT_SPECOPS_FUN1" text2="TXT_KEY_UNIT_SPECOPS_FUN2" text3="TXT_KEY_UNIT_SPECOPS_FUN3" />
+    </WINDOW>
+  </EntryInfo>
+  <EntryInfo>
+    <EntryType>TYPE_UNIT</EntryType>
+    <EntryTag>UNIT_AIRCRAFT_CARRIER</EntryTag>
+    <GAMEPLAY text="TXT_KEY_UNIT_AIRCRAFT_CARRIER_STRAT" />
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC" />
+      <content type="text" text="TXT_KEY_UNIT_AIRCRAFT_CARRIER_PEDIA" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_FUN_DESC" />
+      <content type="funfacts" text1="TXT_KEY_UNIT_AIRCRAFT_CARRIER_FUN1" />
+    </WINDOW>
+  </EntryInfo>
+  <EntryInfo>
+    <EntryType>TYPE_UNIT</EntryType>
+    <EntryTag>UNIT_JET_FIGHTER</EntryTag>
+    <GAMEPLAY text="TXT_KEY_UNIT_JET_FIGHTER_STRAT" />
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC" />
+      <content type="text" text="TXT_KEY_UNIT_JET_FIGHTER_PEDIA" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_FUN_DESC" />
+      <content type="funfacts" text1="TXT_KEY_UNIT_JET_FIGHTER_FUN1" text2="TXT_KEY_UNIT_JET_FIGHTER_FUN2" />
+    </WINDOW>
+  </EntryInfo>
+  <EntryInfo>
+    <EntryType>TYPE_UNIT</EntryType>
+    <EntryTag>UNIT_SBOMBER</EntryTag>
+    <GAMEPLAY text="TXT_KEY_UNIT_SBOMBER_STRAT" />
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC" />
+      <content type="text" text="TXT_KEY_UNIT_SBOMBER_PEDIA" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_FUN_DESC" />
+      <content type="funfacts" text1="TXT_KEY_UNIT_SBOMBER_FUN1" />
+    </WINDOW>
+  </EntryInfo>
+  <EntryInfo>
+    <EntryType>TYPE_UNIT</EntryType>
+    <EntryTag>UNIT_SUPER_TANKER</EntryTag>
+    <GAMEPLAY text="TXT_KEY_UNIT_SUPER_TANKER_STRAT" />
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC" />
+      <content type="text" text="TXT_KEY_UNIT_SUPER_TANKER_PEDIA" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_FUN_DESC" />
+      <content type="funfacts" text1="TXT_KEY_UNIT_SUPER_TANKER_FUN1" text2="TXT_KEY_UNIT_SUPER_TANKER_FUN2" text3="TXT_KEY_UNIT_SUPER_TANKER_FUN3" />
+    </WINDOW>
+  </EntryInfo>
+  <EntryInfo>
+    <EntryType>TYPE_UNIT</EntryType>
+    <EntryTag>UNIT_DRONE</EntryTag>
+    <GAMEPLAY text="TXT_KEY_UNIT_DRONE_STRAT" />
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC" />
+      <content type="text" text="TXT_KEY_UNIT_DRONE_PEDIA" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_FUN_DESC" />
+      <content type="funfacts" text1="TXT_KEY_UNIT_DRONE_FUN1" text2="TXT_KEY_UNIT_DRONE_FUN2" text3="TXT_KEY_UNIT_DRONE_FUN3" />
+    </WINDOW>
+  </EntryInfo>
+  <EntryInfo>
+    <EntryType>TYPE_UNIT</EntryType>
+    <EntryTag>UNIT_TRANSPORT_AIRCRAFT</EntryTag>
+    <GAMEPLAY text="TXT_KEY_UNIT_TRANSPORT_AIRCRAFT_STRAT" />
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC" />
+      <content type="text" text="TXT_KEY_UNIT_TRANSPORT_AIRCRAFT_PEDIA" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_FUN_DESC" />
+      <content type="funfacts" text1="TXT_KEY_UNIT_TRANSPORT_AIRCRAFT_FUN1" text2="TXT_KEY_UNIT_TRANSPORT_AIRCRAFT_FUN2" />
+    </WINDOW>
+  </EntryInfo>
+  <EntryInfo>
+    <EntryType>TYPE_UNIT</EntryType>
+    <EntryTag>UNIT_LIGHT_ARMOR</EntryTag>
+    <GAMEPLAY text="TXT_KEY_UNIT_LIGHT_ARMOR_STRAT" />
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC" />
+      <content type="text" text="TXT_KEY_UNIT_LIGHT_ARMOR_PEDIA" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_FUN_DESC" />
+      <content type="funfacts" text1="TXT_KEY_UNIT_LIGHT_ARMOR_FUN1" />
+    </WINDOW>
+  </EntryInfo>
+  <EntryInfo>
+    <EntryType>TYPE_UNIT</EntryType>
+    <EntryTag>UNIT_SCIENTIST</EntryTag>
+    <GAMEPLAY text="TXT_KEY_UNIT_SCIENTIST_STRAT" />
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="PEDIA_SCIENTIST_1.dds" caption="TXT_KEY_CAPTION_SCIENTIST_1" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="PEDIA_SCIENTIST_2.dds" caption="TXT_KEY_CAPTION_SCIENTIST_2" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC" />
+      <content type="text" text="TXT_KEY_UNIT_SCIENTIST_PEDIA" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_FUN_DESC" />
+      <content type="funfacts" text1="TXT_KEY_UNIT_SCIENTIST_FUN1" text2="TXT_KEY_UNIT_SCIENTIST_FUN2" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_LINKS_DESC" />
+      <content type="links" text1="CONCEPT_GPS" text2="CONCEPT_TECH" />
+    </WINDOW>
+  </EntryInfo>
+  <EntryInfo>
+    <EntryType>TYPE_UNIT</EntryType>
+    <EntryTag>UNIT_ACTIVIST</EntryTag>
+    <GAMEPLAY text="TXT_KEY_UNIT_ACTIVIST_STRAT" />
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="PEDIA_HUMANITARIAN_1.dds" caption="TXT_KEY_CAPTION_ACTIVIST_1" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC" />
+      <content type="text" text="TXT_KEY_UNIT_ACTIVIST_PEDIA" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_FUN_DESC" />
+      <content type="funfacts" text1="TXT_KEY_UNIT_ACTIVIST_FUN1" text2="TXT_KEY_UNIT_ACTIVIST_FUN2" text3="TXT_KEY_UNIT_ACTIVIST_FUN3" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_LINKS_DESC" />
+      <content type="links" text1="CONCEPT_GPS" text2="CONCEPT_CITIES" />
+    </WINDOW>
+  </EntryInfo>
+  <EntryInfo>
+    <EntryType>TYPE_UNIT</EntryType>
+    <EntryTag>UNIT_BUILDER</EntryTag>
+    <GAMEPLAY text="TXT_KEY_UNIT_BUILDER_STRAT" />
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="PEDIA_BUILDER_1.dds" caption="TXT_KEY_CAPTION_BUILDER_1" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC" />
+      <content type="text" text="TXT_KEY_UNIT_BUILDER_PEDIA" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_FUN_DESC" />
+      <content type="funfacts" text1="TXT_KEY_UNIT_BUILDER_FUN1" text2="TXT_KEY_UNIT_BUILDER_FUN2" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_LINKS_DESC" />
+      <content type="links" text1="CONCEPT_GPS" text2="CONCEPT_CITIES" />
+    </WINDOW>
+  </EntryInfo>
+  <EntryInfo>
+    <EntryType>TYPE_UNIT</EntryType>
+    <EntryTag>UNIT_MERCHANT</EntryTag>
+    <GAMEPLAY text="TXT_KEY_UNIT_MERCHANT_STRAT" />
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="PEDIA_EXPLORER_1.dds" caption="TXT_KEY_CAPTION_EXPLORER_1" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="PEDIA_EXPLORER_2.dds" caption="TXT_KEY_CAPTION_EXPLORER_2" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC" />
+      <content type="text" text="TXT_KEY_UNIT_MERCHANT_PEDIA" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_FUN_DESC" />
+      <content type="funfacts" text1="TXT_KEY_UNIT_MERCHANT_FUN1" text2="TXT_KEY_UNIT_MERCHANT_FUN2" text3="TXT_KEY_UNIT_MERCHANT_FUN3" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_LINKS_DESC" />
+      <content type="links" text1="CONCEPT_GPS" text2="CONCEPT_WEALTH" />
+    </WINDOW>
+  </EntryInfo>
+  <EntryInfo>
+    <EntryType>TYPE_UNIT</EntryType>
+    <EntryTag>UNIT_ARTIST</EntryTag>
+    <GAMEPLAY text="TXT_KEY_UNIT_ARTIST_STRAT" />
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="PEDIA_ARTIST_1.dds" caption="TXT_KEY_CAPTION_ARTIST_1" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="PEDIA_ARTIST_2.dds" caption="TXT_KEY_CAPTION_ARTIST_2" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC" />
+      <content type="text" text="TXT_KEY_UNIT_ARTIST_PEDIA" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_FUN_DESC" />
+      <content type="funfacts" text1="TXT_KEY_UNIT_ARTIST_FUN1" text2="TXT_KEY_UNIT_ARTIST_FUN2" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_LINKS_DESC" />
+      <content type="links" text1="CONCEPT_GPS" text2="CONCEPT_CULTURE" />
+    </WINDOW>
+  </EntryInfo>
+  <EntryInfo>
+    <EntryType>TYPE_UNIT</EntryType>
+    <EntryTag>UNIT_LEADER</EntryTag>
+    <GAMEPLAY text="TXT_KEY_UNIT_LEADER_STRAT" />
+    <WINDOW>
+      <title text="TXT_KEY_MEDIA_IMAGE_DESC" />
+      <content type="image" file="PEDIA_LEADER_1.dds" caption="TXT_KEY_CAPTION_LEADER_1" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_HISTORY_DESC" />
+      <content type="text" text="TXT_KEY_UNIT_LEADER_PEDIA" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_FUN_DESC" />
+      <content type="funfacts" text1="TXT_KEY_UNIT_LEADER_FUN1" text2="TXT_KEY_UNIT_LEADER_FUN2" />
+    </WINDOW>
+    <WINDOW>
+      <title text="TXT_KEY_PEDIA_TITLE_LINKS_DESC" />
+      <content type="links" text1="CONCEPT_GPS" text2="CONCEPT_UNITS" />
+    </WINDOW>
+  </EntryInfo>
+</CivRevPediaEntryInfos>
