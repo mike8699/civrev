@@ -8719,3 +8719,131 @@ candidates in JPEXS's UI.
 Code changes: `gfx_chooseciv_patch.py` upgraded,
 `pack_korea.sh` echo string, `.gitignore` covers `tools/`.
 Empirical verification: M0 GREEN + Caesar M9 PASS.
+
+### iter-1184 (2026-04-15): AS2 literal inventory — the unblock plan is simpler than §9.Y thought
+
+§9.Y plan steps 2+3+4 complete. Used JPEXS
+`-dumpAS2` + `-export script` to produce full AS2 source for
+`gfx_chooseciv.gfx`. **Architectural findings invalidate key
+assumptions of §9.Y's original 9-iteration plan and reduce
+the unblock work to ~2-3 focused edits.**
+
+**The two sprites that matter:**
+
+- **chid 96 `ChooseCivLeader`** — per-cell TEMPLATE.
+  Contains portrait/leader/lock state machine. Instantiated
+  dynamically via `attachMovie()`, NOT placed statically.
+- **chid 98 `options_mov`** — carousel FACTORY. Placed once
+  at root as `options_mov`. Its `LoadOptions()` function
+  reads `_parent.numOptions` and spawns N cells via
+  `attachMovie("ChooseCivLeader", "option_"+i, depth)` in
+  a loop.
+
+iter-212's §9.X hypothesis (tag[177] ChooseCivLeader as
+"the carousel sprite") was half-right — sprite 96 is the
+cell template but NOT the carousel. The carousel FACTORY is
+sprite 98 `options_mov`. This distinction is load-bearing
+for the unblock plan.
+
+**The critical discovery: SWF is already fully parameterized
+over `numOptions`.**
+
+- `goLeft` / `goRight` in `DoAction_7.as` clamp at
+  `numOptions - 1` — NO hardcoded 16/17.
+- `ContinueBuilding` in `DoAction_4.as` iterates
+  `i = 0..numOptions-1`.
+- `SetUpUnits` in `DoAction_4.as` iterates
+  `j = 0..numOptions-1`, reading `this["slotData"+j]`.
+- Cell X positions come from `j * (_loc2_._width +
+  theBuffer)` — algorithmic, not hardcoded.
+- `SlideTheBoxContainer` / `CalculateTargetXLoc` use
+  `theSelectedOption` and `theBuffer`, no literal 17.
+
+**Literal classification** (see
+`korea_mod/docs/as2-literals-inventory.md` for full table):
+
+- **6 literals are in DEAD CODE** guarded by
+  `_root.testingMode == true`. iter-195 and iter-200
+  patched literals in this category. They were inert not
+  because the patches were wrong but because the code path
+  was never executed in production (PPU sets
+  `testingMode = false`).
+- **1 literal is a default value** (`numOptions = 6`)
+  overridden by PPU at runtime.
+- **1 literal is a keycode** (`case 16:` for Shift), not a
+  civ count.
+- **1 literal is a data-array index** (`myDataArray[16]`
+  in SetCoins), not a civ count.
+- **2 LIVE literals** in sprite 96's `GetImageName`:
+  `case "16":` → `"barbarian"` and `case "17":` → default.
+  These map civ-ID strings to LDR_*.dds texture keys.
+
+**The revised unblock plan** (replaces §9.Y's 6-change list):
+
+1. **AS2 prefix injection into `options_mov`'s LoadOptions**
+   (or `ContinueBuilding` in root frame): synthesize a
+   slotData17 entry by cloning slotData6 (China), set
+   slotData17's leader name to "Sejong" and civ name to
+   "Koreans", push Random from slot 16 to slot 17, bump
+   `_parent.numOptions` from 17 to 18. This is all JPEXS
+   AS2 source-level edits, no bytecode hand-assembly.
+2. **One PPU immediate patch** at the `fscommand
+   "OnAccept"` handler: bump the `slot == 16 → doRandom`
+   comparison to `slot == 17 → doRandom`. Search for
+   `OnAccept` string xref in EBOOT, find the handler, patch
+   the one byte. Single-byte patch, findable statically.
+3. **Nothing else.** No layout recompute (algorithmic), no
+   cursor clamp patch (already parameterized), no
+   theOptionArray init extend (runtime-populated), no
+   numOptions literal bump (dead code).
+
+§9.Y's original 9-iteration plan is now scoped down to
+~2-3 real iterations: iter-1185 (AS2 injection),
+iter-1186 (PPU OnAccept patch), iter-1187 (M2/M7
+verification + CLOSEOUT update).
+
+**Staged artifacts:**
+
+- `korea_mod/docs/as2-literals-inventory.md` — full write-up
+- `korea_mod/docs/as2_source/scripts/` — JPEXS-exported
+  AS2 source (852KB, 106 .as files) as iter-1184 reference.
+  Not the build-time source of truth (that remains
+  `extracted/Pregame/gfx_chooseciv.gfx`), but committed so
+  future iterations don't need to re-export.
+
+**Assumptions that still need runtime verification**
+(deferred to iter-1185):
+
+1. PPU sets `_root.numOptions = 17` via SetVariable
+   (strongly believed but not GDB-verified).
+2. PPU sets `_root.slotData0..slotData16` via 16 individual
+   SetVariable calls.
+3. AS2 synthesis runs AFTER PPU SetVariables but BEFORE
+   LoadOptions executes (frame-ordering question).
+4. JPEXS's `-importScript` (or direct XML actionBytes edit)
+   produces a PS3-runnable GFx file when the edit changes
+   actionBytes length (the identity round-trip was tested
+   in iter-1183, but a real-length-change edit is unknown).
+
+iter-1185 answers these empirically.
+
+**§9 DoD status:** unchanged (items 2/3/4 still OPEN, in
+progress via revised plan).
+
+**Verification artifacts:**
+- `korea_mod/docs/as2-literals-inventory.md`
+- `korea_mod/docs/as2_source/scripts/` (106 AS2 files)
+
+**iter-1185 plan:** make the first real AS2 synthesis edit.
+Target: inject a prefix into
+`options_mov/frame_1/DoAction_2.as` (the LoadOptions
+definition) that bumps `_parent.numOptions` from 17 to 18
+and synthesizes `slotData17`. Run fast verify. Expect
+either (a) 18 cells with a Korea-as-Mao clone at slot 16
+showing "Sejong / Koreans" labels, OR (b) an informative
+failure that tells us which assumption needs fixing.
+Iterate on (b) with screenshot OCR.
+
+**PRD changes made this iteration:** Progress Log entry.
+New `docs/as2-literals-inventory.md` and `docs/as2_source/`.
+No code changes to the build pipeline. No ship-state change.
