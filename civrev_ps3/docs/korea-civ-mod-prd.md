@@ -6128,3 +6128,77 @@ consumer functions but not this one.
 Static analysis only — no code/asset/EBOOT shipping changes.
 New verification artifact under `korea_mod/verification/
 iter204_holder_struct/`.
+
+### iter-205 (2026-04-15): decomp of holder consumers — both are init/destructor, not carousel
+
+**Tool:** new `Iter205HolderConsumers.py` Jython via analyzeHeadless.
+
+**`FUN_001dc0d8` decomp**: a one-shot name-file registration
+routine. Reads the second holder struct at r2+0xd34..0xd64 (with
+r2 = 0x194a1f8), calls `func_0x00011230` per-slot, then invokes
+`func_0x00012080` four times with `(param_1, rulers_holder,
+civs_holder, iter_idx, result)` where `iter_idx = 0, 1, 2, 3`.
+Classic unrolled "loop over 4 name files" shape — not a carousel
+iterator.
+
+**`func_0x00012080` is an intra-module TOC-switching stub**, not
+a PRX import as iter-204 speculated:
+
+```
+0x12080  std   r2, 0x28(r1)
+0x12084  addis r2, r2, 0x1
+0x12088  subi  r2, r2, 0x90
+0x1208c  b     0xa97ca8
+```
+
+Real target `FUN_00a97ca8` reads `*(param_1 + 8)` as a method
+pointer and dispatches through it. So `bl 0x12080(obj, ...)` is
+a **virtual method call** on `obj` via its object offset-8 slot.
+
+**`FUN_0x111dd70` decomp**: a class destructor / reset. It:
+- Writes `*param_1 = *(r2 + 0xd50) = 0x1ac93b8` (the civs holder
+  address) as the object's first field.
+- Frees heap allocations at `param_1[1/9/11]` via vtable methods.
+- Zeros `param_1[1..8]`.
+- Calls vtable free on `param_1` itself.
+
+**The class being reset holds `&civs_holder = 0x1ac93b8` as its
+first field.** Any instance method can do
+`r3 = *self; r4 = *r3;` to dereference the holder → civnames
+buffer. This is another class with civnames access baked in.
+
+**Caller analysis (Python bl-scan):**
+- `FUN_001dc0d8`: 0 direct bl callers
+- `FUN_0x111dd70`: 0 direct bl callers
+- Both invoked indirectly like the parser dispatcher
+  (function descriptor + `mtctr/bctrl` or vtable dispatch).
+- `bl 0x12080` stub has **139 callers**, first 6 all in the
+  `0x1d1xxx` region — very close to `FUN_001dc0d8` at
+  `0x1dc0d8`, probably the same module/class.
+
+**Interpretation:** neither consumer is the carousel render
+path. Both are init/destructor shapes. But they reveal **a
+class whose first member is `&civs_holder`**, and whose methods
+dispatch via the `bl 0x12080` TOC-switching stub. Any of the 139
+stub-calling sites is a potential civnames reader.
+
+**iter-206 plan:**
+1. Dump all 139 `bl 0x12080` caller functions, grouped by
+   address cluster.
+2. Decompile the `0x1d1xxx` cluster to look for civ-select /
+   carousel iteration shapes.
+3. Find the CONSTRUCTOR that creates instances of the class
+   `FUN_0x111dd70` destructs — any allocation whose first write
+   sets `*self` to `0x1ac93b8` or a pointer-to-civs-holder.
+4. Plant a diagnostic `b .` trap at `FUN_001dc0d8` entry and
+   run korea_play slot 0. If the test passes, the function is
+   off the boot path (same pattern as iter-150/154 negative
+   findings). If it hangs, it's on-path.
+
+**Verification artifacts:**
+- `korea_mod/verification/iter205_holder_consumers/findings.md`
+- `.../jython_dump.txt` (254-line Ghidra output with full decomp)
+- `Iter205HolderConsumers.py` under `scripts/ghidra_helpers/`
+
+**PRD changes made this iteration:** Progress Log entry added.
+Static analysis only — no shipping changes.
