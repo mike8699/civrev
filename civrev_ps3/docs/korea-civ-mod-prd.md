@@ -5028,3 +5028,83 @@ I didn't trace to where it's defined — I assumed tag[183] was
 the keyboard handler and dismissed it. This iteration's sprite
 walk (find `LoadOptions` in DefineSprite bodies) was the key
 discovery.
+
+### iter-192 (2026-04-15): LoadOptions hardcode-18 patch lands but does NOT spawn cells in civ-select
+
+Tested iter-191's hypothesis directly: patch
+`options_mov.LoadOptions()`'s loop bound from `i < this.numOptions`
+to `i < 18` (literal) via an in-place 8-byte bytecode swap
+(`PUSH r3, "numOptions"; GetMem` → `PUSH i32(18)`, both
+8 bytes). Combined with iter-185's distinctive-marker technique
+(slotData17 = `KOREA18`/`SEJONG18`).
+
+**Patch verified landed in installed Pregame.FPK** at file offset
+`0x4784`. The patched bytes `96 05 00 07 12 00 00 00 48` (PUSH i32
+18, Lt2) replace the original `96 04 00 04 03 08 03 4e 48`
+(PUSH r3, numOptions; GetMem; Lt2). Original pattern is gone from
+the installed FPK; patched pattern is present.
+
+**Test result:** `korea_play 17 hardcode18` M9 PASS but OCR shows
+neither `KOREA18` nor `SEJONG18`. Visible strip is the same
+"Shaka / Genghis / Elizabeth / Random" as the no-patch case.
+Cursor visibly stops at slot 16 (Random).
+
+**Critical structural finding from this iteration:** Top-level tag
+`tag[225]` is a `PlaceObject2` that places `char_id=98` (the
+LoadOptions sprite) at depth 17 with **name = "options_mov"**.
+This confirms char 98 IS named `options_mov` on stage. But its
+LoadOptions hardcode-18 patch produces no visible 18th cell in
+the civ-select carousel. **char 98 must be a SHARED-name "menu
+panel" sprite used for multiple panels (difficulty, save-load,
+options, civ-select), and the civ-select uses a DIFFERENT
+mechanism for its 17 cells than tag[180]'s LoadOptions.**
+
+The civ-select carousel cells are NOT spawned by tag[180]'s
+`attachMovie("ChooseCivLeader", ...)` loop. The single
+"attachMovie" string occurrence in the entire `gfx_chooseciv.gfx`
+file is in tag[180]; there's no second factory site. So either:
+
+  - `attachMovie` IS what spawns civ cells but tag[180] is invoked
+    with a numOptions value that my Scaleform-side hardcode is
+    overridden by — e.g., the PPU calls `Flash.invoke("LoadOptions")`
+    AFTER setting `options_mov.numOptions = 17` via SetVariable,
+    AND my hardcode-18 patch is somehow not applied to that
+    invocation. This is unlikely since the byte pattern is
+    unique and the patch verifies present in the installed FPK.
+
+  - OR the civ-select cells are spawned via a totally different
+    factory I haven't found — perhaps the EBOOT PPU code does a
+    direct Scaleform `Invoke("createObject", ...)` or builds the
+    cell handles on the C++ side without touching the gfx file's
+    AS2 code. If so, the cells exist in Scaleform's MovieClip
+    tree but are managed PPU-side, and the `goRight` AS2 code's
+    `theOptionArray[idx]` references run-time-injected handles.
+
+  - OR the test's numOptions=18 hardcode overrides the loop bound
+    correctly but `attachMovie` silently fails on the 18th call
+    (e.g., depth conflict, missing template, or instance name
+    collision). The `getNextHighestDepth()` call should avoid
+    depth conflicts, and `option_17` is a unique name, so this
+    is unlikely.
+
+**iter-192 made a bytecode patch (LoadOptions hardcode 18) and
+verified it landed, but the patch is a no-op for the civ-select
+carousel.** No commit of this patch — the diagnostic was
+informational only. Pregame.FPK restored to byte-identical-stock
+via `install.sh`.
+
+**Next iteration should:**
+  - Search for OTHER cell factories: `Flash.invoke("...")` calls
+    from EBOOT PPU code that reference Scaleform sprite creation
+    paths. Specifically `_root.attachMovie`, `_global.attachMovie`,
+    or PPU-side `GFx::Movie::CreateInstance`-like calls.
+  - OR: do a runtime memory dump of `theOptionArray` after civ-
+    select loads. If `theOptionArray.length == 17`, that confirms
+    the cells exist somewhere, and I can trace their creation
+    via memory writes.
+  - OR: pivot away from Scaleform spawn analysis and try a
+    completely different approach: instead of adding a NEW cell,
+    figure out how to make `goRight`'s clamp logic accept index
+    17 by patching the EPILOGUE check at bc@0x466 in tag[188]
+    (the `numOptions == numOptionsToShow` part), because that
+    might be the real "you've reached the rightmost cell" gate.
