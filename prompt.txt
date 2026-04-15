@@ -14,7 +14,92 @@
   The carousel must physically grow to 18 cells. Verify reachability
   with iter-185's distinctive-marker OCR technique, not screenshot
   interpretation. See PRD iter-189 entry for the 6-step path and the
-  iter-177..188 unblocks that are already in place.                                                                                                
+  iter-177..188 unblocks that are already in place.
+
+  ================================================================
+  CAROUSEL UNBLOCK DIRECTIVE (iter-1182+, user directive 2026-04-15)
+  ================================================================
+
+  The iter-212 §9.X structural blocker is LIFTED. The user has
+  authorized the loop to pursue the "wholesale gfx_chooseciv.gfx
+  AS2 bytecode modification" path that §9.X labelled as "outside
+  this loop's toolchain". That boundary is no longer in force.
+
+  The §9.X closeout is SUPERSEDED for §9 items 2/3/4 only. Items
+  1/5/6 remain MET as already recorded (iter-216/224 M9 PASSes,
+  iter-219 install.sh MET). The loop's top priority is now to
+  drive items 2/3/4 to MET via AS2 edits to gfx_chooseciv.gfx.
+
+  The full plan is recorded in PRD §9.Y. Read that section before
+  starting each iteration to see what step the loop is on. High-
+  level sequencing (iter-1182 → iter-1190, expected):
+
+    iter-1182: install JPEXS Free Flash Decompiler (FFDec) under
+               civrev_ps3/tools/ffdec/ (gitignored) and verify it
+               round-trips gfx_chooseciv.gfx cleanly. If JPEXS
+               fails on the GFx variant, pivot to a custom Python
+               GFx parser per §9.Y's "fallback" option.
+    iter-1183: identify the real carousel DefineSprite tag by
+               visually previewing every sprite in the file.
+               Record its tag/char ID in korea_mod/addresses.py.
+    iter-1184: dump the carousel sprite's AS2 bytecode, classify
+               every 16/17/0x10/0x11 literal as (clamp, count,
+               index, coordinate). Output a literals-inventory doc.
+    iter-1185: clone one existing cell (start with Mao at slot 6
+               since its leaderhead binding is already Mao-
+               compatible per §6.3 asset reuse). Insert at slot
+               16. M9 6-civ regression must still PASS.
+    iter-1186: bump numOptions / carousel-count literals 17 → 18
+               and patch the cursor right-clamp. Verify via OCR
+               that all 16 stock civs + Korea-as-duplicate-Mao +
+               Random are simultaneously selectable.
+    iter-1187: recompute cell layout coordinates so 18 cells fit
+               in the curved carousel without overlap. Iterate
+               via screenshot-OCR until the layout looks clean.
+    iter-1188: wire the Korea cell's identification to civ index
+               16, not civ index 6, so selecting the Korea cell
+               launches a game as Korea/Sejong, not China/Mao.
+    iter-1189: M2 / M3 / M6 / M7 all PASS. Commit result.jsons.
+    iter-1190: 6-civ M9 regression against the new
+               gfx_chooseciv.gfx. 6/6 PASS. Update CLOSEOUT.md to
+               reflect §9 DoD 6/6 MET.
+
+  RULES OF ENGAGEMENT for the AS2 work:
+  - Every change must be empirically verifiable via the existing
+    docker harness within the same iteration. No more "boot-safe
+    but inert" patches — if OCR or M9 result.json doesn't move,
+    revert the change in the same iteration and record why.
+  - Each iteration commits to the korea-civ-mod branch with an
+    imperative commit message per the existing convention, and
+    pushes to origin before ending.
+  - verify.sh --tier=fast (Caesar M9 smoke) must PASS after every
+    AS2 change before the iteration closes. If it fails, revert.
+  - Static milestones (M0 xmllint + FPK round-trip + eboot dry-
+    run) MUST remain GREEN throughout. The FPK round-trip check
+    in M0b will auto-verify that the repacked Pregame.FPK
+    containing the modified gfx_chooseciv.gfx is structurally
+    sound — use its output as a short-circuit.
+
+  FPK / ASSET PIPELINE for the AS2 work:
+  - Source of truth: civrev_ps3/extracted/Pregame/gfx_chooseciv.gfx
+    (stock, 59646 bytes, GFX\x08 magic). DO NOT edit this copy.
+  - Working copy: after each edit, write the modified bytes to
+    korea_mod/_build/Pregame_korea/gfx_chooseciv.gfx (which is
+    where pack_korea.sh's staging step already places it).
+  - The existing gfx_chooseciv_patch.py is currently a no-op
+    pass-through; upgrade it into the AS2 patcher step. Keep the
+    EXPECTED_SIZE assertion as a guard against partial writes but
+    allow the new output size to differ from 59646.
+  - pack_korea.sh's Pregame repack path is unchanged — fpk.py
+    repack handles variable inner-file sizes cleanly (iter-177
+    verified).
+
+  STOP condition update: the iter-231 CLOSEOUT.md-based stop no
+  longer applies because §9.X has been re-opened. The new STOP
+  WHEN clause for this phase is §9 DoD 6/6 MET per the §9.Y plan's
+  final step (iter-1190-ish). At that point, write a v1.1 CLOSEOUT
+  commit and exit.
+  ================================================================                                                                                                
                                                                                                                                                                       
   ORIENTATION (do this every iteration, in parallel):                                                                                                                 
   - Read civrev_ps3/docs/korea-civ-mod-prd.md to refresh the spec.                                                                                                    

@@ -1,5 +1,14 @@
 # PRD: Korea Civilization Mod for PS3 Civilization Revolution
 
+> **iter-1182 directive update (2026-04-15):** the §9.X structural
+> blocker is **LIFTED**. The user has authorized the loop to pursue
+> the AS2 bytecode modification path for `gfx_chooseciv.gfx` that
+> §9.X labelled "outside this loop's toolchain". The §9.X closeout
+> is SUPERSEDED for §9 items 2/3/4; items 1/5/6 remain MET. The loop
+> now targets §9 DoD **6/6 MET** via the §9.Y unblock plan. See
+> **§9.Y "Carousel unblock plan"** for the concrete 9-iteration
+> sequence. `prompt.txt` is updated with the same directive.
+>
 > **iter-222/223 reality check (2026-04-15):** the v1.0 ship state
 > documented below was substantially revised by the iter-222 finding
 > that `Common0.FPK` is **never opened at runtime** by the BLUS-30130
@@ -7,11 +16,10 @@
 > (`leaderheads.xml`, `console_pediainfo_civilizations.xml`,
 > `console_pediainfo_leaders.xml`) are structurally inert and were
 > removed from the build/install pipeline at iter-223. The actual
-> shipping state is **2 Pregame.FPK overlays + 6 EBOOT byte patches**.
-> The §9 strict-reading carousel goal (item 2) remains structurally
-> blocked Scaleform-side per §9.X. See §10 iter-221..223 entries for
-> the full empirical proof and §6.3's iter-222 banner for the §6.3
-> spec correction.
+> shipping state before the iter-1182 directive was **2 Pregame.FPK
+> overlays + 6 EBOOT byte patches**. See §10 iter-221..223 entries
+> for the full empirical proof and §6.3's iter-222 banner for the
+> §6.3 spec correction.
 
 ## 1. Summary
 
@@ -1366,6 +1374,237 @@ progress on item 2 with the available tools.
 continue working in good faith on whatever new angles
 appear, but should not expect breakthroughs on the
 strict-reading 18th-cell requirement.**
+
+### §9.Y — Carousel unblock plan (iter-1182+ directive, 2026-04-15)
+
+> **Directive update:** the user re-confirmed direction at
+> iter-1182 and lifted the "outside this loop's toolchain"
+> boundary from §9.X option (1). The loop will now pursue the
+> **wholesale `gfx_chooseciv.gfx` AS2 bytecode modification
+> path** that §9.X labelled as a multi-day Scaleform
+> engineering effort. The §9.X closeout is SUPERSEDED for §9
+> items 2/3/4; items 1/5/6 remain MET as recorded.
+
+#### The target file
+
+- **Path on disc:** `Pregame.FPK/gfx_chooseciv.gfx`
+  (extracted to `civrev_ps3/extracted/Pregame/gfx_chooseciv.gfx`
+  by the existing `1unpack.sh` pipeline).
+- **Format:** `GFX\x08` (Scaleform GFx 8, uncompressed) — verified
+  via magic-bytes check. Scaleform GFx is a superset of Adobe
+  SWF 8 with additional control tags and a slightly tightened
+  AS2 bytecode dialect. Everything SWF-editing tools can do on
+  SWF applies here with minor caveats around extra tags.
+- **Size:** 59646 bytes. Small enough to load entirely in
+  memory and rewrite.
+
+#### Tooling: which AS2 editor
+
+Two viable options, evaluated in order of effort:
+
+1. **JPEXS Free Flash Decompiler (FFDec)** — OSS, GPL,
+   actively maintained. Handles GFx variants in addition to
+   stock SWF. Can decompile AS2 bytecode to readable
+   pseudocode, edit tags, re-pack. Script interface via
+   `ffdec.jar -swf2xml` / `ffdec.jar -xml2swf` for CI use.
+   **Recommended primary tool.** Install: download the
+   portable jar to `civrev_ps3/tools/ffdec/` (not committed
+   to repo; gitignore it).
+2. **Custom Python GFx parser** — minimal homegrown parser
+   written against the SWF 8 spec + GFx's tag extensions. Only
+   parses enough to find the target DoAction / DefineSprite /
+   DoInitAction tags, mutate them, and re-write with
+   preserved byte offsets. More work but no Java dependency
+   and produces reproducible results. **Fallback if JPEXS
+   can't handle the GFx variant cleanly.**
+
+#### The six concrete AS2 changes needed
+
+From iter-178..200's partial investigation (all inert because
+they edited the wrong tags), we know the real carousel sprite
+is **tag[177] ChooseCivLeader, char 96** (per iter-212 §9.X's
+hypothesis). The AS2 changes to achieve item 2:
+
+1. **Extend the carousel cell array from 16 → 17.**
+   The carousel has 16 pre-authored `MovieClip` child
+   instances, one per civ slot, plus Random at slot 16
+   (17 total cells, counting Random). Under iter-189 strict
+   reading we need **18 cells**: 16 original civs + Korea +
+   Random. This means cloning one existing cell (the Random
+   cell is the natural template because it's the last one
+   and least structurally tied to a specific leaderhead) and
+   inserting a new Korea cell at slot 16, pushing Random to
+   slot 17.
+
+2. **Recompute the carousel layout coordinates.** The cells
+   are laid out in a curved / fan arrangement with their
+   positions baked into `PlaceObject2/3` tags. Adding a 17th
+   cell means recomputing the transform matrix (x, y, scale,
+   rotate) for either (a) every cell so they redistribute
+   evenly, or (b) just the new cell plus the cells around it
+   (lazier but may look cramped). Start with (b) and iterate.
+
+3. **Patch `numOptions` literals from 17 → 18** everywhere
+   they appear. iter-192 found one in tag[180] (LoadOptions
+   for a different panel, not civ-select — inert) and
+   iter-200 found one in tag[184] (the real ChooseCiv
+   setter — inert because the ACTUAL reader is somewhere
+   else). This time walk the AS2 bytecode systematically via
+   `ffdec -dumpas2 gfx_chooseciv.gfx` and grep for `17` or
+   `0x11` literals, then trace each to its call site.
+
+4. **Patch the cursor right-clamp.** The cursor navigation
+   has a clamp that prevents wrapping past slot 16. iter-181
+   and iter-183 attempted "cursor-right-clamp patches" that
+   turned out to be false positives in PPU-side code. The
+   real clamp is almost certainly in the AS2 event handler
+   for the `Right` button press inside the ChooseCiv sprite.
+   Find via: search AS2 for `>=` / `>` comparisons against
+   16 in the button handler.
+
+5. **Extend `theOptionArray`'s initialization.** The
+   `theOptionArray[N]` Scaleform variable is the runtime
+   backing store for cell data (iter-217 confirmed the
+   variable exists, 3 hits in PS3 EBOOT at `0x1692df0`,
+   `0x1692f88`, `0x1692fc0`). Its initializer in AS2 needs a
+   17th entry (index 16) pointing at Korea's civ data
+   (leaderhead binding, civ name string, selection callback,
+   etc.). Model the new entry on the existing China or Mao
+   entry since Korea is a byte-for-byte clone per v1.0 §1.1.
+
+6. **Bind the new cell's sprite to Mao's leaderhead asset.**
+   The existing cell MovieClips have their leaderhead texture
+   references baked in. The new Korea cell must reference
+   `GLchi_Mao.xml` / `GLchi_Mao_` (per §6.3's asset reuse
+   decision, which survives iter-189). Either clone China's
+   cell (slot 6 Mao) as the template so the texture ref
+   comes for free, or explicitly patch the new cell's
+   reference to point at Mao's asset.
+
+#### The new verification surface
+
+Once the AS2 changes ship, verification adds two milestones
+that were previously stubs:
+
+- **M2 (civ-select OCR).** Already spec'd in §7.2. Under the
+  new plan, M2 should OCR-detect both "Korea" and "Sejong"
+  on the civ-select carousel after pressing Right 16 times
+  from the default slot. The harness's `test_korea_play.py`
+  already handles the slot navigation; just change the
+  `label` parameter to `korea` and verify pass=True.
+- **M7 50-turn soak as Korea.** Already spec'd in §7.4. Under
+  the new plan, run `korea_play 16 korea` and verify the
+  harness reaches in-game HUD and survives 50 end-turn
+  cycles without crashing.
+
+M9 6-civ regression (§9 item 5) continues to verify the
+other 16 civs + Random are unbroken by the AS2 changes.
+
+#### Risks and mitigations
+
+1. **Risk: JPEXS doesn't handle the GFx variant.**
+   Mitigation: have the Python fallback parser spec'd and
+   ready. Worst case: decompile tags-to-XML with JPEXS, edit
+   XML, re-pack with the custom Python tool.
+
+2. **Risk: tag[177] isn't actually the carousel sprite.**
+   iter-212 §9.X's identification was a hypothesis based on
+   PlaceObject naming, not an empirical confirmation.
+   Mitigation: first iteration of the new work is to
+   definitively identify the carousel sprite via JPEXS
+   visual preview — render each candidate tag and pick the
+   one that looks like the civ-select carousel.
+
+3. **Risk: re-packing `gfx_chooseciv.gfx` changes its size,
+   breaking the FPK's internal offset table.**
+   Mitigation: `fpk.py repack` already handles variable-size
+   inner files (iter-177 empirically confirmed that a
+   repacked Pregame.FPK boots cleanly with size-changed
+   contents). This risk is already mitigated by existing
+   tooling.
+
+4. **Risk: cascading visual glitches** (cells overlap, cursor
+   highlights the wrong slot, leader portrait mismatches).
+   Mitigation: iterate in the docker harness with screenshot
+   OCR after every AS2 change. The iter-216/224 M9 sweep
+   gives us a clean regression baseline.
+
+5. **Risk: Scaleform's GFx player on PS3 rejects the
+   modified file for checksum / hash validation.**
+   Mitigation: GFx 8 has no known integrity check (iter-178
+   and iter-200 already demonstrated byte-level edits boot
+   without complaint). If a hash DOES appear, it's a
+   single-location fix either (a) recomputed in the patcher
+   or (b) disabled in the PPU code that reads it.
+
+#### §9 DoD status projection under the unblock plan
+
+If the plan succeeds, §9 DoD final state will be:
+
+| # | item | status |
+|---|------|--------|
+| 1 | install.sh works | **MET** (already) |
+| 2 | Korea visible at slot 16 in carousel | **MET** (new) |
+| 3 | Found capital with Korea | **MET** (new — depends on 2) |
+| 4 | 50-turn soak as Korea | **MET** (new — depends on 2) |
+| 5 | Stock regression (6 civs) | **MET** (already — verify AS2 changes don't regress) |
+| 6 | Verification artifacts committed | **MET** (already) |
+
+6/6 MET would be the first time the v1.0 DoD is fully green
+under the iter-189 strict reading since the directive update.
+
+#### Plan of attack for iter-1182..1190 (expected)
+
+Sequenced so each step is independently verifiable:
+
+1. **iter-1182:** Install JPEXS under
+   `civrev_ps3/tools/ffdec/` (gitignore), add the path to
+   `.gitignore`, and verify `ffdec.jar -swf2xml
+   gfx_chooseciv.gfx out.xml` produces a readable XML dump.
+   If it fails, pivot to the Python fallback path. Output:
+   `tools/ffdec/` exists and round-trips the stock file.
+2. **iter-1183:** Identify the real carousel sprite. Dump
+   every `DefineSprite` tag's visual preview via JPEXS. Pick
+   the one that looks like the civ-select carousel. Record
+   its tag ID and character ID in `addresses.py`. Output:
+   a screenshot + `addresses.py` update.
+3. **iter-1184:** Dump AS2 from the carousel sprite. Locate
+   every `17` / `0x11` / `16` / `0x10` literal. Manually
+   classify each as (clamp, count, index, coordinate). Output:
+   a `korea_mod/docs/as2-literals-inventory.md` doc.
+4. **iter-1185:** Clone one cell (start with the Mao cell at
+   slot 6 since its leaderhead binding is already Mao). Make
+   a byte-exact copy, insert at slot 16, verify the file is
+   still valid (boots in docker, all stock civs still work,
+   Korea at slot 16 shows a duplicate Mao). M9 6-civ
+   regression must still PASS.
+5. **iter-1186:** Bump `numOptions` / carousel-count literals
+   from 17 → 18. Verify via M9 + visual OCR that all 16
+   stock civs + Korea-as-duplicate-Mao + Random are
+   simultaneously selectable. Cursor right-clamp patch may
+   land here or in iter-1187 depending on where the clamp
+   turns out to be.
+6. **iter-1187:** Recompute cell layout coordinates so the
+   18 cells fit in the curved carousel without overlap.
+   Screenshot-OCR verify. Iterate until the layout looks
+   clean.
+7. **iter-1188:** Wire the Korea cell's identification —
+   make sure it maps to civ index 16 (Korea), not civ index
+   6 (China), so that selecting the Korea cell and
+   confirming launches a game as Korea/Sejong, not
+   China/Mao.
+8. **iter-1189:** Run M2 (civ-select OCR for "Korea" and
+   "Sejong"), M3 (Korea selection doesn't crash), M6 (Korea
+   game loads to HUD), M7 (Korea 50-turn soak). All four
+   must PASS. Commit the result.jsons.
+9. **iter-1190:** Run the 6-civ M9 regression sweep against
+   the new `gfx_chooseciv.gfx`. 6/6 must PASS. Commit the
+   result.jsons. Update `CLOSEOUT.md` to reflect 6/6 MET.
+
+Each iteration's success is empirically verifiable via the
+existing docker harness. No more "boot-safe but inert"
+iterations — a change that doesn't move the OCR result is
+reverted same-iteration.
 
 ## 10. Progress Log
 
@@ -8325,3 +8564,73 @@ artifact reorganization are still legitimate, but
 **PRD changes made this iteration:** Progress Log entry added.
 New `korea_mod/CLOSEOUT.md` artifact. Net shipping state
 unchanged. Formal v1.0 closeout.
+
+### iter-1182 (2026-04-15): carousel unblock directive — §9.X LIFTED
+
+**User directive update.** After the iter-231..1181 closeout
+maintenance loop ran ~1100 no-op iterations against the
+iter-231 CLOSEOUT contract, the user reopened §9 items 2/3/4
+by lifting the §9.X "outside this loop's toolchain" boundary
+for option (1) — the wholesale `gfx_chooseciv.gfx` AS2
+bytecode modification path.
+
+**What this means for the loop:**
+
+1. The §9.X closeout no longer binds. iter-231's "§7.7 stop
+   condition formally satisfied" argument is only valid as
+   long as BOTH Jython analyzeHeadless AND Z-packet GDB
+   paths remain the only available escalation vectors. The
+   user has now authorized a third path — AS2 bytecode
+   editing of `gfx_chooseciv.gfx` via JPEXS (or a Python
+   fallback) — and §7.7 is no longer satisfied.
+2. The iter-231 CLOSEOUT.md is still accurate as a record of
+   the v1.0 shipping state AT iter-231, but is no longer the
+   "final" state. A new v1.1 CLOSEOUT will be written when
+   the §9.Y plan completes.
+3. The loop's STOP condition for the new phase is §9 DoD 6/6
+   MET, not the §7.7 "exhausted all paths" escape hatch.
+
+**What was added to the PRD and prompt.txt:**
+
+- **PRD §9.Y "Carousel unblock plan"** (new section, ~200
+  lines) documents: the target file (`gfx_chooseciv.gfx`
+  GFX\x08, 59646 bytes, stock), tooling (JPEXS primary,
+  custom Python fallback), the 6 concrete AS2 changes
+  needed (cell array extend, layout recompute, numOptions
+  literal bumps, cursor right-clamp patch, theOptionArray
+  init extend, leaderhead binding to Mao assets), the new
+  verification surface (M2/M3/M6/M7 wiring), 5 identified
+  risks with mitigations, the §9 DoD status projection
+  (6/6 MET if successful), and a 9-iteration plan of
+  attack (iter-1182..1190 expected).
+- **prompt.txt "CAROUSEL UNBLOCK DIRECTIVE"** (new banner
+  block) copies the §9.Y sequence into the loop's standing
+  instructions, adds RULES OF ENGAGEMENT (every change must
+  be empirically verified same-iteration; no more
+  "boot-safe but inert" patches), and updates the STOP
+  clause to target §9 DoD 6/6 MET.
+- **Top-of-file banner** updated to reflect the iter-1182
+  directive update; a reader walking the PRD top-to-bottom
+  will hit the new banner first and be pointed at §9.Y.
+
+**§9 DoD status after this directive (projection):**
+
+| # | item | status |
+|---|------|--------|
+| 1 | install.sh works | **MET** (unchanged) |
+| 2 | Korea visible at slot 16 in carousel | **OPEN — in progress via §9.Y plan** |
+| 3 | Found capital with Korea | **OPEN — depends on 2** |
+| 4 | 50-turn soak as Korea | **OPEN — depends on 2** |
+| 5 | Stock regression (6 civs) | **MET** (iter-216 + iter-224 6/6; must survive AS2 work) |
+| 6 | Verification artifacts committed | **MET** (new artifacts will land per iteration) |
+
+**Expected next iteration (iter-1183 — the first real work
+iteration of the new phase):** install JPEXS Free Flash
+Decompiler, verify it round-trips `gfx_chooseciv.gfx`
+cleanly, commit the tooling setup. See §9.Y's "Plan of
+attack" step 1.
+
+**PRD changes made this iteration:** §9.Y new subsection
+(~200 lines); top-of-file banner update; this Progress Log
+entry; `prompt.txt` companion update. No code changes.
+Commit is a pure directive-update commit.
