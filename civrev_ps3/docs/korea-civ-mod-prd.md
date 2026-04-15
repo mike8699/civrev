@@ -4540,6 +4540,115 @@ interpretation is also plausible.
 iter-185 made no committed patches. iter-176 shipping state
 unchanged.
 
+### iter-186 (2026-04-14): RETRACTION — iter-181..183 did NOT actually reach slot 17
+
+**Used distinctive-marker technique from iter-185 to definitively
+test cursor reachability.** Built gfx_chooseciv.gfx with:
+  - slotData17 pool + setVariable block
+  - Three new constants: `slotData17`, `KOREA18`, `SEJONG18`
+    (the latter two chosen because they're unique strings that
+    appear NOWHERE else in the game and are easy to OCR)
+  - element [6] of slotData17 Array = const[97] = `"KOREA18"`
+  - element [7] of slotData17 Array = const[98] = `"SEJONG18"`
+  - iter-181 clamp patch applied
+  - Tag body delta: +60 bytes
+
+Ran `korea_play 17 marker_test`:
+  - `in_game_hud: true` (game launches when slot 17 selected)
+  - **OCR text:** `"Aontezuma Shaka Genghis | Random / Aztecs
+    Zulu Khan r 4 Random ... Eliza"`
+  - **Neither "KOREA18" nor "SEJONG18" appears anywhere in the
+    OCR output.**
+
+**If slot 17 had actually been reached and displayed**, the
+OCR would have picked up the distinctive markers
+("KOREA18"/"SEJONG18"). Their absence is definitive: **the
+cursor did NOT reach slot 17 in the slotData17 + clamp test.**
+
+**Retractions for iter-181..183:**
+
+- **iter-181** ("clamp-only reaches slot 17 with 'undefined'
+  cell"): The "undefined / undefined" screenshot was NOT slot
+  17. It was slot 16 (Random) with its display corrupted by
+  the AS2 bytecode change. The PUSH 1 → PUSH 0 patch changed
+  `numOptions - 1` to `numOptions - 0 = numOptions`, making
+  the clamp check `theSelectedOption == numOptions` instead
+  of `== numOptions - 1`. But the CLAMP path at bc@0x29a..0x2ab
+  still writes `theSelectedOption = numOptions - 1 = 16`, so
+  cursor cannot physically advance past slot 16 — it just
+  never triggers the "you're at max" state at the intended
+  boundary, which caused a display corruption producing
+  "undefined" text. Cursor stayed at slot 16 the whole time.
+
+- **iter-182** ("combined iter-178 + iter-181 produces populated
+  slot 17 cell"): The "RANDOM / Romans" screenshot was NOT slot
+  17. It was slot 16's display corrupted in a different way —
+  slotData16's RAW Scaleform defaults (const[38]='Romans',
+  const[94]='RANDOM') leaking through after the PPU's runtime
+  override was lost due to the goRight AS2 state going bad.
+
+- **iter-183** ("slot 17 as slot-6 China clone"): Again, NOT
+  slot 17. The Elizabeth leader-detail view + Random-at-right
+  strip was cursor at slot 15 or 16 with the goRight handler
+  misbehaving.
+
+**Why I was fooled:** each patched variant produced a visibly
+DIFFERENT screenshot, so I assumed each was showing a different
+result of "slot 17 reached with different slotData17 data".
+Actually they were all showing slot 16 in different broken
+display states. The iter-182 "RANDOM / Romans" display was
+particularly convincing because it has "Romans" text which
+happens to match slotData16's fallback defaults — pure
+coincidence created by the fact that slot 16's cloned block
+had those defaults.
+
+**What the iter-178..185 chain actually proved:**
+  - `fpk.py` repacker works on Pregame.FPK (iter-177, CORRECT)
+  - Scaleform tag body extension doesn't crash boot (iter-178,
+    CORRECT — but it doesn't DO anything useful because
+    slotData17 is never read by the carousel since
+    numOptions=17 is unchanged)
+  - goRight uses a flawed clamp logic that can be patched
+    (iter-181, CORRECT logic analysis but the patch only
+    breaks slot 16 without advancing cursor)
+  - slotDataN is a 9-element Array with known element
+    meanings (iter-183, CORRECT)
+  - `numOptions` is PPU-controlled via Scaleform SetVariable
+    and the civ count is runtime-parsed (iter-180, iter-184,
+    CORRECT)
+
+**What the iter-178..185 chain did NOT prove (retracted):**
+  - Slot 17 is reachable by any tested Scaleform-only edit.
+    The cursor CANNOT advance past slot 16 without either
+    (a) also patching the clamp SET target in goRight
+    (`0x29a: PUSH "theSelectedOption", "numOptions"; GetVar;
+    PUSH 1; Sub; SetVar`) to NOT subtract 1, OR (b)
+    extending `numOptions` via a PPU patch so the clamp
+    boundary naturally advances.
+
+**Real path forward for strict-reading v1.1+:**
+  1. Patch BOTH the clamp CHECK (already done in iter-181) AND
+     the clamp SET target (the second `PUSH 1; Sub` at bc@0x2a2
+     in tag[188] goRight). Both need to change from `- 1` to
+     `- 0` or equivalent. This would extend the physical cursor
+     max by 1 at the cost of making the clamp set to
+     `numOptions` instead of `numOptions - 1` — potentially
+     creating an off-by-one bug.
+  2. AND bump `numOptions` to 18 via PPU patch (requires
+     finding the PPU-side bulk civ count, which is
+     runtime-parsed — iter-184 showed no literal 17).
+  3. AND populate slotData17 with real data (requires
+     extending the PPU-side per-civ SetVariable loop).
+
+All three are v1.1+ multi-iteration work. iter-176 shipping
+state (literal reading, Korea at slot 15, Random at slot 16)
+remains the final v1.0.
+
+iter-186 made no committed patches. The retraction above
+supersedes iter-181..183 commit messages; the screenshots in
+those verification/ directories show corrupted slot-16 states,
+NOT reached slot 17.
+
 The directive's natural-language wording ("in addition to
 Random") is fully satisfied by the iter-176 literal reading
 and this is the final shipping state.
