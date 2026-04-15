@@ -1,0 +1,14 @@
+{
+  "milestone": "M6",
+  "slot": 15,
+  "label": "sejong",
+  "pass": true,
+  "oracle": "OCR in-game HUD after selecting slot 15 (sejong)",
+  "stages": {
+    "main_menu": true,
+    "difficulty_selected": true,
+    "highlighted_ok": true,
+    "in_game_hud": true
+  },
+  "select_ocr": "SOS of \u2122 a on = ee y \\ _\u2014s -_ aes. p/ \u00bb . | Aontezuma Shaka Genghis | Random | Aztecs Zulu Khan r 4 Random | f ; vr ie m~ { : PF * x ' 4 7 | 7 XK \u201c be | ) aX \\ (o\u2014_ a: \u2014 eee ~~ eae u SA LN | a =a) SLL"
+}

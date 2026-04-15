@@ -1,0 +1,14 @@
+{
+  "milestone": "M9",
+  "slot": 16,
+  "label": "random",
+  "pass": true,
+  "oracle": "OCR in-game HUD after selecting slot 16 (random)",
+  "stages": {
+    "main_menu": true,
+    "difficulty_selected": true,
+    "highlighted_ok": false,
+    "in_game_hud": true
+  },
+  "select_ocr": "olij\u2014 oe ll | f | eg ||, | Shaka Genghis Sejong |_| | Zulu Khan Koreans \u201ci | FER SQ Ewer es: | Se A SH | y \u201c = u A LON | \"Ea ae oP) Random 5 7 } AY | \\? Dae. 7 Random 7 RT ASN Y9 | \u00a2 p a 4 cs F Rae Me"
+}
