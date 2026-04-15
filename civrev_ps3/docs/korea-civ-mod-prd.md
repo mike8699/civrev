@@ -5183,3 +5183,78 @@ its inner DoAction creates the carousel cells, that's the real
 factory.
 
 iter-193 made no patch edits. Pure PPU/Scaleform structural mapping.
+
+### iter-194 (2026-04-15): tag[223] is leader-head loader, NOT cell factory; ChooseCivLeader is never PlaceObject2'd
+
+**Investigated tag[223] DefineSprite char_id=132.** Its inner stream
+is 17 tags: a 3680-byte DoAction (inner[0]), a 1937-byte DoAction
+(inner[1]), 12 PO2 placements (inner[2..13]), then ShowFrame and
+end markers.
+
+**Constant pool of inner[0] DoAction (126 entries) reveals:**
+  - `MovieClipLoader` (idx 7), `onLoadInit` (idx 8), `Movie clip:`,
+    `is now initialized`, `onLoadError`, `Failed to load its content`,
+    `loadClip` (idx 37)
+  - `createEmptyMovieClip` (idx 34)
+  - `theCivSymbol` (idx 123), `theCivSymbol2` (idx 124)
+
+**This is the LEADER-HEAD/CIV-SYMBOL loader sprite.** It uses
+Scaleform's `MovieClipLoader` to load external 3D leader head
+content into per-cell wrappers via `createEmptyMovieClip` +
+`loadClip`. NOT the carousel cell factory — it's the per-cell
+content loader (loads the leader head model into each cell after
+the cell is created).
+
+**ChooseCivLeader template (char 96 / tag[177]) is NEVER placed
+via PlaceObject2 anywhere in `gfx_chooseciv.gfx`.** A full enumeration
+of every PlaceObject2 across top-level + inside every DefineSprite
+finds zero `cid == 96` placements. The ONLY way ChooseCivLeader
+instances exist at runtime is via the single
+`attachMovie("ChooseCivLeader", ...)` call in tag[180]/char 98's
+LoadOptions (which iter-192 proved to be the wrong panel anyway).
+
+**Two tags reference both "option_" and "_x":**
+  - tag[180] inner@407 = LoadOptions (already analyzed)
+  - tag[185] top-level DoAction at 0x5628 = the carousel state init
+    that contains goRight/goLeft setup AND options_mov reference
+
+**tag[185] is the strongest remaining candidate for the carousel
+init.** It does:
+  - `theOptionArray = new Array()` (empty)
+  - `numOptions = 6` (default; probably overridden later by PPU
+    SetVariable for civ-select)
+  - `theInitialSelection`, `theBuffer`, `theAutoSaveText` setup
+  - `options_mov.LoadOptions()` call
+  - References `option_` and `_x` somewhere in its bytecode (so it
+    DOES position cells)
+
+**Hypothesis for next iteration:** tag[185] sets numOptions=6 as a
+DEFAULT, then the PPU SetVariable overrides it to 17 for civ-select,
+THEN tag[185] (or a re-init triggered by SetVariable) calls
+options_mov.LoadOptions() with the new numOptions. My iter-192
+hardcode-18 patch in LoadOptions should have taken effect when
+options_mov.LoadOptions() ran with numOptions=17 (or anything),
+producing 18 cells. The fact that it didn't suggests either:
+  - LoadOptions is called BEFORE numOptions is updated (with
+    numOptions=6, spawning 6 cells), and never called again
+    after the update.
+  - OR the PPU directly populates `theOptionArray` and `option_N`
+    handles via Scaleform Invoke, bypassing LoadOptions entirely.
+
+**Realistic single-iteration progress is hitting a wall.** I've
+spent iter-177..194 (18 iterations) mapping the architecture but
+have not produced a working 18th cell. Continuing requires either:
+  1. Runtime debugging (Z-packets/breakpoints — iter-149 ruled this
+     out for RPCS3) to observe what actually runs at panel-load
+     time and what numOptions/theOptionArray actually contains.
+  2. Hooking the Scaleform Invoke layer to log every PPU→Scaleform
+     call at runtime (would require patching the EBOOT's Scaleform
+     stub).
+  3. Brute-force trying ALL panels' LoadOptions hardcodes plus
+     careful patch verification per slot.
+  4. Accepting that the strict-reading 18th cell is genuinely
+     blocked without dynamic instrumentation, documenting it as
+     such, and deferring to a future investigation that has those
+     tools.
+
+iter-194 made no patch edits. Pure structural mapping.
