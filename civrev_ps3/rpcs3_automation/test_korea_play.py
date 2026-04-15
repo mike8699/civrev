@@ -109,14 +109,30 @@ def main():
                 break
             time.sleep(2)
 
-        # Scroll down until Earth is found
+        # iter-1188: user manually picked a DLC scenario during
+        # their local test session, so the game remembered the
+        # cursor position. On a fresh harness run the Choose
+        # Scenario list now opens with the cursor on a DLC entry
+        # ("Attack of the Huns") and Earth is above the visible
+        # viewport. Original code only scrolled Down; now scroll
+        # Up first then Down as fallback.
         print("  searching Earth scenario...")
-        for a in range(30):
+        found = False
+        for a in range(40):
             t = L._ocr_screen()
             if "earth" in t.lower():
-                print(f"  found Earth at {a}")
+                print(f"  found Earth up-scrolling at {a}")
+                found = True
                 break
-            _press("Down", 0.4)
+            _press("Up", 0.4)
+        if not found:
+            for a in range(40):
+                t = L._ocr_screen()
+                if "earth" in t.lower():
+                    print(f"  found Earth down-scrolling at {a}")
+                    found = True
+                    break
+                _press("Down", 0.4)
         _press("X", 3)
         _shot("03_after_earth_select")
 
@@ -226,6 +242,31 @@ def main():
     out = Path(f"/output/korea_{result['milestone'].lower()}_{label}_result.json")
     out.write_text(json.dumps(result, indent=2))
     print(f"wrote {out}; pass={result['pass']}")
+
+    # iter-1188: copy RPCS3.log into /output so the host can inspect
+    # fscommand traces and validate the slot-16→6 remap behavior.
+    try:
+        import shutil as _sh, subprocess as _sub
+        # RPCS3 writes its log to a variety of locations depending on
+        # build/flavor. Search broadly.
+        result_cmd = _sub.run(
+            ["find", "/root", "/tmp", "/opt", "/var",
+             "-maxdepth", "6", "-iname", "*RPCS3*.log*", "-print"],
+            capture_output=True, text=True, timeout=10,
+        )
+        hits = [l for l in result_cmd.stdout.splitlines() if l.strip()]
+        print(f"rpcs3 log candidates: {hits}")
+        for src_str in hits:
+            src = Path(src_str)
+            if src.is_file():
+                dst = Path(f"/output/rpcs3_{label}_{src.name}")
+                _sh.copy(src, dst)
+                print(f"copied {src} -> {dst}")
+    except Exception as e:
+        print(f"rpcs3 log copy failed: {e}")
+        import traceback
+        traceback.print_exc()
+
     return 0 if result["pass"] else 1
 
 

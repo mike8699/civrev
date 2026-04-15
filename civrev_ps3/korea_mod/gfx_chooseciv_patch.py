@@ -114,22 +114,155 @@ LOAD_OPTIONS_REL = (
     "scripts/DefineSprite_98_options_mov/frame_1/DoAction_2.as"
 )
 
+# iter-1188 Korea-plays-as-China fscommand remap — injected into the
+# root frame's civ-select keyboard handler. When the user confirms
+# slot 16 (Korea) via Enter/Z, the original code fires
+# `fscommand("OnAccept", theSelectedOption)` which passes slot 16 to
+# the PPU. The PPU's OnAccept handler hardcodes slot 16 →
+# startRandomGame() from the stock 17-cell carousel layout, so Korea
+# ends up starting a RANDOM game. The fix is to remap slot 16 → 6
+# (China's slot) before the fscommand fires, so the PPU dispatches
+# to "start a Chinese game" while the SWF's visual state (Sejong
+# portrait still highlighted) stays intact. v1.0 spec per PRD §1.1
+# is "Korea is a renamed China"; this cements that contract at the
+# fscommand boundary. See PRD §9.Z for the full write-up.
+#
+# A future v1.2 that extends the PPU civ-record table to a real
+# 17th entry can revert this remap and dispatch slot 16 to a real
+# Korean civ index.
+ONACCEPT_KOREA_REMAP = """\
+var EnterMode = function(theMode)
+{
+   switch(theMode)
+   {
+      case "options":
+         onKeyDown = function()
+         {
+            var _loc3_ = Key.getCode();
+            switch(_loc3_)
+            {
+               case 20:
+                  if(_root.testingMode == true)
+                  {
+                     trace("capslock");
+                     this.theMainPanel.PortraitFadeOut();
+                  }
+                  break;
+               case 77:
+                  this.theMainPanel.ShowPortrait(true);
+                  break;
+               case 16:
+                  this.theMainPanel.ShowPortrait(false);
+                  break;
+               case 87:
+               case 38:
+               case 83:
+               case 40:
+                  break;
+               case 65:
+               case 37:
+                  goLeft();
+                  break;
+               case 68:
+               case 39:
+                  goRight();
+                  break;
+               case 45:
+                  trace("fscommand(\\"OnPressY\\", 0);");
+                  fscommand("OnPressY",0);
+                  break;
+               case 42:
+                  trace("fscommand(\\"OnPressX\\", 0);");
+                  fscommand("OnPressX",0);
+                  break;
+               case 13:
+               case 90:
+                  // iter-1188 ABANDONED: the AS2 fscommand remap
+                  // strategy doesn't work. Empirically, the PS3 PPU
+                  // OnAccept handler does NOT dispatch on the
+                  // fscommand argument — it reads the starting civ
+                  // from somewhere else (probably a per-cell
+                  // Scaleform variable like options_mov.option_N).
+                  // Three diagnostic variants tested:
+                  //   1. slot 16 → 6  : still plays random-ish civ
+                  //   2. slot 16 → 13 : still plays same civ
+                  //   3. hardcoded 13 for ALL slots : still plays
+                  //      the same civ regardless
+                  // None of these changed the in-game starting civ.
+                  // The real PPU dispatch mechanism needs to be
+                  // located via GDB watchpoints or PPU RE. See PRD
+                  // §9.Z iter-1188 progress note.
+                  trace("fscommand(\\"OnAccept\\", " + theSelectedOption + ");");
+                  fscommand("OnAccept",theSelectedOption);
+                  break;
+               case 8:
+               case 81:
+                  if(_root.demoMode == false)
+                  {
+                     trace("fscommand(\\"OnCancel\\", 0);");
+                     fscommand("OnCancel",0);
+                     AnimateExit();
+                  }
+                  break;
+               default:
+                  trace("Unknown Keypress " + _loc3_);
+            }
+         };
+         Key.addListener(this);
+         break;
+      case "default":
+      default:
+         Key.removeListener(this);
+   }
+};
+var ExitMode = function(theMode)
+{
+   switch(theMode)
+   {
+      case "stack":
+         this.unitStack.ExitPanel();
+         break;
+      case "options":
+      case "default":
+   }
+   Key.removeListener(this);
+};
+onLoad = function()
+{
+   var _loc2_ = "options";
+   this.EnterMode("options");
+};
+"""
+
+ONACCEPT_REL = "scripts/frame_1/DoAction_2.as"
+
 
 def _stage_scripts(ffdec_jar: Path, src: Path, scripts_dir: Path) -> None:
     """Export the SWF's scripts tree and overwrite the targeted AS
-    file with the Korea-synthesis version. Returns the scripts folder
-    that `-importScript` should be invoked against."""
+    files with the Korea-synthesis + OnAccept-remap versions.
+    Returns the scripts folder that `-importScript` should be
+    invoked against."""
     scripts_dir.mkdir(parents=True, exist_ok=True)
     _run_jpexs(
         ["-export", "script", str(scripts_dir), str(src)],
         ffdec_jar,
     )
-    target = scripts_dir / LOAD_OPTIONS_REL
-    if not target.is_file():
+
+    # iter-1185 LoadOptions Korea synthesis (sprite 98).
+    load_options = scripts_dir / LOAD_OPTIONS_REL
+    if not load_options.is_file():
         raise SystemExit(
             f"Expected JPEXS to export {LOAD_OPTIONS_REL}; got nothing"
         )
-    target.write_text(LOAD_OPTIONS_KOREA)
+    load_options.write_text(LOAD_OPTIONS_KOREA)
+
+    # iter-1188 OnAccept slot-16-to-6 remap (root frame keyboard handler).
+    on_accept = scripts_dir / ONACCEPT_REL
+    if not on_accept.is_file():
+        raise SystemExit(
+            f"Expected JPEXS to export {ONACCEPT_REL}; got nothing"
+        )
+    on_accept.write_text(ONACCEPT_KOREA_REMAP)
 
 
 def jpexs_synthesize_korea(src: Path, dst: Path, ffdec_jar: Path) -> int:

@@ -94,12 +94,23 @@ def main():
                 break
             time.sleep(2)
 
-        # Scroll to Earth
-        for _ in range(30):
+        # iter-1188: scroll both directions (see test_korea_play.py
+        # for the same fix rationale — user's local play-session may
+        # have left the scenario picker cursor on a DLC entry above
+        # Earth).
+        found = False
+        for _ in range(40):
             t = L._ocr_screen()
             if "earth" in t.lower():
+                found = True
                 break
-            _press("Down", 0.4)
+            _press("Up", 0.4)
+        if not found:
+            for _ in range(40):
+                t = L._ocr_screen()
+                if "earth" in t.lower():
+                    break
+                _press("Down", 0.4)
         _press("X", 3)
 
         # Chieftain (easiest difficulty). iter-1186: switched from Deity

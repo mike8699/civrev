@@ -1774,6 +1774,67 @@ EBOOT touches, zero new verification surface.
    re-run Caesar + Random (slot 17) to confirm the two
    cells adjacent to our edit still dispatch correctly.
 
+#### iter-1188 progress note — strategy A FAILED
+
+iter-1188 attempted the AS2 fscommand remap (path a) and
+**empirically disproved that the PPU's OnAccept handler
+uses the fscommand argument at all.** Four variants were
+tested in the docker harness, each with a clean JPEXS
+round-trip via `gfx_chooseciv_patch.py`:
+
+| variant | edit | expected result | actual result |
+|---|---|---|---|
+| 1 | slot 16 → fscommand(6) | play as Chinese/Mao | same Caesar-ish start |
+| 2 | slot 16 → fscommand(13) | play as Shaka Zulu | same Caesar-ish start |
+| 3 | also mutate `_root.theSelectedOption = 13` | play as Shaka Zulu | same Caesar-ish start |
+| 4 | hardcoded `fscommand("OnAccept", 13)` for ALL slots (including slot 0 Caesar pick) | every civ-pick plays as Shaka Zulu | same Caesar-ish start |
+
+Variant 4 is the decisive one: picking Caesar at slot 0 with
+a HARDCODED `fscommand("OnAccept", 13)` still produces the
+same in-game starting position as a normal Caesar pick.
+**This proves the PPU ignores the fscommand argument.** The
+SWF→PPU civ-selection channel is NOT the keyboard handler's
+fscommand call.
+
+**Where the PPU actually reads the civ from** (working
+hypothesis, needs runtime verification):
+
+The iter-217 finding already documented that the PS3 EBOOT
+references `theOptionArray[%d].unitStack.goLeft` and
+similar strings. The PPU uses `Flash::GetVariable` to read
+per-cell state at paths like
+`theOptionArray[N].nationality` or similar. When the user
+confirms, the PPU reads from the currently-selected cell's
+MovieClip, not from the fscommand argument.
+
+**The correct fix** for "Korea plays as China" is one of:
+
+1. **Patch the per-cell nationality state** that the PPU
+   reads when the user confirms. This requires (a) finding
+   the exact Scaleform variable path, (b) overwriting it
+   from the AS2 prefix before fscommand fires, or from the
+   Korea cell's initialization in `iter-1185`'s LoadOptions
+   prefix.
+2. **Patch the PPU OnAccept handler** to normalize slot 16
+   → civ 6 at the native code level. Requires Ghidra RE of
+   the handler. This is strategy B from iter-1188's plan.
+3. **Runtime instrumentation via GDB watchpoint** on a known
+   civ-index memory location to discover exactly when/where
+   the PPU picks up the selected civ identifier. This is a
+   multi-iteration investigation.
+
+None of these three fit inside the "cheap" path that
+iter-1188 originally committed to. The work is more like 5-10
+iterations of PPU-side RE, not the one-line AS2 edit
+initially estimated. iter-1188's plan-commit is retained in
+git as a record of the learned-and-wrong path; the actual
+fix will be a NEW iteration with a different approach.
+
+**iter-1188 AS2 remap is REVERTED** to identity (no slot
+remapping). The LoadOptions Korea-synthesis from iter-1185
+remains — that one is empirically load-bearing for the
+carousel cell rendering.
+
 #### Deferral of path (b)
 
 Path (b) — real Korean civ attributes via civ-record table

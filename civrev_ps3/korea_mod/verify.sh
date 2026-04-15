@@ -238,7 +238,12 @@ run_m9_caesar() {
     local rpcs3_dir="$ROOT/rpcs3_automation"
     local out_json="$rpcs3_dir/output/korea_m9_caesar_result.json"
     rm -f "$out_json"
-    if ! ( cd "$rpcs3_dir" && timeout 360 ./docker_run.sh --headless korea_play 0 caesar >/dev/null 2>&1 ); then
+    # iter-1188: bumped outer timeout from 360 to 900 because
+    # iter-1187's cache-isolation change (dropping the host JIT
+    # cache bind-mount in docker_run.sh) extends cold-cache boots
+    # to 4-6 min, and the inner RPCS3_BOOT_TIMEOUT (config.py) is
+    # now 600s. Outer must exceed inner plus in-game-HUD wait.
+    if ! ( cd "$rpcs3_dir" && timeout 900 ./docker_run.sh --headless korea_play 0 caesar >/dev/null 2>&1 ); then
         return 1
     fi
     if [ ! -f "$out_json" ]; then

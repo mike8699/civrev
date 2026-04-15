@@ -1,6 +1,11 @@
 #!/bin/bash
 set -e
 
+# iter-1188 debug: mirror entrypoint stdout to /output so bash pipe
+# breaks on the host don't lose the container's output.
+exec > >(tee -a /output/entrypoint_${1:-unknown}.log) 2>&1
+echo "=== entrypoint.sh start tag=${1:-unknown} $(date) ==="
+
 # Always use Xvfb so that xdotool key input works reliably.
 # In GUI mode (DISPLAY was set), also run x11vnc to mirror to host.
 HOST_DISPLAY="$DISPLAY"
@@ -252,6 +257,23 @@ fi
 
 cd /civrev/rpcs3_automation
 
+# iter-1188: exfiltrate RPCS3.log to /output on exit so the host can
+# inspect fscommand traces (OnAccept slot values) and debug SWF→PPU
+# handoff issues. The bind-mounted /output is writable and persists
+# after the container is --rm'd. DO NOT use `exec` below — that would
+# replace this bash process and the log-copy step would never run.
+_run_and_copy_log() {
+    local tag="$1"
+    shift
+    "$@"
+    local rc=$?
+    if [ -f /root/.config/rpcs3/RPCS3.log ]; then
+        cp /root/.config/rpcs3/RPCS3.log /output/rpcs3_${tag}.log 2>/dev/null || true
+        echo "Copied RPCS3.log to /output/rpcs3_${tag}.log"
+    fi
+    return $rc
+}
+
 # Route to the appropriate test script
 if [ "${1:-}" = "autoplay" ]; then
     shift
@@ -264,10 +286,12 @@ elif [ "${1:-}" = "korea" ]; then
     exec python3 test_korea.py "$@"
 elif [ "${1:-}" = "korea_play" ]; then
     shift
-    exec python3 test_korea_play.py "$@"
+    _run_and_copy_log "korea_play" python3 test_korea_play.py "$@"
+    exit $?
 elif [ "${1:-}" = "korea_soak" ]; then
     shift
-    exec python3 test_korea_soak.py "$@"
+    _run_and_copy_log "korea_soak" python3 test_korea_soak.py "$@"
+    exit $?
 elif [ "${1:-}" = "korea_gdb" ]; then
     shift
     exec python3 test_korea_gdb.py "$@"
