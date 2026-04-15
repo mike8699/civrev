@@ -33,5 +33,12 @@ PAK9_DIR = PROJECT_ROOT / "Pak9"
 FPK_SCRIPT = PROJECT_ROOT / "fpk.py"
 
 # Timing
-RPCS3_BOOT_TIMEOUT = 300  # seconds to wait for game to reach menu
+# iter-1187: bumped from 300→600. The iter-1186 cache-isolation
+# change to docker_run.sh dropped the bind-mounted PPU/SPU JIT
+# cache, so every container run starts with an empty ~/.cache/rpcs3/
+# and recompiles PPU modules on first boot. Cold-cache boots take
+# 4-6 minutes to reach RSX init vs. ~60-90s with a warm cache. 600s
+# gives comfortable headroom for a cold boot on this hardware.
+# Warm-cache boots still finish well under the old 300s budget.
+RPCS3_BOOT_TIMEOUT = 600  # seconds to wait for game to reach menu
 SCREENSHOT_DELAY = 2  # seconds to wait after F12 before grabbing screenshot

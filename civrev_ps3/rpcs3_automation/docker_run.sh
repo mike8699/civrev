@@ -40,10 +40,30 @@ DOCKER_ARGS=(
     -v "$RPCS3_CONFIG/dev_flash3:/root/.config/rpcs3/dev_flash3:ro"
     # Project (read-only)
     -v "$PROJECT_DIR:/civrev:ro"
-    # Share RPCS3 PPU/SPU cache with host for fast boot (but not logs)
-    -v "$HOME/.cache/rpcs3/cache:/root/.cache/rpcs3/cache:rw"
-    -v "$HOME/.cache/rpcs3/spu_progs:/root/.cache/rpcs3/spu_progs:rw"
-    -v "$HOME/.cache/rpcs3/ppu_progs:/root/.cache/rpcs3/ppu_progs:rw"
+    # RPCS3 PPU/SPU JIT cache is DELIBERATELY NOT BIND-MOUNTED. Prior
+    # revisions shared $HOME/.cache/rpcs3/{cache,spu_progs,ppu_progs}
+    # with the container to speed up repeated boots, but that created
+    # two problems:
+    #   1. The container runs rpcs3 as root, so cache files written
+    #      through the bind mount were owned by root on the host.
+    #      Host-side rpcs3 (running as the user) then couldn't
+    #      overwrite them and ended up reading a mix of stale Docker-
+    #      written and partially-updated host files. The result was
+    #      a nasty SPU segfault at boot ("writing location 0x818 at
+    #      0x75ee00000000") whenever a user tried to play locally
+    #      after a harness run — iter-1187 repro on 2026-04-15.
+    #   2. If the Docker image's RPCS3 version drifted out of sync
+    #      with the host's RPCS3, the two would write incompatible
+    #      JIT metadata into the same cache files, yielding the same
+    #      segfault pattern even for root-owned reads.
+    # Dropping the bind mount means each container run gets an
+    # ephemeral cache and recompiles PPU/SPU code on first use
+    # (~20-30s added to cold boot). That's the price of cross-
+    # version / cross-user isolation, and it's cheap compared to
+    # losing an afternoon debugging a stale-cache segfault.
+    # If you want to restore the cache share for performance, ALSO
+    # add `--user $(id -u):$(id -g)` to DOCKER_ARGS below so the
+    # container writes cache files as the host user, not root.
     # RPCS3 screenshots dir + writable output (same location)
     -v "$OUTPUT_DIR:/root/.config/rpcs3/screenshots:rw"
     -v "$OUTPUT_DIR:/output:rw"
