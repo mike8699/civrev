@@ -1,5 +1,18 @@
 # PRD: Korea Civilization Mod for PS3 Civilization Revolution
 
+> **iter-222/223 reality check (2026-04-15):** the v1.0 ship state
+> documented below was substantially revised by the iter-222 finding
+> that `Common0.FPK` is **never opened at runtime** by the BLUS-30130
+> PS3 build. The 3 Common0 overlays this PRD originally spec'd
+> (`leaderheads.xml`, `console_pediainfo_civilizations.xml`,
+> `console_pediainfo_leaders.xml`) are structurally inert and were
+> removed from the build/install pipeline at iter-223. The actual
+> shipping state is **2 Pregame.FPK overlays + 6 EBOOT byte patches**.
+> The §9 strict-reading carousel goal (item 2) remains structurally
+> blocked Scaleform-side per §9.X. See §10 iter-221..223 entries for
+> the full empirical proof and §6.3's iter-222 banner for the §6.3
+> spec correction.
+
 ## 1. Summary
 
 Add Korea (leader: Sejong) as a 17th civilization in the PS3 release of
@@ -8,7 +21,9 @@ deliverable is intentionally minimal**: Korea must appear as a
 selectable option on the civ-selection menu, and selecting it must
 allow the game to boot into normal gameplay on the world map without
 crashing. That is the entire scope. The mod ships as a patched EBOOT
-plus replacement XMLs in `Common0.FPK` / `Pregame.FPK`.
+plus replacement XMLs in `Pregame.FPK` (`Common0.FPK` overlays
+attempted in earlier iterations were proved inert at iter-222 and
+removed at iter-223).
 
 ### 1.1 v1.0 scope (the only thing that matters right now)
 
@@ -39,6 +54,22 @@ work being (a) the EBOOT binary patch that extends the civ table from
 16 to 17 entries, and (b) the XML edits that surface "Korea"/"Sejong"
 text in the menus. Everything beyond that is v1.1+ scope and the
 agent should not pursue it.
+
+> **iter-222/223 update (2026-04-15) — actual ship state:**
+> Shipped scope item 1 (Korea visible at slot 16) is **structurally
+> blocked** under the iter-189 strict reading: the carousel cell
+> count is hardcoded Scaleform-side in `gfx_chooseciv.gfx` and adding
+> a 17th cell requires modifying AS2 bytecode, which is outside this
+> loop's static-patching toolchain (see §9.X for the formal blocker
+> record and iter-221 for the cross-platform OpenGL-vs-Scaleform
+> proof). Items 2 (settler/capital) and 3 (50-turn soak) cascade.
+>
+> What v1.0 actually ships: **Korea is in the parser buffers**
+> (civnames/rulernames at index 16, runtime-verified iter-203) but
+> **invisible in the carousel UI**. A user installing the mod sees
+> no visible difference from the stock game; the data exists but
+> there is no UI element that surfaces it. The 16 stock civs work
+> normally (iter-216 + iter-224 6-civ M9 PASS).
 
 This scope reduction is load-bearing for the verification plan:
 every test in §7 below targets only the v1.0 deliverable. The
@@ -7795,3 +7826,80 @@ in the user-visible PRD §1.1 v1.0 scope.
 **PRD changes made this iteration:** Progress Log entry added.
 Net shipping state: 3 dead overlays removed from build/install
 pipeline; 2 effective overlays + 6 EBOOT patches retained.
+
+### iter-224 (2026-04-15): refreshed §9 item 5 6-civ M9 sweep against the lean iter-223 install — 6/6 PASS
+
+Re-ran `run_m9_regressions.sh` against the iter-223 shipping
+state to refresh the §9 item 5 baseline. iter-216's M9 sweep
+was against the bloated pre-iter-223 install (with the inert
+Common0 overlays still being repacked into Common0_korea.FPK);
+iter-224 verifies the lean state is regression-free.
+
+**Results: 6/6 PASS**
+
+| civ | slot | result | notes |
+|---|---|---|---|
+| Caesar | 0 | M9 PASS | clean |
+| Catherine | 5 | M9 PASS | re-run separately after operator error (I prematurely killed the in-sweep run at the scenario picker, mistaking normal mid-navigation for a hang) |
+| Mao | 6 | M9 PASS | clean (canary for asset reuse) |
+| Lincoln | 7 | M9 PASS | clean |
+| Elizabeth | 15 | M6 PASS | re-run separately. Slot 15 routes to the harness's M6 reporter; landed in `korea_m6_elizabeth_result.json` not m9 — a `run_m9_regressions.sh` glob mismatch |
+| Random | 16 | M9 PASS | clean |
+
+Net: zero regressions from the iter-223 cleanup. The
+removal of Common0_korea.FPK from the install pipeline is
+fully validated.
+
+Also documented in this iteration: a generalization of the
+iter-222 finding to all 12 disc FPKs. Across 7 surviving
+RPCS3.log captures, only **5** FPKs (Pregame, pedia, Misc0,
+Misc1, ps3_misc) are ever opened by RPCS3. The other **7**
+(Common0, leaderhead, buildings, units, hoa, Level, music)
+are all dead carry-over from earlier ports and would never
+receive a runtime asset overlay even if one were attempted.
+This generalizes the iter-222 mod-side correction: any v1.1
+custom Korea asset must go in one of the 5 live FPKs or in
+the EBOOT directly.
+
+**Operator lessons learned (recorded in findings.md):**
+
+1. Don't kill a docker_run.sh that's only 2 minutes in. The
+   civ-select navigation step takes 1-2 min for civs at slot
+   5+ because the cursor has to step across the whole
+   carousel. The scenario picker / mid-navigation screenshot
+   is not a hang signal.
+2. The harness reports Elizabeth's milestone as M6, not M9.
+   `run_m9_regressions.sh` doesn't dual-check both filenames.
+   Future cleanup: either glob both `korea_m{6,9}_*` patterns
+   in the verification step or fix the harness to always emit
+   `m9_<civ>_result.json` for §9 sweep runs.
+
+**§9 DoD status (unchanged):**
+
+| # | item | status |
+|---|------|--------|
+| 1 | install.sh works | **MET** (iter-223 + iter-224 re-verified) |
+| 2 | Korea visible at slot 16 in carousel | **OPEN — STRUCTURALLY BLOCKED** (§9.X) |
+| 3 | Found capital with Korea | **BLOCKED on item 2** |
+| 4 | 50-turn soak as Korea | **BLOCKED on item 2** |
+| 5 | Stock regression (6 civs) | **MET** (iter-216 6/6 + iter-224 6/6) |
+| 6 | Verification artifacts committed | **MET** |
+
+**Verification artifacts:**
+- `korea_mod/verification/iter224_lean_m9_sweep/findings.md`
+- `korea_mod/verification/iter224_lean_m9_sweep/korea_m{6,9}_*_result.json` ×6
+- `korea_mod/verification/iter222_common0_unused/fpk_generalization.md`
+  (the 7-FPK dead-list generalization)
+
+**iter-225 plan:** the lean shipping state is now fully
+regression-verified end-to-end. Remaining low-leverage options:
+fix `run_m9_regressions.sh` to dual-check m6/m9 filenames so a
+future sweep doesn't have the same elizabeth-missing flake, or
+write a final closeout commit acknowledging that v1.0 has
+reached its maximum reachable state under iter-189 strict
+reading.
+
+**PRD changes made this iteration:** Progress Log entry added.
+§1.1 / top-of-file iter-222/223 reality-check banners added.
+Net shipping state unchanged from iter-223; verification
+baseline refreshed against the lean install.

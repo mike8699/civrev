@@ -1,0 +1,14 @@
+{
+  "milestone": "M6",
+  "slot": 15,
+  "label": "elizabeth",
+  "pass": true,
+  "oracle": "OCR in-game HUD after selecting slot 15 (elizabeth)",
+  "stages": {
+    "main_menu": true,
+    "difficulty_selected": true,
+    "highlighted_ok": true,
+    "in_game_hud": true
+  },
+  "select_ocr": "eumimemmmioes/ .\u00a7 \\smmmmeeseee/ #\u00a7 \\summenammmmed/ aes. p/ \u00bb \\ \u2014 | | Aontezuma Shaka Genghis | Random | Aztecs Zulu Khan r 4 Random | UAL Pm TN a \u201caa is i SH P | i) \u201cax \\ lean \u2014 see = s<' eee eee el u"
+}
