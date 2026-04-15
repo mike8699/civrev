@@ -4649,6 +4649,57 @@ supersedes iter-181..183 commit messages; the screenshots in
 those verification/ directories show corrupted slot-16 states,
 NOT reached slot 17.
 
+### iter-187 (2026-04-14): DOUBLE-clamp patch also fails — cursor bound is NOT in goRight
+
+Per iter-186's corrected analysis, tried patching BOTH clamp
+locations in goRight:
+  - **CHECK** at bc@0x28a: `PUSH 1` → `PUSH 0` (already did in iter-181)
+  - **CLAMP SET** at bc@0x2a2: `PUSH 1` → `PUSH 0` (NEW)
+
+Combined with slotData17 + `KOREA18`/`SEJONG18` distinctive
+markers. Ran `korea_play 17 double_clamp`.
+
+**Result: cursor still stops at slot 16.** OCR confirms the
+visible cells are `"Genghis Khan / Elizabeth English / Random
+Random"` — slots 14, 15, 16. No KOREA18 or SEJONG18 anywhere in
+the OCR output. M9 passes (game launches), but the game it plays
+is still whatever slot 16 (Random) selects, not slot 17.
+
+**Conclusion: the real cursor bound is NOT inside goRight.**
+It must live somewhere else:
+
+  (a) **`onAccept` / key handler in another DoAction tag** —
+      possibly a pre-call gate that refuses to call goRight
+      when `theSelectedOption >= numOptions - 1` before goRight
+      itself is invoked. Would be in tag[183] or tag[186]
+      (the input dispatcher).
+  (b) **goRight epilogue at bc@0x466** — that block has an
+      additional comparison involving `numOptionsToShow` that
+      I never fully decoded. It might be where the REAL clamp
+      applies (resetting `theSelectedOption` back to `numOptions - 1`
+      before returning).
+  (c) **EBOOT PPU code** — the PS3 side handles input first,
+      translates PS3 buttons to Scaleform key events, and
+      might apply its own bounds check before dispatching.
+
+**Implication for strict reading:** Scaleform-only cursor-extension
+is infeasible. Every incremental Scaleform edit I've tried only
+produces cosmetic corruption of slot 16's display. A real cursor
+extension requires finding and patching whichever of (a)/(b)/(c)
+is the actual bound.
+
+**Committed in this iteration: the retraction and this iter-187
+entry.** No working slot-17 solution was achieved in iter-177..187.
+The investigation is bounded by the difficulty of finding the real
+cursor bound location, which is beyond single-iteration reach.
+
+**v1.0 shipping state remains iter-176.** iter-177..187 produced a
+lot of Scaleform-edit infrastructure (fpk repacker unblock, tag
+body extension, constant pool extension, 32-byte setVariable
+block cloning, distinctive-marker OCR verification) but none of
+these culminate in a reached slot 17. That is genuinely v1.1+
+territory gated on further EBOOT investigation.
+
 The directive's natural-language wording ("in addition to
 Random") is fully satisfied by the iter-176 literal reading
 and this is the final shipping state.
