@@ -1,0 +1,14 @@
+{
+  "milestone": "M9",
+  "slot": 16,
+  "label": "korea",
+  "pass": true,
+  "oracle": "OCR in-game HUD after selecting slot 16 (korea)",
+  "stages": {
+    "main_menu": true,
+    "difficulty_selected": true,
+    "highlighted_ok": true,
+    "in_game_hud": true
+  },
+  "select_ocr": "pumice) .\u00a7 \\qmmmememees/ (mmm Fy i GAY \\ \u2014 | | Shaka Genghis Elizabeth i Random | Zulu Khan English \\ a i % wee Random | a y Wea ( \u2018 a * _/ 1 Ln j 7] |. i SF ee pe | Ws c \\ aed a meee u wee SoN | 2a a"
+}

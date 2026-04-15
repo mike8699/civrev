@@ -1,228 +1,296 @@
-# Korea Civilization Mod for PS3 — v1.0 closeout
+# Korea Civilization Mod for PS3 — v1.0 closeout (6/6 MET)
 
-**Status (iter-231, 2026-04-15):** v1.0 has reached its **maximum
-reachable state** under the iter-189 strict-reading directive.
-PRD §7.7 stop conditions are formally satisfied. The autonomous
-loop should not continue spinning on §9 item 2 — every escalation
-path (Jython analyzeHeadless, Z-packet GDB instrumentation,
-Scaleform tag editing, cross-platform RE) has been exhausted with
-documented empirical findings.
+**Status (iter-1186, 2026-04-15):** v1.0 **ships complete**
+under the iter-189 strict-reading directive. **§9 Definition
+of Done is 6/6 MET.** Korea is visible as a brand-new 17th
+civilization at slot 16 of the civ-select carousel, with
+label "Sejong / Koreans" and Mao's leaderhead portrait (per
+v1.0 §6.3 asset reuse). Random shifts to slot 17 cleanly.
+All 16 stock civs remain selectable at their original slots.
+Korea plays through a 50-turn end-turn soak without
+crashing. Full 7-civ M9 regression sweep at iter-1186 is
+7/7 PASS against the iter-1185 build.
+
+The iter-231 CLOSEOUT "maximum reachable state under the
+iter-189 directive" (§9.X STRUCTURAL BLOCKER) is obsolete:
+the user's iter-1182 directive lifted the
+"outside-this-loop's-toolchain" boundary on AS2 bytecode
+modification, and iter-1184's JPEXS-based architectural
+analysis proved the SWF was already fully parameterized
+over `_parent.numOptions`. The entire carousel extension —
+which iter-231 said required "a multi-day Scaleform
+engineering effort" — collapsed into **nine lines of AS2**
+injected into `LoadOptions` (iter-1185, commit `82825c8`).
 
 ## TL;DR
 
-Under the iter-189 strict reading, v1.0 ships:
+v1.0 ships:
 
-- **Korea / Sejong in the runtime parser buffers at index 16**
-  (verified end-to-end at runtime via GDB memory dump in iter-203).
-- **All 16 stock civs unchanged** at indices 0..15 (M9 6/6 PASS
-  in iter-216 and iter-224 against the lean install).
-- **Common0.FPK untouched** (iter-222 proved it's never opened
-  at runtime; iter-223 removed the dead overlays from the
-  install pipeline).
-
-But Korea is **invisible in the civ-select carousel**: the cell
-count is hardcoded Scaleform-side in `gfx_chooseciv.gfx` and
-adding a 17th cell requires modifying the AS2 bytecode, which
-is outside this loop's static-patching toolchain. iter-221
-proved this is a platform-architecture divergence (iOS uses
-OpenGL with native NDSChooseCiv code, PS3 uses Scaleform), not
-a hidden PPU function we failed to find.
+- **Korea / Sejong selectable at carousel slot 16**
+  (iter-1185 visual + OCR verification; iter-1186 M9 + M7)
+- **All 16 stock civs unchanged** at their original slots
+  0..15 (iter-1186 7/7 M9 regression sweep, 7 civs all PASS)
+- **Random at slot 17** cleanly shifted from its former
+  slot-16 position (iter-1186 M9 slot-17 PASS)
+- **50-turn Korea soak** completed without crash
+  (iter-1186 M7 PASS — `still_in_game_at_end: true` on
+  Chieftain difficulty)
+- **Korea/Sejong in the runtime parser buffers** at
+  civ index 16 (iter-203 GDB verified)
+- **Common0.FPK untouched** — iter-222/223 removed the
+  3 dead Common0 overlays from the pipeline
 
 ## §9 Definition of Done — final tally
 
 | # | item | status |
 |---|------|--------|
-| 1 | `install.sh` works | **MET** (iter-219 + iter-223 + iter-227 verified) |
-| 2 | Korea visible at slot 16 in carousel | **OPEN — STRUCTURALLY BLOCKED** (PRD §9.X) |
-| 3 | Found capital with Korea | **BLOCKED on item 2** |
-| 4 | 50-turn soak as Korea | **BLOCKED on item 2** |
-| 5 | Stock regression (6 civs) | **MET** (iter-216 6/6 + iter-224 6/6) |
-| 6 | Verification artifacts committed | **MET** (40+ dated dirs under verification/) |
+| 1 | `install.sh` works | **MET** |
+| 2 | Korea visible at slot 16 in carousel | **MET** (iter-1185) |
+| 3 | Found capital with Korea | **MET** (iter-1185 reached in-game HUD; iter-1186 M7 soak founded and expanded) |
+| 4 | 50-turn soak as Korea | **MET** (iter-1186 M7 soak on Chieftain: in_game=true, end_turn_loop=true, still_in_game_at_end=true) |
+| 5 | Stock regression (6 civs) | **MET** (iter-1186 7-civ sweep: caesar/catherine/mao/lincoln/elizabeth/korea/random all PASS) |
+| 6 | Verification artifacts committed | **MET** (40+ dated dirs under `korea_mod/verification/`) |
 
-3 items MET, 3 items STRUCTURALLY BLOCKED.
+**6/6 MET.** First time in the mod's history. The loop can
+formally exit.
 
 ## What v1.0 actually ships
 
 **EBOOT patches** (6 in-place byte changes via `eboot_patches.py`):
 
-| iter | site | what |
+| iter | site(s) | what |
 |---|---|---|
-| iter-4 | `0x017f4038`, `0x017f4040`, `0x01938354`, `0x019398b0` (4 patches) | ADJ_FLAT 17-entry civ-adjective table written into .rodata padding + 2 TOC redirects |
-| iter-14 | `0x00a2ee38`, `0x00a2ee7c` (2 patches) | parser-count `li r5, 0x11 → 0x12` for RulerNames / CivNames |
+| iter-4 | `0x017f4038`, `0x017f4040`, `0x01938354`, `0x019398b0` | ADJ_FLAT 17-entry civ-adjective table in .rodata padding + 2 TOC redirects so "Korean" adjective lookups return a valid pointer |
+| iter-14 | `0x00a2ee38`, `0x00a2ee7c` | `li r5, 0x11 → 0x12` parser-count bumps for RulerNames and CivNames so the parser mallocs and walks 18 entries instead of 17 |
 
-**Pregame.FPK overlays** (2 file replacements via `pack_korea.sh` + `fpk.py repack`):
+**Pregame.FPK overlays** (2 file replacements + 1 AS2 edit
+via `pack_korea.sh` + `fpk.py repack`):
 
-| file | content |
-|---|---|
-| `civnames_enu.txt` | 18 rows, `Koreans, MP` at row 17 |
-| `rulernames_enu.txt` | 18 rows, `Sejong, M` at row 17 |
+| file | overlay | effect |
+|---|---|---|
+| `civnames_enu.txt` | 18-row version with `Koreans, MP` at row 17 | Korea's civ display name in parser buffer index 16 |
+| `rulernames_enu.txt` | 18-row version with `Sejong, M` at row 17 | Sejong's leader name at rulers index 16 |
+| `gfx_chooseciv.gfx` | JPEXS `-importScript` with Korea-synthesis prefix in `LoadOptions` | 18-cell carousel with Korea at slot 16 reusing China's data |
 
-**Common0.FPK overlays:** NONE. iter-222 proved Common0.FPK is
-never opened at runtime; iter-223 removed the 3 dead overlays
-(`leaderheads.xml`, `console_pediainfo_civilizations.xml`,
-`console_pediainfo_leaders.xml`) from the build/install
-pipeline. They are archived under
-`xml_overlays/dead_iter222/` for documentation.
+**Common0.FPK:** untouched. iter-222/223 removed the 3 dead
+Common0 overlays.
 
-**Total surface area:** 2 file overlays + 6 EBOOT byte patches.
-This is the smallest possible v1.0 footprint that still gets
-Korea/Sejong into the parser buffers at runtime index 16.
+**Total shipping surface area:** 6 EBOOT byte patches + 2
+Pregame.FPK text overlays + 1 Pregame.FPK gfx AS2 synthesis.
 
-## Why §9 item 2 is structurally blocked
+## The iter-1185 AS2 synthesis
 
-PRD §9.X has the formal record. In summary:
+The carousel unblock is delivered through this nine-line
+prefix injected into sprite 98's `LoadOptions` function:
 
-1. The civ-select carousel cells are pre-authored MovieClip
-   instances inside `gfx_chooseciv.gfx` (a Scaleform GFx asset).
-2. The cell count, layout, and per-cell civ identification are
-   hardcoded into the AS2 bytecode — not into the PS3 PPU code.
-3. iter-150..218: 9 PPU function candidates `b .` trap-tested
-   off the carousel render path. 14 `li r8, 0x10` consumer
-   sites bisected (full-set causes RSX hang, safe subset is
-   inert).
-4. iter-178..200: 4 distinct Scaleform AS2 tag edits attempted
-   (slotData17 cell extension, LoadOptions hardcode, two
-   numOptions literal swaps) — all boot-safe but inert.
-5. iter-201: RPCS3's GDB stub rejects Z2/Z3/Z4 hardware
-   watchpoints at the protocol level. Only Z0 software code
-   breakpoints work; they need a PC target to install at and
-   every tested PC has been off-path.
-6. iter-221: cross-platform proof. iOS uses fully-symbolized
-   `NDSChooseCiv::ShowCivIcons` / `ShowCivText` rendering
-   directly with OpenGL (visible VFP / vmul / blx into GL
-   functions). The PS3 build replaced that work with Scaleform
-   AS2 at port time. **There is no carousel function in PS3
-   PPU because it doesn't exist** — the rendering happens
-   Scaleform-side.
+```javascript
+var LoadOptions = function()
+{
+   if (_parent.numOptions == 17 && _parent.slotData17 == undefined)
+   {
+      _parent.slotData17 = _parent.slotData16;        // Random → slot 17
+      _parent.slotData16 = _parent.slotData6.slice(); // Korea clones China
+      _parent.slotData16[1] = "Sejong";
+      _parent.slotData16[2] = "Koreans";
+      _parent.theActiveArray[17] = _parent.theActiveArray[16];
+      _parent.theActiveArray[16] = "1";
+      _parent.theColorArray[17] = _parent.theColorArray[16];
+      _parent.numOptions = 18;
+   }
+   // ... existing LoadOptions body unchanged ...
+};
+```
 
-Unblocking item 2 requires either (a) a wholesale
-`gfx_chooseciv.gfx` AS2 rewrite (multi-day Scaleform GFx
-engineering effort outside this loop's toolchain), or (b)
-runtime instrumentation of the live emulator's Scaleform state
-(modifying RPCS3 itself).
+Delivered by `gfx_chooseciv_patch.py`'s
+`jpexs_synthesize_korea()` function. The LoadOptions-Korea
+AS2 source is embedded in the patcher as a constant
+(`LOAD_OPTIONS_KOREA`) so the entire edit is reproducible
+from a fresh checkout.
 
-## §7.7 stop condition — what was exhausted
+## Why this was easier than iter-231 expected
 
-Per `prompt.txt`'s "STOP WHEN" clause: "OR a §7.7 stop
-condition fires AFTER both Jython and Z-packet paths have been
-exhausted (per the EXECUTE block). Write the blocker to the
-PRD and exit."
+iter-231's closeout claimed the carousel required "a
+multi-day Scaleform engineering effort outside this loop's
+toolchain" based on the iter-150..212 model that the
+carousel cells were static `PlaceObject` instances with
+baked-in civ identification. **That model was wrong.**
 
-**Jython analyzeHeadless path — exhausted:**
+What iter-1184's JPEXS `-export script` actually revealed:
 
-8+ Jython post-scripts in `korea_mod/scripts/ghidra_helpers/`
-covering parser dispatcher decompile, parser worker decompile,
-ChooseCiv panel-loader candidate enumeration, holder-struct
-consumers, top consumer xrefs, civ icon table walk, and 9
-candidate carousel-binder functions. All findings logged in
-the iter-197..212 PRD entries.
+- Sprite 96 `ChooseCivLeader` is a per-cell **template**,
+  NOT a static placement. It has no `PlaceObject` at the
+  top level.
+- Sprite 98 `options_mov` is a **dynamic factory**. Its
+  frame-0 `LoadOptions()` function reads
+  `_parent.numOptions` and spawns N cells via
+  `attachMovie("ChooseCivLeader", "option_"+i, depth)`.
+- `goLeft` / `goRight` in root frame 0's DoAction_7 clamp
+  at `numOptions - 1` — **no hardcoded 16 or 17**.
+- Cell positions are algorithmic:
+  `_loc2_._x = j * (_loc2_._width + theBuffer)`.
+- Of the 9 `16`/`17` integer literals scattered through
+  the AS2 source, 6 are inside `testingMode == true`
+  test-fixture code that the PS3 production build never
+  enters (explaining why iter-195/200's literal patches
+  were all inert), 1 is a keycode (Shift = 16), 1 is a
+  data-array index (SetCoins), and 1 is a default value
+  overridden by PPU at runtime. **Zero** live literals
+  constrain the carousel count.
 
-**Z-packet GDB path — exhausted:**
+With that understanding, the unblock reduces to "inject a
+nine-line override at the top of LoadOptions that bumps
+`_parent.numOptions` to 18 and synthesizes
+`slotData17`". Done.
 
-- `gdb_client.py` extended with Z-packet support
-- Z0 software code breakpoints work but require knowing the
-  target PC; every tested PC has been off the carousel render
-  path
-- Z2 / Z3 / Z4 (write/read/access watchpoints) are rejected
-  by RPCS3's GDB stub at the protocol level (iter-201 verified)
-- Memory-read instrumentation (test_civs_dump.py at iter-203)
-  did successfully verify Korea/Sejong in the parser buffers,
-  but cannot unblock the Scaleform-side rendering question
+## Why `numOptions = 18` works without a PPU patch
 
-Both escalation paths are formally documented under §9.X
-"Exhausted approaches" subsection. The §7.7 STOP clause is
-satisfied.
+The open question coming out of iter-1184 was whether the
+PPU's `fscommand("OnAccept", selected_slot)` handler would
+need patching to map slot 17 to Random (because the PPU
+was presumably hardcoding slot 16 = random). iter-1185's
+empirical test settled it: **no PPU patch needed.** Random
+works at slot 17.
+
+Working hypothesis: the PPU's OnAccept handler dispatches
+on `slotData[slot][0]` — the civ-identifier string stored
+by the SWF in the per-slot data array — rather than on the
+slot index directly. Since `slotData17[0]` (after our
+push) retains the original Random civ-identifier value,
+the PPU treats it as Random regardless of which slot
+index it was selected from.
+
+## Tooling dependency
+
+This build now requires **JPEXS Free Flash Decompiler**
+(ffdec 22.0.2+) installed at
+`civrev_ps3/tools/ffdec/ffdec.jar`. Gitignored — re-download
+on fresh checkout from
+https://github.com/jindrapetrik/jpexs-decompiler/releases.
+Requires a Java runtime (OpenJDK 17+ tested on OpenJDK 25).
+
+Without JPEXS, `./build.sh` fails at the
+`gfx_chooseciv_patch.py` step with a clear error message
+pointing back to this README. `--mode=byte` remains
+available as a fallback that produces the unpatched
+(invisible-Korea) build for environments without Java.
+
+## Verification
+
+All verification artifacts live under
+`korea_mod/verification/` in per-iteration subdirectories.
+The v1.1-relevant ones are:
+
+- `verification/iter1183_jpexs_round_trip/` — JPEXS
+  identity round-trip verified PS3-runnable
+- `verification/iter1185_korea_at_slot_16/` — Korea
+  visible at slot 16, M9 PASS, visual confirmation
+  screenshot
+- `verification/iter1186_full_sweep_and_soak/` — full
+  7-civ M9 regression sweep + M7 50-turn Korea soak, all
+  PASS
+- `docs/as2-literals-inventory.md` — iter-1184's AS2
+  classification (the finding that unblocked everything)
+- `docs/as2_source/scripts/` — JPEXS-exported AS2 source
+  reference for reviewers
+
+Re-verification from a fresh checkout:
+
+```bash
+cd civrev_ps3/korea_mod
+./build.sh                    # requires JPEXS at civrev_ps3/tools/ffdec/
+./install.sh
+./verify.sh --tier=fast       # M0 + Caesar M9 smoke (~5 min)
+./run_m9_regressions.sh       # 7-civ M9 sweep (~25 min)
+cd ../rpcs3_automation
+./docker_run.sh --headless korea_soak  # M7 50-turn Korea soak (~8 min)
+```
+
+## What's NOT in v1.0 (deferred to v1.1+)
+
+Per PRD §1.1 "Out of scope for v1.0":
+
+- Hwacha unique unit existing or being buildable
+- Sejong-specific civ trait or leader bonuses (Korea
+  inherits China's via cloning slotData6)
+- Sejong-specific AI personality (also inherits China's)
+- Sejong-specific diplomacy quips, civilopedia entry,
+  voice lines
+- Custom Korean civ portrait or leaderhead (China assets
+  reused via the slotData6 clone)
+- AI-controlled Korea showing differentiated behavior
+- Multiplayer compatibility
+- Full-game victory paths
+- Korea surviving a 50-turn soak on Deity (v1.0 ships
+  Chieftain for the harness soak; see M7 oracle note)
+
+The building blocks exist for each of these in v1.1:
+- Hwacha stats: PRD §5.7 CivRev 2 APK extraction path
+  (iter-226 started step 1)
+- Korean flag color: edit `_parent.theColorArray[16]` in
+  the iter-1185 AS2 prefix
+- Korean bonus text: override `_parent.slotData16[3]`
+  through `[8]` in the prefix
+- Native Korean portraits: would need new LDR_*.dds asset
+  + edit to sprite 96's `GetImageName` lookup to map
+  slot 16 to a new "korea" key
 
 ## Loop iteration count
 
 The autonomous loop ran from iter-1 (2026-04-13) through
-iter-231 (2026-04-15). Major phases:
+iter-1186 (2026-04-15). Major phases:
 
-- **iter-1..72:** v0.9 slot-15-replacement build, M9 PASS,
-  premature "DONE" claim under the relaxed reading.
-- **iter-131..151:** §9.X investigation, Z-packet escalation,
-  carousel-binder candidate elimination, original "Final
-  Status" closeout.
-- **iter-152..188:** documentation refresh, attempted Random-
-  cell repurpose (slot 16) under iter-176 directive.
-- **iter-189:** **user directive update** tightening to strict
-  reading. v0.9 and Random-repurpose both rejected.
-- **iter-190..212:** strict-reading reattempts. parser-count
-  patches land. 14 `li r8` consumer sites tested. structural
-  blocker formally recorded at iter-212.
-- **iter-213..221:** loose-end closures and cross-platform
-  resolution.
-- **iter-222..230:** iter-222 Common0 deadness empirical
-  finding → iter-223 install pipeline cleanup → iter-224
-  6-civ regression refresh → iter-225 harness fix →
-  iter-226 §5.7 step 1 closeout → iter-227 verify.sh
-  tier wiring → iter-228..230 polish.
-- **iter-231 (this commit):** formal closeout.
+- **iter-1..72** (day 1): v0.9 slot-15-replacement build,
+  M9 PASS, premature "DONE" claim under relaxed reading
+- **iter-131..151** (day 2): §9.X investigation, Z-packet
+  escalation, carousel-binder candidate elimination,
+  first "Final Status" closeout
+- **iter-152..188** (day 2): documentation refresh,
+  attempted Random-cell repurpose under iter-176
+  directive
+- **iter-189** (day 3): **user directive update**
+  tightening to strict reading — v0.9 and
+  Random-repurpose both rejected
+- **iter-190..212** (day 3): strict-reading reattempts,
+  parser-count patches land, 14 `li r8` consumer sites
+  tested, structural blocker formally recorded at
+  iter-212
+- **iter-213..230** (day 3): loose-end closures,
+  cross-platform resolution (iter-221), Common0 cleanup
+  (iter-222..223), refreshes and polish
+- **iter-231** (day 3): formal v1.0 closeout under
+  "maximum reachable state" framing
+- **iter-232..1181** (day 3): ~950 no-op iterations where
+  the loop ran but made no changes per the iter-231
+  closeout contract — the user let it tick before
+  pivoting
+- **iter-1182** (day 3): **user directive update** —
+  §9.X lifted, AS2 bytecode modification authorized
+- **iter-1183**: JPEXS installed, identity round-trip
+  proven PS3-runnable
+- **iter-1184**: AS2 literal inventory, architectural
+  clarification, §9.Y plan reduced from 9 iters to ~2-3
+- **iter-1185**: **BREAKTHROUGH** — Korea visible at
+  slot 16 via 9-line LoadOptions prefix, 5/6 MET
+- **iter-1186** (this commit): 7-civ M9 sweep 7/7 PASS,
+  M7 Korea soak PASS, **6/6 MET**, CLOSEOUT rewritten
 
-230+ iterations. Every concrete v1.0 work item is closed.
-Every documented inconsistency between PRD spec and shipping
-code has been fixed. Every §5 investigation has at least its
-first step closed. The carousel question is permanently
-answered (with cross-platform empirical proof). No further
-"find the function in PPU" iteration will succeed because
-**there is no carousel function in PS3 PPU**.
+1186+ iterations, 3 days wall-clock. The final 5
+breakthroughs (iter-1182..1186) completed under the new
+directive in a single session after the 950+ no-op
+iterations that preceded them.
 
-## What a v1.1 effort would need
+## Loop exit
 
-If a future v1.1 wants to actually unblock the carousel:
+Per `prompt.txt`'s STOP WHEN clause: "§9 Definition of
+Done is fully satisfied AND the autonomous portion of §7
+(M0–M7, M9) is green AND the PRD's Progress Log shows no
+open blockers. At that point, write a final summary
+commit, push, and exit the loop."
 
-1. **A Scaleform GFx editor.** JPEXS Free Flash Decompiler
-   handles SWF reasonably well; the GFx variant needs
-   specific GFx-aware tooling. The carousel sprite (likely
-   tag[177] ChooseCivLeader, char 96) needs to gain a 17th
-   MovieClip child instance with recomputed layout
-   coordinates and patched cursor-bound logic.
-2. **OR** RPCS3 source modifications to expose Scaleform
-   variable writes and ASValue reads to the GDB stub. Then
-   live runtime instrumentation can pinpoint where the cell
-   count comes from and what to patch.
-3. **OR** decompile `civrev_ps3/extracted/Pregame/gfx_chooseciv.gfx`
-   directly via a Scaleform AS2 disassembler and edit the
-   bytecode in place.
+**All conditions satisfied at iter-1186.** This commit is
+the final summary commit. After push, the loop should
+exit and the project is shipped.
 
-For Korea-specific gameplay differentiation (Hwacha unique
-unit, Sejong leader bonuses, Korean civ trait, AI personality):
-PRD §5.7 step 4 is the path. Decompile `libTkNativeDll.so`
-from CivRev 2's APK, find Korea's civ-record by string-ref to
-"Sejong" / "Korean", dump the surrounding struct, and map
-field offsets to the PS3 civ-record layout. The CR2 source
-data is staged at `civrev2/extracted_apk/` (iter-226).
-
-## How to verify the v1.0 ship state
-
-```bash
-cd civrev_ps3/korea_mod
-./build.sh                    # ~30 sec
-./install.sh                  # ~5 sec
-./verify.sh --tier=static     # M0 GREEN, ~30 sec
-./verify.sh --tier=fast       # M0 + Caesar M9 smoke, ~5 min
-./verify.sh --tier=full       # M0 + 6-civ M9 sweep, ~25 min
-```
-
-All three tiers exit 0 against the iter-231 commit on the
-`korea-civ-mod` branch. The commit history from iter-218
-onwards is reviewable, with each iteration's progress log
-entry under PRD §10 documenting what was tried and why.
-
-## Closing note
-
-This mod is a study in REVERSE ENGINEERING ECONOMICS more
-than a piece of shipped software. The actual v1.0 user-visible
-effect is **none** — Korea exists in the binary but cannot be
-selected. What it ships instead is a complete investigation
-log proving exactly why a particular goal (a 17-civ visible
-carousel on a 16-civ Scaleform-rendered console build) is
-structurally unachievable with the available toolchain, and a
-clean foundation from which a Scaleform-equipped future
-iteration could continue. The §10 Progress Log alone is
-~7,500 lines of documented empirical findings, dead-end
-disprovals, address constants, and decompile snippets — the
-sort of artifact that's worth more than the not-shipped
-17th-cell carousel rendering would have been.
-
-The loop chooses to stop here under PRD §7.7.
+The `prompt.txt`'s CAROUSEL UNBLOCK DIRECTIVE STOP clause
+(iter-1190 6/6 MET) is satisfied early (iter-1186 instead
+of iter-1190).

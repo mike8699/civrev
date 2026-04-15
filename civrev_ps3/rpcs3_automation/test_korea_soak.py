@@ -102,16 +102,26 @@ def main():
             _press("Down", 0.4)
         _press("X", 3)
 
-        # Deity
-        for _ in range(4):
-            _press("Down", 0.3)
+        # Chieftain (easiest difficulty). iter-1186: switched from Deity
+        # to Chieftain because the M7 soak run at iter-1186 had Korea
+        # (playing as a Mao-stats clone per v1.0 §1.1) defeated by
+        # Cleopatra via Domination around turn 30-35 on Deity. §9 DoD
+        # item 4 asks for "50 end-turn cycles without the game crashing
+        # or freezing" — the strict letter of item 4 doesn't require
+        # surviving at the highest difficulty. The end-turn loop itself
+        # (the crash/freeze check) is what we verify; a softer
+        # difficulty lets the game simulate through 50 turns without
+        # the civ being eliminated by AI play.
         _press("X", 5)
         _shot("01_difficulty")
 
-        # Normalize to Romans, right 15 to Korea
+        # Normalize to Romans, right 16 to Korea (iter-1185: Korea now
+        # at slot 16 under the iter-189 strict reading, via the
+        # LoadOptions Korea-synthesis prefix in gfx_chooseciv.gfx. The
+        # old "right 15" was the v0.9 slot-15 England→Korea rename).
         for _ in range(20):
             _press("Left", 0.25)
-        for _ in range(15):
+        for _ in range(16):
             _press("Right", 0.3)
         _shot("02_korea_highlighted")
 

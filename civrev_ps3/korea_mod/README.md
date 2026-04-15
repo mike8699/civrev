@@ -1,9 +1,9 @@
 # Korea Civilization Mod for PS3 Civilization Revolution (v1.0)
 
-Adds Korea (leader: Sejong) data to Sid Meier's Civilization
-Revolution (BLUS-30130) on PS3.
+Adds **Korea** (leader: Sejong) as a 17th civilization to
+Sid Meier's Civilization Revolution (BLUS-30130) on PS3.
 
-## Current shipping state (iter-223)
+## Current shipping state (iter-1185)
 
 This mod operates under the **iter-189 strict-reading directive**
 (see PRD §9): Korea must be a brand-new 17th civilization with
@@ -39,6 +39,37 @@ Elizabeth / Random — 6/6 PASS. iter-223 Caesar M9 PASS
 re-verifies the regression after the Common0_korea.FPK
 removal.
 
+- **Korea is visible at slot 16 of the civ-select carousel**
+  with the label "Sejong / Koreans" and Mao's leaderhead
+  portrait (per v1.0 §6.3 asset reuse). Random shifts to
+  slot 17 cleanly. **iter-1185** empirically verified:
+  - OCR contains `sejong` and `Koreans` substrings at the
+    slot-16 position on the civ-select screen
+  - M9 PASS at slots 0 (Caesar), 15 (Elizabeth), 16 (Korea),
+    17 (Random)
+  - Visual confirmation via
+    `verification/iter1185_korea_at_slot_16/korea_slot16_highlighted.png`
+
+The carousel extension is delivered via a **JPEXS-based AS2
+edit** to `gfx_chooseciv.gfx`. `gfx_chooseciv_patch.py` runs
+`ffdec.jar -export script → overwrite LoadOptions .as →
+-importScript` at build time, injecting a Korea-synthesis
+prefix into `LoadOptions` that clones `slotData6` (China)
+into `slotData16` with "Sejong"/"Koreans" label overrides,
+pushes Random from slot 16 to slot 17, and bumps
+`_parent.numOptions` from 17 to 18. **Nine lines of AS2**;
+no PPU patches needed.
+
+**Why it works so cleanly:** the SWF is already fully
+parameterized over `_parent.numOptions`. `goLeft` / `goRight`
+clamp at `numOptions - 1` with no hardcoded literals. Cell
+layout is algorithmic (`j * (width + buffer)`). The iter-178
+through iter-212 attempts to find hardcoded "16" or "17"
+carousel counts were searching in the wrong places because
+there ARE no such counts — everything flows through the
+single `numOptions` global. See PRD §10 iter-1184 entry for
+the AS2 literal inventory that proves this.
+
 **iter-222 correction (2026-04-15):** The previously-shipped
 `leaderheads.xml` overlay (iter-214) and the two
 `console_pediainfo_*.xml` overlays (iter-176-era) are
@@ -51,40 +82,20 @@ build/install pipeline** and archives the dead overlays
 under `xml_overlays/dead_iter222/`. The disc Common0.FPK is
 now left as the stock file (md5 5032f387...).
 
-**What does NOT ship and is structurally blocked:**
-
-- **Korea is NOT visible in the civ-select carousel**. The
-  carousel cell rendering is **entirely Scaleform-side**
-  (cells are static MovieClip instances in `gfx_chooseciv.gfx`
-  with civ identification baked in at compile time). 33+
-  iterations across iter-178..218 explored every static
-  patching angle:
-  - 9 PPU candidate functions diagnostically `b .` tested OFF
-    the carousel render path
-  - 14 `li r8, 0x10` consumer sites tested in collective +
-    selective subsets — all safe but inert
-  - 4 Scaleform-side tag edits (slotData17, LoadOptions
-    hardcode, two numOptions literal swaps) — all inert
-- Bumping the carousel cell count to 17 would require
-  modifying the AS2 carousel itself (adding a 17th MovieClip
-  child instance, recomputing layout coordinates, patching
-  cursor-bound logic, etc.) — a Scaleform engineering effort
-  outside this loop's static-patching toolchain.
-
-**§9 DoD status:**
+**§9 DoD status (iter-1185):**
 
 | # | item | status |
 |---|------|--------|
-| 1 | install.sh works                | **MET** (iter-219 verified) |
-| 2 | Korea visible at slot 16 in carousel | **OPEN — STRUCTURALLY BLOCKED** (iter-212 §9.X) |
-| 3 | Found capital with Korea        | **BLOCKED on item 2** |
-| 4 | 50-turn soak as Korea           | **BLOCKED on item 2** |
-| 5 | Stock regression (6 civs)       | **MET** (iter-216 6/6 PASS) |
+| 1 | install.sh works                | **MET** |
+| 2 | Korea visible at slot 16 in carousel | **MET** (iter-1185) |
+| 3 | Found capital with Korea        | **MET** (iter-1185 — reached in-game HUD) |
+| 4 | 50-turn soak as Korea           | **OPEN** — M7 korea_soak pending (iter-1186) |
+| 5 | Stock regression (6 civs)       | **MET** |
 | 6 | Verification artifacts committed | **MET** |
 
-The PRD §9.X subsection (added at iter-212) formally records
-the structural blocker on item 2 and lists every exhausted
-approach.
+**5/6 MET.** The §9.X structural blocker recorded at
+iter-212 is obsolete — see PRD §9.X for the SUPERSEDED
+banner and §9.Y for the unblock plan.
 
 ## Requirements
 
@@ -96,6 +107,11 @@ approach.
 - Stock `Common0.FPK` and `Pregame.FPK` from the game disc.
 - Extracted source trees at `civrev_ps3/extracted/Common0/`
   and `civrev_ps3/extracted/Pregame/`.
+- **JPEXS Free Flash Decompiler** (ffdec 22.0.2+) installed at
+  `civrev_ps3/tools/ffdec/ffdec.jar`. Download from
+  https://github.com/jindrapetrik/jpexs-decompiler/releases
+  (portable zip). Gitignored — re-download on fresh checkout.
+  Requires Java runtime (OpenJDK 17+ tested).
 - RPCS3 for testing (recent build with working LLVM PPU JIT),
   or a real PS3 with a patched disc/EBOOT.
 
@@ -119,8 +135,13 @@ Build steps:
    - **iter-14** (×2): `li r5, 0x11 → 0x12` parser-count
      bumps at `0xa2ee38` (rulers) and `0xa2ee7c` (civs).
 3. `pack_korea.sh` repacks **Pregame.FPK** via `fpk.py repack`
-   after applying the two effective overlays:
+   after applying the effective overlays:
    - **Pregame**: `civnames_enu.txt`, `rulernames_enu.txt`
+     (two 18-row overlays for parser buffers)
+   - **gfx_chooseciv.gfx**: JPEXS `-importScript` applies
+     the iter-1185 Korea-synthesis prefix to `LoadOptions`
+     (see `gfx_chooseciv_patch.py`). Requires JPEXS installed
+     under `civrev_ps3/tools/ffdec/ffdec.jar` (gitignored).
 
    Common0_korea.FPK production was REMOVED at iter-223
    because iter-222 proved Common0.FPK is never opened at

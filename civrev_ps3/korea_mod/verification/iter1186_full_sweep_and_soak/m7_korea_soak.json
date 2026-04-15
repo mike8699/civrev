@@ -1,0 +1,53 @@
+{
+  "milestone": "M7",
+  "pass": true,
+  "oracle": "end-turn 50x without crash; HUD stays OCR-readable; game is still on the world map at the end (not soft-exited to menu)",
+  "target_turns": 50,
+  "stages": {
+    "in_game": true,
+    "end_turn_loop": true,
+    "still_in_game_at_end": true
+  },
+  "snapshots": [
+    {
+      "turn": 5,
+      "ocr": "Information | \u2014\u2014 Fut ; | _ \u2014 Se | a \\ a>. | SETTLER units are used to found new cities. Move to | | suitable location and press & . New cities cannot be | founded right next to existing cities. Protec"
+    },
+    {
+      "turn": 10,
+      "ocr": "_ = Be a = = | ; Information es | Cree, Ps ee Se eS | Eg ON Ay | q ww a sl a oe . ite \u2018 y \u2014_ \u00e9 bi | icc ee Oo 4GRS | a \u201c5 : i Zt ss aa =o ee | | -- 4 es | x ES a ee | Sate a one i ea = = . A \\ | a ee "
+    },
+    {
+      "turn": 15,
+      "ocr": "= eae = a om ns < | Te Information = | Ce aM ow | b wm\" 4 of ae \u00b0 _ as a | ee eee oe 7 | = > <4 \u00a2 a ies 5 2 ba a -\u2014\u2014\u2014 ie | _ 2 ae ie re | : > - , ee Soa Aen : | \u2014 4 \u201cy | \u00a5 i te ee 4 | ~ 4 ae Se eS QNY"
+    },
+    {
+      "turn": 20,
+      "ocr": "\u2014=  - Ee \u2014 a | = | , > ee. Fae | a \u2018 e- Ny > \u2014 an Ay | \u2019 bers 7 am n . ~~ ies5 | 4 \u2014 ee wae \u00ae te ee | \u201ci ny ae _ ) i | _ ail \u201c a Z ll = a \u2014 . = | saa [ 4\u00b0 Zo | ie pe asettlers NE \u2014 | m=) ee \u201c5 2 \u2018i ey"
+    },
+    {
+      "turn": 25,
+      "ocr": "} Information Sas, | ee - Vee > = | a\u2014% = 4 z ~ \u00a2 | Ce iw 3 . RY | 4 on a nes om al 2 oh / . pe 5 = | - aaa \u2014\u2014 saliags . tet Bg = \u2014-* \u2014\u2014 \u2014 | age Sor ae i | eS ae \u2014\u2014 ae Ste | = = . \u201c AG 1% | fe Sy gt? "
+    },
+    {
+      "turn": 30,
+      "ocr": "Information | \u2014_ | ee . | ~ a # ov raf | \u2014 ~y ae? 1 as | 7 \u2014\u2014 ay | SETTLER units are used to found new cities. Move to | | suitable location and press & . New cities cannot be | founded right next to "
+    },
+    {
+      "turn": 35,
+      "ocr": "\u201c= 22 = = xe | \u2014 \u2014 \u2014 _ > a a | | - Information waee a ~ | Pn es ee mee ae oun | 3 4 . Ny > \u2014 oe iy | 1 4 dhe bs ache | Z aay! . nA ae ia oe a en\u201d OS \u2018nn ae ey Be gs) \u2014 | Joi ee Cor ee ~> | Zee ll | 4s"
+    },
+    {
+      "turn": 40,
+      "ocr": "<<. \u2018ae ~~ \u2014- eT | Bre =\u2014-+ = die \u2014\u2014 | ~~ p 4 im Ny SS\" < . Ay | ie eS sf ae = Se a NS = > | oe , a Settlers ,Xo | & \u2014 ; \u2014 Ag | Bj: Hee A Found City re e- | a \\S tF YD | a Sa | : a wee ee | : ee Pe ce"
+    },
+    {
+      "turn": 45,
+      "ocr": "Information | p ie 13 | - ae a re nar | \u201c2 Ne = ee | ' \" | | _\u2014 dion | f Qe : 1s 4 aaa % HG x Ws = | SETTLER units are used to found new cities. Move to | | suitable location and press @& . New cities"
+    },
+    {
+      "turn": 50,
+      "ocr": "Information | \u2018 a\" i a neil \u2014\u2014 . aS i wa \u2014 \u2014 | ce ) gee | SETTLER units are used to found new cities. Move to. | suitable location and press & . New cities cannot be | founded right next to existing c"
+    }
+  ]
+}
