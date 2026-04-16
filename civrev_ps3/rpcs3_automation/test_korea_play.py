@@ -24,11 +24,14 @@ def _press(button, delay=0.5):
     time.sleep(delay)
 
 
+SHOT_PREFIX = "korea_play"
+
+
 def _shot(label):
     frame = L._capture_display()
     if frame is None:
         return
-    out = Path(f"/output/korea_play_{label}.png")
+    out = Path(f"/output/{SHOT_PREFIX}_{label}.png")
     out.parent.mkdir(parents=True, exist_ok=True)
     try:
         Image.fromarray(frame).save(str(out))
@@ -47,6 +50,10 @@ def main():
             label = sys.argv[2] if len(sys.argv) > 2 else f"slot{slot}"
         except ValueError:
             pass
+    # iter-1188 Plan C: tag screenshots with label so successive slot
+    # runs (mao vs korea) don't overwrite each other's frames.
+    global SHOT_PREFIX
+    SHOT_PREFIX = f"korea_play_{label}"
 
     game_path = L._find_game_path()
     launch_time = time.time()
@@ -217,7 +224,67 @@ def main():
         _shot("09_in_game")
         result["stages"]["in_game_hud"] = hud_seen
 
+        # iter-1188 Plan C follow-up: identify the actual civ the PPU
+        # loaded by opening the Diplomacy screen (R1 = keyboard "e"
+        # per entrypoint.sh). Iter-1188 Plan C1 (single "e" press)
+        # showed the press wasn't landing in the diplomacy panel — the
+        # OCR came back with Settler menu text. This tighter retry loop
+        # presses "e" up to 6 times with 3s gaps, polling OCR between
+        # presses for a diplomacy-specific keyword. The diplomacy
+        # screen's top bar shows the player's leader name — the
+        # definitive civ marker.
         if hud_seen:
+            # First cancel the Settler action menu (O/BackSpace)
+            # so the game returns to map-level input, then open
+            # Diplomacy (R1 = "e").
+            print("  Cancelling Settler menu, then opening Diplomacy")
+            _press("O", 2)
+            _shot("10_after_cancel")
+            diplo_ocr = ""
+            for attempt in range(6):
+                _press("e", 3)
+                t = L._ocr_screen()
+                if any(m in t for m in ("Peace", "War", "Treaty", "Tribute",
+                                         "Diplomacy", "Alliance")):
+                    diplo_ocr = t
+                    print(f"  diplomacy panel detected on attempt {attempt}")
+                    break
+            if not diplo_ocr:
+                diplo_ocr = L._ocr_screen()
+                print("  diplomacy panel never detected; using current OCR")
+            _shot("11_diplomacy")
+            result["diplomacy_ocr"] = (
+                " | ".join(s.strip() for s in diplo_ocr.splitlines() if s.strip())[:500]
+            )
+            print(f"  diplomacy_ocr: {result['diplomacy_ocr'][:300]}")
+            # Scan for civ keywords across all civs so we can tell which
+            # one won.
+            civ_keywords = {
+                "romans": ("Caesar", "Roman"),
+                "egyptians": ("Cleopatra", "Egyptian"),
+                "greeks": ("Alexander", "Greek"),
+                "spanish": ("Isabella", "Spanish"),
+                "germans": ("Bismarck", "German"),
+                "russians": ("Catherine", "Russian"),
+                "chinese": ("Mao", "Chinese", "China"),
+                "americans": ("Lincoln", "American"),
+                "japanese": ("Tokugawa", "Japanese"),
+                "french": ("Napoleon", "French"),
+                "indians": ("Gandhi", "Indian"),
+                "arabs": ("Saladin", "Arab"),
+                "aztecs": ("Montezuma", "Aztec"),
+                "zulu": ("Shaka", "Zulu"),
+                "mongols": ("Genghis", "Mongol"),
+                "english": ("Elizabeth", "English"),
+                "koreans": ("Sejong", "Korean"),
+            }
+            hits = {
+                civ: [k for k in kws if k in diplo_ocr]
+                for civ, kws in civ_keywords.items()
+            }
+            hits = {c: ks for c, ks in hits.items() if ks}
+            result["diplo_civ_hits"] = hits
+            print(f"  diplo_civ_hits: {hits}")
             result["pass"] = True
             print(f"  {result['milestone']} PASS — {label} game loaded")
         else:

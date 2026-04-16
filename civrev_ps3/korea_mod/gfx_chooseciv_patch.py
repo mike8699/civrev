@@ -114,21 +114,29 @@ LOAD_OPTIONS_REL = (
     "scripts/DefineSprite_98_options_mov/frame_1/DoAction_2.as"
 )
 
-# iter-1188 Korea-plays-as-China fscommand remap — injected into the
-# root frame's civ-select keyboard handler. When the user confirms
-# slot 16 (Korea) via Enter/Z, the original code fires
-# `fscommand("OnAccept", theSelectedOption)` which passes slot 16 to
-# the PPU. The PPU's OnAccept handler hardcodes slot 16 →
-# startRandomGame() from the stock 17-cell carousel layout, so Korea
-# ends up starting a RANDOM game. The fix is to remap slot 16 → 6
-# (China's slot) before the fscommand fires, so the PPU dispatches
-# to "start a Chinese game" while the SWF's visual state (Sejong
-# portrait still highlighted) stays intact. v1.0 spec per PRD §1.1
-# is "Korea is a renamed China"; this cements that contract at the
-# fscommand boundary. See PRD §9.Z for the full write-up.
+# iter-1188 Korea-plays-as-China theSelectedOption overwrite — injected
+# into the root frame's civ-select keyboard handler. When the user
+# confirms slot 16 (Korea) via Enter/Z, the original code fires
+# `fscommand("OnAccept", theSelectedOption)` which notifies the PPU of
+# the user's pick. iter-1188 attempt A proved the PPU IGNORES the
+# fscommand argument (empirically — hardcoding the arg to 13 for all
+# slots produced identical in-game behavior). So the PPU must read the
+# currently-selected civ from some OTHER source at OnAccept time. The
+# most plausible source is Scaleform `getVariable("_level0.theSelectedOption")`
+# — a SWF-side variable the PPU can read back directly.
+#
+# iter-1188 attempt A2 (this): overwrite `theSelectedOption` itself
+# in-place BEFORE the fscommand fires, so any getVariable-based read
+# by the PPU picks up the remapped slot. When the user confirms slot
+# 16 (Korea), we rewrite `theSelectedOption = 6` (China's slot) then
+# fire the fscommand. The SWF's visual state transitions out of
+# civ-select immediately afterward so the brief cursor jump is
+# invisible to the user. This keeps v1.0 spec "Korea is a renamed
+# China" intact at the dispatch boundary. See PRD §9.Z for the full
+# write-up of the iter-1188 investigation history.
 #
 # A future v1.2 that extends the PPU civ-record table to a real
-# 17th entry can revert this remap and dispatch slot 16 to a real
+# 17th entry can revert this overwrite and dispatch slot 16 to a real
 # Korean civ index.
 ONACCEPT_KOREA_REMAP = """\
 var EnterMode = function(theMode)
@@ -177,21 +185,18 @@ var EnterMode = function(theMode)
                   break;
                case 13:
                case 90:
-                  // iter-1188 ABANDONED: the AS2 fscommand remap
-                  // strategy doesn't work. Empirically, the PS3 PPU
-                  // OnAccept handler does NOT dispatch on the
-                  // fscommand argument — it reads the starting civ
-                  // from somewhere else (probably a per-cell
-                  // Scaleform variable like options_mov.option_N).
-                  // Three diagnostic variants tested:
-                  //   1. slot 16 → 6  : still plays random-ish civ
-                  //   2. slot 16 → 13 : still plays same civ
-                  //   3. hardcoded 13 for ALL slots : still plays
-                  //      the same civ regardless
-                  // None of these changed the in-game starting civ.
-                  // The real PPU dispatch mechanism needs to be
-                  // located via GDB watchpoints or PPU RE. See PRD
-                  // §9.Z iter-1188 progress note.
+                  // iter-1188 Plan A2: overwrite theSelectedOption
+                  // itself before the fscommand so any PPU-side
+                  // getVariable("_level0.theSelectedOption") read at
+                  // dispatch time picks up slot 6 (China) when the
+                  // user confirms slot 16 (Korea). Iter-1188 attempt
+                  // A1 proved the fscommand argument is ignored — the
+                  // PPU must read the selection from a SWF variable
+                  // instead. This in-place overwrite covers that path.
+                  if(theSelectedOption == 16)
+                  {
+                     theSelectedOption = 6;
+                  }
                   trace("fscommand(\\"OnAccept\\", " + theSelectedOption + ");");
                   fscommand("OnAccept",theSelectedOption);
                   break;

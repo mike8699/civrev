@@ -1835,6 +1835,91 @@ remapping). The LoadOptions Korea-synthesis from iter-1185
 remains — that one is empirically load-bearing for the
 carousel cell rendering.
 
+#### iter-1188 progress note — strategy A2 (theSelectedOption overwrite)
+
+After the strategy A failures, iter-1188 added a narrower
+attempt — A2 — based on the iter-217 "Flash::GetVariable
+from SWF state" hypothesis. Instead of trying to influence
+the PPU via the fscommand *argument* (which A1-A4 disproved),
+A2 overwrites the top-level `theSelectedOption` AS2 variable
+itself immediately before the `fscommand("OnAccept", ...)`
+call in `scripts/frame_1/DoAction_2.as`:
+
+```actionscript
+case 13:
+case 90:
+   if (theSelectedOption == 16) {
+      theSelectedOption = 6;  // Korea → China via SWF state
+   }
+   fscommand("OnAccept", theSelectedOption);
+   break;
+```
+
+The theory: if the PPU reads the currently-selected slot via
+`Flash::GetVariable("_level0.theSelectedOption")` at OnAccept
+dispatch time, it will pick up the remapped slot 6 (China)
+instead of slot 16 (stock Random fallback). The SWF's visual
+state transitions out of civ-select immediately after the
+fscommand, so the brief cursor-jump from slot 16 → slot 6 is
+invisible to the user.
+
+A2 status as of iter-1188 commit: **AS2 edit compiled + boots
+cleanly.** The `korea_play 16 korea` harness run PASSes M9
+(in-game HUD reached, no crash). Per the iter-1188 harness
+limitations note below, this automated test **cannot
+distinguish "Korea plays as Chinese" from "Korea plays as
+Random"** — all slots currently produce visually identical
+in-game screenshots through the harness, because the Earth-
+scenario initial camera state appears fixed. The fix is
+**committed as best-effort** pending user manual verification:
+if the user confirms Korea now plays a Chinese civilization
+(Mao leader portrait in Diplomacy screen, Chinese city names
+like Beijing, Chinese unit bonuses), iter-1188 is complete.
+If the user reports still-Random behavior, iter-1188+ will
+need path (2) — PPU OnAccept handler patch via Ghidra RE.
+
+#### iter-1188 harness verification limitations
+
+iter-1188 also surfaced a new gap in the rpcs3_automation
+harness: it cannot robustly distinguish civs by pixel
+analysis of the initial in-game state. Empirical findings
+from the iter-1188 investigation:
+
+1. Mao slot 6 and Caesar slot 0 both produce ~99% pixel-
+   identical `korea_play_*_10_after_cancel.png` screenshots
+   (mean pixel diff < 1.0, max diff ~250 but concentrated
+   in ≤1.3% of pixels — all HUD animation jitter).
+2. The civ-select screens (06_slot_highlighted) DO differ
+   significantly across civs (14-18% pixel diff), so the
+   slot-selection navigation IS working at the civ-select
+   stage.
+3. Attempted OCR of the Diplomacy screen (R1 = "e" key)
+   failed — 6 retries with 3s spacing never detected
+   Peace/War/Treaty/Tribute/Alliance keywords. R1 may not
+   be a valid input during the Settler action menu state.
+4. Attempted OCR of the founded-city dialog failed — double-
+   X presses on the Settlers' pre-highlighted Found City
+   action produced no visible state change in the 10s
+   window after the press.
+
+Conclusion: the harness can detect "M9 boot PASS" reliably
+but CANNOT provide a positive oracle for "Korea plays as
+Chinese." Future iterations building on top of iter-1188
+should either:
+
+- Build a GDB-based oracle that reads a per-player
+  nationality memory address (see `addresses.py`
+  `KOREA_MOD_PLAYER_NATIONALITY_ARR` — currently None,
+  needs RE).
+- Enable debug mode via the eboot patch in CLAUDE.md to
+  expose civ-specific HUD text that OCR can detect.
+- Add a Scaleform-side trace via `fscommand("KoreaMark", 1)`
+  that the PPU-side logs can expose for test harness
+  correlation.
+
+Until one of those exists, "Korea plays as Chinese" is a
+user-attested oracle, not a harness-attested oracle.
+
 #### Deferral of path (b)
 
 Path (b) — real Korean civ attributes via civ-record table
