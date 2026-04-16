@@ -101,46 +101,18 @@ def main():
         _press("X", 3)
         _shot("01_single_player")
 
-        # Single Player -> Play Scenario (3 Down + X)
-        _press("Down", 0.5)
-        _press("Down", 0.5)
-        _press("Down", 0.5)
+        # iter-1188 Plan C3: Single Player → New Game (top entry,
+        # 0 Down + X) instead of Play Scenario. New Game places each
+        # civilization at its historical starting location on a
+        # randomly generated map — Rome in Italy, China in east Asia,
+        # etc. — so the initial in-game camera view differs by civ
+        # and pixel-diff can distinguish "Korea plays as Chinese"
+        # from "Korea plays as Random" empirically. Play Scenario
+        # (the iter-1186-era path) was discovered to produce
+        # visually-identical starting views across all civs, likely
+        # because the Earth scenario has a fixed default camera.
         _press("X", 3)
-        _shot("02_scenario_menu")
-
-        # Wait for "Choose Scenario"
-        for a in range(15):
-            t = L._ocr_screen()
-            if "choose" in t.lower() or "scenario" in t.lower():
-                print(f"  scenario list ready on attempt {a}")
-                break
-            time.sleep(2)
-
-        # iter-1188: user manually picked a DLC scenario during
-        # their local test session, so the game remembered the
-        # cursor position. On a fresh harness run the Choose
-        # Scenario list now opens with the cursor on a DLC entry
-        # ("Attack of the Huns") and Earth is above the visible
-        # viewport. Original code only scrolled Down; now scroll
-        # Up first then Down as fallback.
-        print("  searching Earth scenario...")
-        found = False
-        for a in range(40):
-            t = L._ocr_screen()
-            if "earth" in t.lower():
-                print(f"  found Earth up-scrolling at {a}")
-                found = True
-                break
-            _press("Up", 0.4)
-        if not found:
-            for a in range(40):
-                t = L._ocr_screen()
-                if "earth" in t.lower():
-                    print(f"  found Earth down-scrolling at {a}")
-                    found = True
-                    break
-                _press("Down", 0.4)
-        _press("X", 3)
+        _shot("02_new_game_menu")
         _shot("03_after_earth_select")
 
         # Difficulty: 4 Down + X for Deity
