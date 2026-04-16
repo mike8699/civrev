@@ -79,6 +79,7 @@ var LoadOptions = function()
    {
       _parent.slotData17 = _parent.slotData16;
       _parent.slotData16 = _parent.slotData6.slice();
+      _parent.slotData16[0] = "16";
       _parent.slotData16[1] = "Sejong";
       _parent.slotData16[2] = "Koreans";
       _parent.theActiveArray[17] = _parent.theActiveArray[16];
@@ -241,6 +242,47 @@ onLoad = function()
 
 ONACCEPT_REL = "scripts/frame_1/DoAction_2.as"
 
+CHOOSECIVLEADER_REL = (
+    "scripts/DefineSprite_96_ChooseCivLeader/frame_1/DoAction.as"
+)
+
+
+def _patch_getimage_korea(scripts_dir: Path) -> None:
+    """Inject the Korea case into ChooseCivLeader's GetImageName().
+
+    The stock GetImageName maps portrait indices 0-16 to nation keys
+    (rome, egypt, ..., barbarian). Index 16 maps to "barbarian" and
+    17+ maps to "default". We add a Korea case so index "16" now
+    routes to "korea" (loading ldr_korea.dds) instead of "barbarian".
+    The old barbarian case is unreachable since no slotData uses it
+    in the Korea-mod carousel.
+    """
+    chooseciv = scripts_dir / CHOOSECIVLEADER_REL
+    if not chooseciv.is_file():
+        raise SystemExit(
+            f"Expected JPEXS to export {CHOOSECIVLEADER_REL}; got nothing"
+        )
+    src = chooseciv.read_text()
+    # Replace the stock case "16" → barbarian with Korea
+    old = '''\
+      case "16":
+      case "barbarian":
+         _loc1_ = "barbarian";
+         break;'''
+    new = '''\
+      case "16":
+      case "korea":
+      case "korean":
+      case "sejong":
+         _loc1_ = "korea";
+         break;'''
+    if old not in src:
+        print(f"  WARNING: could not find barbarian case in GetImageName; skipping")
+        return
+    src = src.replace(old, new)
+    chooseciv.write_text(src)
+    print(f"  patched GetImageName: index 16 → korea")
+
 
 def _stage_scripts(ffdec_jar: Path, src: Path, scripts_dir: Path) -> None:
     """Export the SWF's scripts tree and overwrite the targeted AS
@@ -268,6 +310,10 @@ def _stage_scripts(ffdec_jar: Path, src: Path, scripts_dir: Path) -> None:
             f"Expected JPEXS to export {ONACCEPT_REL}; got nothing"
         )
     on_accept.write_text(ONACCEPT_KOREA_REMAP)
+
+    # Sejong portrait: patch GetImageName in ChooseCivLeader to route
+    # index "16" → "korea" instead of "barbarian".
+    _patch_getimage_korea(scripts_dir)
 
 
 def jpexs_synthesize_korea(src: Path, dst: Path, ffdec_jar: Path) -> int:

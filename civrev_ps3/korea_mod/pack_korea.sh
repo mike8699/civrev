@@ -112,6 +112,19 @@ stage_pregame_repack() {
             "$dst/gfx_chooseciv.gfx"
     fi
 
+    # Sejong portrait: copy ldr_korea.dds + ldr_lrg_korea.dds into
+    # the Pregame staging dir so they're packed alongside the stock
+    # LDR_*.dds portraits. The AS2 loadClip("LDR_korea.dds") call
+    # will find them in the FPK at runtime.
+    local portraits="$STAGE/portraits"
+    if [ -d "$portraits" ]; then
+        for dds in "$portraits"/ldr_korea*.dds; do
+            [ -f "$dds" ] || continue
+            cp "$dds" "$dst/"
+            echo "[pack_korea] Pregame: added $(basename "$dds")"
+        done
+    fi
+
     python3 "$PS3_ROOT/fpk.py" repack "$dst"
     local out_fpk="$STAGE/Pregame_korea.FPK"
     if [ ! -f "$out_fpk" ]; then
