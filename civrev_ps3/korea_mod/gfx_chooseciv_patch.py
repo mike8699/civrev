@@ -79,7 +79,6 @@ var LoadOptions = function()
    {
       _parent.slotData17 = _parent.slotData16;
       _parent.slotData16 = _parent.slotData6.slice();
-      _parent.slotData16[0] = "16";
       _parent.slotData16[1] = "Sejong";
       _parent.slotData16[2] = "Koreans";
       _parent.theActiveArray[17] = _parent.theActiveArray[16];
@@ -284,6 +283,41 @@ def _patch_getimage_korea(scripts_dir: Path) -> None:
     print(f"  patched GetImageName: index 16 → korea")
 
 
+SETUPUNITS_REL = "scripts/frame_1/DoAction_4.as"
+
+
+def _patch_setupunits_korea(scripts_dir: Path) -> None:
+    """Override Korea cell's thumbnail after SetPortrait in SetUpUnits.
+
+    slotData16[0] stays "6" (China) so the PPU loads Mao's 3D
+    leaderhead model with working animation. But the small carousel
+    cell thumbnail should show Sejong, not Mao. This patch adds
+    a one-liner after SetPortrait that calls SetPortraitImage("16")
+    for slot 16, which routes through GetImageName → "korea" →
+    ldr_korea.dds.
+    """
+    setupunits = scripts_dir / SETUPUNITS_REL
+    if not setupunits.is_file():
+        raise SystemExit(
+            f"Expected JPEXS to export {SETUPUNITS_REL}; got nothing"
+        )
+    src = setupunits.read_text()
+    old = '      _loc2_.SetPortrait(myDataArray[0]);'
+    new = (
+        '      _loc2_.SetPortrait(myDataArray[0]);\n'
+        '      if(j == 16)\n'
+        '      {\n'
+        '         _loc2_.SetPortraitImage("16");\n'
+        '      }'
+    )
+    if old not in src:
+        print("  WARNING: SetPortrait call not found in SetUpUnits; skipping")
+        return
+    src = src.replace(old, new, 1)
+    setupunits.write_text(src)
+    print("  patched SetUpUnits: slot 16 thumbnail → korea")
+
+
 def _stage_scripts(ffdec_jar: Path, src: Path, scripts_dir: Path) -> None:
     """Export the SWF's scripts tree and overwrite the targeted AS
     files with the Korea-synthesis + OnAccept-remap versions.
@@ -314,6 +348,11 @@ def _stage_scripts(ffdec_jar: Path, src: Path, scripts_dir: Path) -> None:
     # Sejong portrait: patch GetImageName in ChooseCivLeader to route
     # index "16" → "korea" instead of "barbarian".
     _patch_getimage_korea(scripts_dir)
+
+    # Sejong portrait: override Korea cell's small thumbnail in
+    # SetUpUnits so it shows Sejong (ldr_korea.dds) while keeping
+    # slotData16[0]="6" for the PPU's 3D leaderhead model.
+    _patch_setupunits_korea(scripts_dir)
 
 
 def jpexs_synthesize_korea(src: Path, dst: Path, ffdec_jar: Path) -> int:
