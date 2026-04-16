@@ -1982,9 +1982,39 @@ LDR_china.dds (Mao's face).
    because iter-1188's Plan A2 overwrites theSelectedOption
    (not slotData) at OnAccept time.
 
-**Verification:** OCR the Korea cell's civ-select screenshot for
-the Sejong thumbnail (visual diff against Mao baseline), and
-M9 boot regression.
+**Verification (automated — run `verify.sh --tier=static`):**
+
+The portrait pipeline is verified by `verify_portrait.py`,
+which is integrated into verify.sh's M0c step:
+
+1. **DDS presence**: `ldr_korea.dds` exists in the Pregame
+   staging dir with correct size (65664 bytes = 128×128×4 + 128
+   byte header).
+2. **GetImageName patch**: re-exports the built GFX via JPEXS
+   and greps for `case "16"` → `"korea"` in
+   ChooseCivLeader/DoAction.as.
+3. **SetUpUnits patch**: re-exports DoAction_4.as and checks
+   for the `j == 16` save/restore block that swaps
+   `myDataArray[0]` to `"16"` before SetPortrait and restores
+   to `"6"` after.
+
+All three checks must PASS for M0 to be green. If any fails,
+`verify.sh --tier=static` exits non-zero with a diagnostic.
+
+**Manual verification (if automated checks pass but portrait
+still shows Mao):**
+
+1. Build: `cd korea_mod && ./install.sh`
+2. Launch RPCS3 with the modded disc
+3. Navigate: Main Menu → Single Player → New Game → any
+   difficulty → scroll to Korea (slot 16)
+4. The small carousel cell thumbnail for "Sejong / Koreans"
+   should show a face from the CivRev2 UV atlas (darker
+   skin tone, Korean gat hat) — NOT Mao's face
+5. The large central 3D portrait still shows Mao's model
+   (expected — Phase B 3D model swap is not yet implemented)
+6. Idle animation should play when lingering on Korea
+   (Mao's model animates)
 
 #### B. Large 3D leaderhead (Gamebryo/Granny2)
 

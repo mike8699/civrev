@@ -302,12 +302,21 @@ def _patch_setupunits_korea(scripts_dir: Path) -> None:
             f"Expected JPEXS to export {SETUPUNITS_REL}; got nothing"
         )
     src = setupunits.read_text()
+    # Temporarily swap slotData16[0] to "16" BEFORE SetPortrait reads
+    # it, so the single loadClip call targets ldr_korea.dds. Restore
+    # immediately after so UpdatePrimaryDisplay still reads "6" for
+    # the PPU's 3D leaderhead model.
     old = '      _loc2_.SetPortrait(myDataArray[0]);'
     new = (
+        '      var _savedPortrait = myDataArray[0];\n'
+        '      if(j == 16)\n'
+        '      {\n'
+        '         myDataArray[0] = "16";\n'
+        '      }\n'
         '      _loc2_.SetPortrait(myDataArray[0]);\n'
         '      if(j == 16)\n'
         '      {\n'
-        '         _loc2_.SetPortraitImage("16");\n'
+        '         myDataArray[0] = _savedPortrait;\n'
         '      }'
     )
     if old not in src:

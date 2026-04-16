@@ -158,6 +158,16 @@ PY
     fi
 fi
 
+# M0c — Sejong portrait verification. Checks that ldr_korea.dds is
+# present in the built Pregame staging dir, GetImageName routes "16"
+# → "korea", and SetUpUnits has the portrait save/restore for slot 16.
+if [ -f "$HERE/verify_portrait.py" ]; then
+    if ! python3 "$HERE/verify_portrait.py"; then
+        m0_pass=false
+        m0_notes="Sejong portrait verification failed; $m0_notes"
+    fi
+fi
+
 # M0d — string-key inventory. Only when gfxtext.xml / pedia XMLs land.
 :
 

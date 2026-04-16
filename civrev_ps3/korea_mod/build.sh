@@ -41,8 +41,14 @@ if [ -f "$HERE/eboot_patches.py" ]; then
     python3 "$HERE/eboot_patches.py" --in "$ROOT/EBOOT_v130_decrypted.ELF" --out "$STAGE/EBOOT_korea.ELF"
 fi
 
-# FPK repack step — not yet implemented. Keep the hook in place so later
-# iterations only have to replace the stub, not re-plumb build.sh.
+# Extract Sejong portrait from CivRev2 (needed before FPK repack).
+if [ -f "$HERE/extract_cr2_sejong.py" ]; then
+    echo "[build] extracting Sejong portrait from CivRev2"
+    python3 "$HERE/extract_cr2_sejong.py" --out "$STAGE/portraits" || \
+        echo "  WARNING: Sejong portrait extraction failed (CivRev2 data may not be present)"
+fi
+
+# FPK repack step.
 if [ -f "$HERE/pack_korea.sh" ]; then
     echo "[build] running pack_korea.sh"
     "$HERE/pack_korea.sh" "$STAGE"
