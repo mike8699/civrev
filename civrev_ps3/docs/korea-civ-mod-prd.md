@@ -1920,7 +1920,128 @@ should either:
 Until one of those exists, "Korea plays as Chinese" is a
 user-attested oracle, not a harness-attested oracle.
 
-#### Deferral of path (b)
+#### iter-1188 resolution — USER CONFIRMED (2026-04-15)
+
+User manually tested Plan A2 and confirmed: "it works —
+selecting korea starts as china." The `theSelectedOption`
+overwrite is the correct mechanism. iter-1188 is COMPLETE.
+
+### §9.AA — Sejong leader visual assets (post-iter-1188)
+
+**Goal:** Replace Mao's placeholder portrait and 3D model with
+Sejong's actual leader art on the civ-select screen. Two visual
+systems need updating:
+
+#### A. Small carousel thumbnail (SWF-embedded DDS)
+
+The ChooseCivLeader sprite's `SetPortrait()` calls
+`GetImageName(slotData[0])` to map a portrait index to a nation
+key, then loads `LDR_<nation>.dds` from the SWF's embedded
+assets. Currently Korea's slotData16[0] = "6" → "china" →
+LDR_china.dds (Mao's face).
+
+**Implementation plan:**
+
+1. **Extract Sejong portrait from CivRev2.** Source data is in
+   Unity asset bundles under
+   `civrev2/main.19.com.t2kgames.civrev2/assets/bin/Data/`.
+   The pedia reference is `PEDIA_SEJONG_1.dds`. Use
+   AssetStudio or a Python Unity asset unpacker to extract.
+   Commit the extraction script as
+   `korea_mod/extract_cr2_assets.py`.
+
+2. **Convert to PS3 LDR format.** The stock `LDR_*.dds`
+   portraits are ~80×80 DDS images embedded in the SWF.
+   Resize/reformat the CivRev2 portrait to match. If CR2
+   only has a pedia-style full-body image, crop to head-and-
+   shoulders. Processing script goes in
+   `korea_mod/convert_sejong_portrait.py`.
+
+3. **Embed in gfx_chooseciv.gfx.** Use JPEXS to import the
+   new DDS as a DefineBitsLossless2 or DefineBitsJPEG tag,
+   named `LDR_korea.dds` to match the GetImageName
+   convention. Automate via `gfx_chooseciv_patch.py`.
+
+4. **Update GetImageName() AS2.** Add:
+   ```actionscript
+   case "16":
+   case "korea":
+   case "korean":
+   case "sejong":
+      _loc1_ = "korea";
+      break;
+   ```
+   This goes in ChooseCivLeader's DoAction.as (DefineSprite_96).
+   Injected via JPEXS `-importScript` alongside the existing
+   LoadOptions and OnAccept edits.
+
+5. **Update LOAD_OPTIONS_KOREA.** Change
+   `_parent.slotData16[0]` from inheriting slot 6's value to
+   explicitly setting `"16"` so SetPortrait routes to the new
+   Korea image. This does NOT break Korea-plays-as-China
+   because iter-1188's Plan A2 overwrites theSelectedOption
+   (not slotData) at OnAccept time.
+
+**Verification:** OCR the Korea cell's civ-select screenshot for
+the Sejong thumbnail (visual diff against Mao baseline), and
+M9 boot regression.
+
+#### B. Large 3D leaderhead (Gamebryo/Granny2)
+
+The central civ-select portrait is a real-time 3D model from
+`leaderhead.FPK`, configured by `leaderheads.xml`. Currently
+Nationality=16 maps to `GLchi_Mao.xml` (Mao's model).
+
+**PS3 per-leader asset structure** (from chi_mao reference):
+- 1 model file: `<prefix>_model.gr2` (~370 KB, Granny2 mesh+skeleton)
+- ~39 animation files: `<prefix>_greeting.gr2`, `_yes.gr2`, etc.
+- 9 texture files: `<prefix>_diff.dds` (diffuse), `_norm.dds` (normal),
+  `_sref.dds` (specular), `_sss.dds` (subsurface), `_rim.dds`, plus
+  `_book_*.dds` variants
+- 1 XML manifest: `<prefix>.xml` (asset paths + animation bindings)
+- 1 CSV: `<prefix>.csv` (animation frame metadata)
+
+**CivRev2 Sejong source data:**
+- Model: `Kor_Sejong` in Unity bundle `ca2d2c606eda9ce4a9637b20df16b8b0`
+  (34 KB serialized). Components: beard, belt, eyelash, sleeve parts.
+  100+ facial blend shapes for animation.
+- Textures: In bundles `e9cf82690fe4016478ac0f064bf8c333` (4.7 MB),
+  `bf6b48debbcd6b04fa26621cef56e1ba` (4.7 MB),
+  `0384035ce88066041b0472c1c6e88c91` (5.4 MB)
+- Voice: 101 bundles with SejongVox* audio clips
+
+**Implementation plan:**
+
+1. Extract Sejong model + textures from CivRev2 Unity bundles.
+   Convert from Unity serialized → FBX/OBJ intermediate format
+   via AssetStudio or Python unpacker.
+2. Convert model to Granny2 `.gr2` format compatible with the
+   PS3 Gamebryo engine. This may require the Granny2 SDK
+   exporter or reverse-engineering the .gr2 binary format by
+   comparing against the chi_mao reference files.
+3. Convert/upscale textures to PS3 DDS format matching the
+   chi_mao reference (diffuse, normal, specular, SSS, rim).
+   CivRev2 is a mobile game with lower-res assets — upscaling
+   via AI (Real-ESRGAN or similar) may be needed.
+4. Create `kor_sejong.xml` manifest and `kor_sejong.csv`
+   animation metadata, modeled after `chi_mao.xml`/`.csv`.
+   For v1.0, reuse chi_mao's animation .gr2 files (same
+   skeleton rig) — only model mesh and textures change.
+5. Pack into `leaderhead.FPK` via fpk.py.
+6. Update leaderheads.xml overlay: `Nationality="16"` →
+   `File="GLkor_Sejong.xml" TexName="GLkor_Sejong_"`.
+
+**Verification:** Visual diff of civ-select 3D portrait —
+Korea cell should show Sejong's face instead of Mao's.
+M9 boot regression.
+
+**Priority:** (A) first — self-contained, validates the
+portrait injection pipeline. (B) second.
+
+All extraction/conversion must be reproducible via Python
+scripts committed under `korea_mod/`.
+
+#### Deferral of path (b) — unique civ gameplay
 
 Path (b) — real Korean civ attributes via civ-record table
 extension — is formally deferred to a new **PRD §11 v1.2

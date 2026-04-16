@@ -78,19 +78,73 @@
     - Korea is a COSMETIC ALIAS for China on the select screen
       only. Matches PRD §1.1 v1.0 scope ("Korea is a renamed China").
 
-  DEFERRED TO v1.2+ (PATH b):
-    - Reverse-engineer PS3 civ-record struct layout (iter-198
-      partially mapped it)
-    - Locate the civ-data table in EBOOT (Ghidra work)
-    - Extend the table to a 17th entry for civ index 16
-    - Populate from iter-226's CR2 extracted XMLs
-    - Hwacha unique unit data
-    - Sejong leader bonus
-    - Korean civ trait
-  Track in PRD §11 v1.2 differentiation roadmap.
+  iter-1188 SHIPPED (2026-04-15, user-confirmed): Plan A2
+  theSelectedOption overwrite works. Korea plays as China. The
+  fscommand arg is ignored by the PPU — the PPU reads the SWF
+  variable via Flash::GetVariable("_level0.theSelectedOption").
 
-  iter-1188 STOP: commit + push the AS2 remap + verification
-  artifact. Then exit the loop again, same as after iter-1186.
+  ================================================================
+  SEJONG LEADER ASSETS DIRECTIVE (post-iter-1188, user 2026-04-15)
+  ================================================================
+
+  With Korea-plays-as-China shipping, the next goal is replacing
+  Mao's placeholder visual assets with Sejong's actual leader art
+  on the civ-select screen. Two visual systems need updating:
+
+  A. SMALL CAROUSEL THUMBNAIL (SWF-embedded DDS portrait):
+     Currently Korea's cell loads `LDR_china.dds` because the
+     iter-1185 synthesis cloned slotData6[0] = "6", and
+     GetImageName("6") → "china" → loads LDR_china.dds.
+
+     Fix:
+     1. Extract Sejong portrait from CivRev2 Unity bundles.
+        Source: PEDIA_SEJONG_1.dds in asset bundle(s) under
+        civrev2/main.19.com.t2kgames.civrev2/assets/bin/Data/
+     2. Convert/resize to match PS3 LDR_*.dds format (~80x80).
+     3. Embed LDR_korea.dds in gfx_chooseciv.gfx via JPEXS.
+     4. Add case "16"/"korea"/"sejong" → "korea" to
+        GetImageName() in ChooseCivLeader's DoAction.as.
+     5. Update LOAD_OPTIONS_KOREA to set slotData16[0] = "16"
+        (so SetPortrait routes to the new Korea image).
+        NOTE: slotData[0] doubles as the PPU's portrait index
+        AND the GetImageName input — but since iter-1188's Plan
+        A2 already overwrites theSelectedOption to 6 before
+        OnAccept, changing slotData16[0] from "6" to "16" will
+        NOT break Korea-plays-as-China. The PPU reads
+        theSelectedOption (=6 after overwrite), not slotData[0].
+
+  B. LARGE 3D LEADERHEAD (Gamebryo/Granny2 engine):
+     Currently the leaderheads.xml overlay maps Nationality=16
+     to GLchi_Mao.xml (Mao's 3D model). The central portrait
+     on civ-select renders this model.
+
+     Fix:
+     1. Extract Sejong 3D model (Kor_Sejong) + textures from
+        CivRev2 Unity asset bundles. The model bundle is at
+        ca2d2c606eda9ce4a9637b20df16b8b0 (34 KB); textures
+        in e9cf82690fe4016478ac0f064bf8c333 (4.7 MB) and
+        bf6b48debbcd6b04fa26621cef56e1ba (4.7 MB).
+     2. Convert from Unity serialized format to PS3-compatible
+        Granny2 .gr2 (model) + DDS (textures). May need
+        intermediate FBX/OBJ step via AssetStudio.
+     3. Create kor_sejong.xml manifest + kor_sejong.csv
+        animation metadata, modeled after chi_mao.xml/.csv.
+     4. Repack into leaderhead.FPK (252 MB archive).
+     5. Update leaderheads.xml overlay: Nationality="16" →
+        File="GLkor_Sejong.xml" TexName="GLkor_Sejong_".
+
+  PRIORITY: Start with (A) since it's self-contained and
+  validates the portrait-injection pipeline. Then tackle (B).
+
+  ALL extraction/conversion must be reproducible via Python
+  scripts committed under korea_mod/. No manual GUI tool steps.
+
+  DEFERRED TO v1.2+ (PATH b — unique civ gameplay):
+    - Reverse-engineer PS3 civ-record struct layout
+    - Extend civ-data table to a 17th entry
+    - Populate Korean gameplay data from CivRev 2 XMLs
+    - Hwacha unique unit, Sejong leader bonus, Korean civ trait
+  Track in PRD §11 v1.2 differentiation roadmap.
 
   ================================================================
   CAROUSEL UNBLOCK DIRECTIVE (iter-1182+, user directive 2026-04-15)
