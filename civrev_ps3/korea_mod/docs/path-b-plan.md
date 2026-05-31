@@ -217,8 +217,14 @@ BUT Ghidra's default analysis under-covers it: only ~510 functions, and even
 ADJ_FLAT has no refs — because the ELF entry (`0x18b5b20`) is a PPC64 function
 *descriptor* in the data segment, so flow-seeded disassembly never reached
 `.text`. A brute-force `DisassembleCommand` over `0x10000..0x1680000`
-(`ForceDisasmAnalyze.py`) is pathologically slow under the default 2 GB heap
-(>22 min CPU and still going) and may not be the right fix.
+(`ForceDisasmAnalyze.py`) is the WRONG fix: it disassembles data-as-code in
+the non-code parts of that range, which creates overlapping garbage functions
+(`0158a198`/`0158a8f0`) and sends Ghidra into an **infinite "function body
+repair" loop** — it ran the full 40-min timeout (EXIT=124), saved nothing, and
+left the project at ~510 functions. Do NOT brute-force-disassemble a range
+that contains data. iter-4 must SEED from known code entries and let
+auto-analysis follow flow (or disassemble only the true `.text` sub-range,
+not all of seg0 which includes rodata).
 
 **iter-4 plan (two routes; try runtime first — it's likely faster):**
 1. **Runtime diff (preferred).** The game runs in the docker harness. Start a
