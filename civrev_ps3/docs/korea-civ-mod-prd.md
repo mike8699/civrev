@@ -9689,3 +9689,41 @@ addresses.py. (task #6)
 
 **PRD changes made this iteration:** §9.AA "path (b)" subsection marked ACTIVE
 with the layered model + anchors + pointer to path-b-plan.md; this entry.
+
+### 2026-05-31 — resume (path (b) RE iter-2 — display engine + Ghidra caveat)
+
+**Status:** investigating
+**Working on:** path (b) — locate the civ-bonus mapping/effect in the EBOOT.
+
+**Did this iteration (Ghidra analyzeHeadless + pure-Python clean-ELF scans):**
+- **Display is a `@TOKEN` template engine.** `CIVBONUSTEXT`/`LBTEXT` in the
+  EBOOT are substitution tokens (`@CIVBONUSTEXT`, `@LBTEXT`, `@ERA`,
+  `@BLDGNAME`) embedded in template strings, resolved at runtime against the
+  `text.ini __VAR` lists indexed by the current civ/leader/era. So civ
+  indexing is generic inside the engine — there is no per-civ bonus pointer
+  table to find (a validated pointer scan confirms ADJ_FLAT *is* referenced
+  from 0x1938354/0x19398b0, so tooling is sound; the bonus tokens just have
+  no such table). The display layer is therefore fully data-driven and
+  extensible to a 17th entry.
+- **CRITICAL caveat: the existing Ghidra project is a DIFFERENT binary from
+  the clean ELF that addresses.py / eboot_patches.py target** (CIVBONUSTEXT @
+  Ghidra 0x16ccf96 vs clean-ELF 0x16dd35e; ~0x3c8/0x103c8 bias; code doesn't
+  match). Documented in addresses.py + path-b-plan.md. Future Ghidra RE must
+  re-import EBOOT_v130_clean.ELF.
+- Committed two RE helper scripts (FindCivBonusConsumer.py,
+  DecompAdjFlatConsumers.py) documenting the dead-ends + the @token finding.
+
+**Verification:** n/a (static RE). Pointer-scan tooling validated against the
+known ADJ_FLAT reference.
+
+**Open blockers:** the EFFECT layer (game-init per-civ bonus grant) is not yet
+located; string-xref is ruled out (it's a template token). The civ-16 OOB gate
+on the gameplay path remains unexplored.
+
+**Next iteration (iter-3) should:** RE the EFFECT layer via either (a)
+re-importing EBOOT_v130_clean.ELF into a fresh Ghidra project then finding the
+civ-keyed tech/bonus grant on the StartGame path, or (b) a GDB runtime
+watchpoint on the player's first tech/bonus write, backtraced to the grant
+site. Work in clean-ELF address space.
+
+**PRD changes made this iteration:** this Progress Log entry.

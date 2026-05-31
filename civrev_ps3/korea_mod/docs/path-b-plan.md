@@ -134,8 +134,55 @@ tractable scope until/unless the effect layer proves freely extensible.
 
 ## Open questions
 
-- Is `CIVBONUSTEXT[civ]` consumed directly (Display==Mapping) or via an
-  indirection table? (iter-2 answers.)
 - Are the bonus *effects* table-driven or a `switch(civ)`? Table-driven is
   far easier to extend.
 - Does the savegame serializer encode civ count? (bump save version if so.)
+
+## RE log — iter-2 (2026-05-31)
+
+Goal was to pin the civ→bonus consumer. Result: ruled out the naive
+approaches and uncovered two structural facts that redirect the RE.
+
+1. **The display is a template engine with `@TOKEN` substitution.** The
+   EBOOT strings `CIVBONUSTEXT` / `LBTEXT` are not section-name comparands
+   or pointer-table entries — they are embedded in larger template strings
+   as `@CIVBONUSTEXT`, `@LBTEXT`, alongside `@ERA`, `@BLDGNAME`, etc. (e.g.
+   "...inherited @CIVBONUSTEXT..."). The renderer resolves `@TOKEN` at
+   runtime by looking up the `[TOKEN]` `text.ini __VAR` list, **indexed by
+   the current civ/leader/era context**. So civ-indexing happens *generically
+   inside the template engine* — there is no per-civ bonus pointer table to
+   find, which is why neither a Ghidra xref, a clean-ELF `lis/addi` scan, nor
+   a 4-byte pointer scan reaches a "consumer". **Implication:** the display
+   layer is fully data-driven — extend the `__VAR` lists to a 17th entry and
+   make Korea's civ context resolve to index 16. (A validated pointer scan
+   confirms ADJ_FLAT `0x195fe28` *is* referenced from `0x1938354`/`0x19398b0`,
+   so the tooling is sound; the bonus tokens simply have no such table.)
+
+2. **CRITICAL: the existing Ghidra project (`ghidra/civrev.rep`) is a
+   DIFFERENT binary from the clean ELF that `addresses.py` / `eboot_patches.py`
+   target.** In Ghidra the `CIVBONUSTEXT` string is at vaddr `0x16ccf96`; in
+   `EBOOT_v130_clean.ELF` it is at file-off/vaddr `0x16dd35e` (clean ELF seg0
+   is file_off==vaddr per readelf, and `eboot_patches.py` verifiably matches
+   `addresses.py` offsets). The rodata bias is ~`0x3c8` vs the *decrypted*
+   ELF and ~`0x103c8` vs the *clean* ELF, and code at `addresses.py` callsites
+   does not match either. **Do NOT trust the existing Ghidra project for
+   addresses that feed the patcher.** All of `addresses.py` is clean-ELF
+   space; the Ghidra project must be reconciled (re-import the current
+   `EBOOT_v130_clean.ELF` into a fresh project) before decompiler-based RE.
+
+**Next RE step (iter-3): the EFFECT layer, not the display.** The display is
+solved-in-principle (data). To make Korea *play* differently we need the code
+that GRANTS the per-civ starting bonus at game start (China → free Writing
+tech). Two viable routes now that string-xref is ruled out:
+  (a) Re-import `EBOOT_v130_clean.ELF` into a fresh Ghidra project (correct
+      addresses + decompiler), then find the game-init bonus-grant from the
+      tech-grant helper / `StartGame` path, keyed on civ.
+  (b) GDB runtime watchpoint (rpcs3_automation `gdb_client.py`): break at
+      game start, watch the player's tech/bonus write, backtrace to the
+      civ-keyed grant site. Anchors to translate: clean-ELF space.
+
+New helper scripts committed: `FindCivBonusConsumer.py` (string xref +
+pointer scan — came up empty, documents the @token indirection) and
+`DecompAdjFlatConsumers.py` (decompiled the ADJ_FLAT callsite functions;
+they are buffer/parser routines, not the bonus assembly — and exposed the
+Ghidra-vs-clean address-space mismatch).

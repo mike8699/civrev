@@ -11,6 +11,15 @@ Unverified placeholders use `None` so code that tries to use them fails loudly.
 The PS3 EBOOT is 64-bit PPC but uses 32-bit addressing — every pointer we care
 about is a 4-byte big-endian word. p_offset == p_vaddr for PT_LOAD segment 0,
 so file offsets in EBOOT_v130_clean.ELF equal virtual addresses directly.
+
+WARNING (path-b iter-2, 2026-05-31): every address in this file is in
+EBOOT_v130_clean.ELF space (file_off==vaddr for seg0), verified because
+eboot_patches.py matches these offsets at apply time. The existing Ghidra
+project ghidra/civrev.rep is a DIFFERENT binary — the same rodata string
+sits at a ~0x3c8/0x103c8-biased vaddr there and code at these callsites does
+not match. Do NOT use the existing Ghidra project for addresses that feed
+the patcher; re-import the current EBOOT_v130_clean.ELF into a fresh project
+first. See korea_mod/docs/path-b-plan.md "RE log — iter-2".
 """
 
 # ---------------------------------------------------------------------------
