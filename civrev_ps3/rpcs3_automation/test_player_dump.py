@@ -85,6 +85,46 @@ def scan_bss(gdb):
     return hits
 
 
+GAME_OBJ_HOLDER = 0x01ac1678  # .bss -> game session object (vtable 0x18a2738)
+
+
+def _mask_ptrs(buf):
+    """Zero out 4-byte words that look like heap/EBOOT pointers so a China-vs-
+    Rome diff isolates real data (tech bitfields, civ index, stats) and ignores
+    per-run allocation addresses."""
+    out = bytearray(buf)
+    for i in range(0, len(out) - 3, 4):
+        v = int.from_bytes(out[i:i + 4], "big")
+        if HEAP_LO <= v < HEAP_HI or 0x10000 <= v < 0x1c00000:
+            out[i:i + 4] = b"\x00\x00\x00\x00"
+    return bytes(out)
+
+
+def deep_dump_game_obj(gdb):
+    """Read the game session object + follow its heap-pointer members one level.
+    Returns {obj_ptr, self (masked hex), members:[{off, ptr, data masked hex}]}.
+    Pointers are masked so the dump is diff-able across runs."""
+    obj = gdb.read_u32(GAME_OBJ_HOLDER)
+    res = {"holder": hex(GAME_OBJ_HOLDER), "obj_ptr": hex(obj),
+           "self": "", "members": []}
+    if not (HEAP_LO <= obj < HEAP_HI):
+        return res
+    raw = gdb.read_memory(obj, 0x1000) or b""
+    res["self"] = _mask_ptrs(raw).hex()
+    # follow each heap-pointer member one level
+    seen = set()
+    for i in range(0, len(raw) - 3, 4):
+        v = int.from_bytes(raw[i:i + 4], "big")
+        if HEAP_LO <= v < HEAP_HI and v not in seen:
+            seen.add(v)
+            sub = gdb.read_memory(v, 0x400) or b""
+            res["members"].append({"off": hex(i), "ptr": hex(v),
+                                   "data": _mask_ptrs(sub).hex()})
+            if len(res["members"]) > 64:
+                break
+    return res
+
+
 def main():
     slot = int(sys.argv[1]) if len(sys.argv) > 1 else 6
     label = sys.argv[2] if len(sys.argv) > 2 else "china"
@@ -110,6 +150,9 @@ def main():
             result["bss_hits"] = hits
             print(f"found {len(hits)} heap pointers in .bss window "
                   f"{BSS_SCAN_LO:#x}..{BSS_SCAN_HI:#x}")
+            result["game_obj"] = deep_dump_game_obj(gdb)
+            print(f"deep-dumped game obj {result['game_obj']['obj_ptr']} "
+                  f"with {len(result['game_obj']['members'])} heap members")
             gdb.resume()
     except Exception as e:
         import traceback; traceback.print_exc()
