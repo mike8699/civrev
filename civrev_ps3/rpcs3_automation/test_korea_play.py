@@ -153,14 +153,13 @@ def main():
             13: ("Shaka", "Zulu", "African"),
             14: ("Genghis", "Mongols", "Mongolia"),
             15: ("Elizabeth", "English", "England"),
-            16: ("Random",),
-            # Under the iter-189 strict reading, slot 17 is the
-            # brand-new Korea 18th-cell. It doesn't yet exist —
-            # future iterations will add it via gfx_chooseciv.gfx
-            # carousel extension. Keyword set is added here now so
-            # the test harness can OCR-verify reachability once
-            # the cell lands.
-            17: ("Sejong", "Korean", "Korea", "KOREA18"),
+            # iter-1185 inserted Korea as the new 18th cell at slot 16
+            # (cloned from China/Mao with Sejong/Koreans labels) and
+            # pushed Random down to slot 17. Earlier revisions of this
+            # map had 16->Random / 17->Sejong from the iter-189 plan
+            # where Korea was to land at slot 17; that never shipped.
+            16: ("Sejong", "Korean", "Koreans", "Korea"),
+            17: ("Random",),
         }.get(slot, ())
         target_on_screen = any(k in text for k in target_keywords)
         result["stages"]["highlighted_ok"] = target_on_screen
