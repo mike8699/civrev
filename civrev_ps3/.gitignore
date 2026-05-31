@@ -6,3 +6,6 @@ map_editor/
 map_editor_2/
 map_generator/
 tools/
+
+# Fresh Ghidra project for path-b RE (clean-ELF space, large)
+ghidra_clean/
