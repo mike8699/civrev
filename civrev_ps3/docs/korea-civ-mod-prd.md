@@ -9795,3 +9795,33 @@ SHOWS different bonus text but plays China's gameplay); (3) stop at the shipped
 cosmetic v1.1 (Sejong portrait). See path-b-plan.md "RE log — iter-4".
 
 **PRD changes made this iteration:** this Progress Log entry.
+
+### 2026-05-31 — resume (path (b) RE iter-5 — TOC breakthrough; effect anchor-less)
+
+**Status:** investigating
+**Working on:** path (b) effect layer. User chose to keep grinding.
+
+**Did this iteration:**
+- **TOC breakthrough.** civrev_clean decompiles were garbled because Ghidra
+  didn't know r2 (TOC base). Setting r2=0x193a288 (SetTocAndDecomp.py) +
+  re-analyze → ADJ_FLAT (0x195fe28) now has 14 refs (was 0), decompiles are
+  readable (TOC loads = DAT_0193xxxx), 1483 funcs. This is the working
+  clean-ELF RE environment for all future path-b work.
+- **ADJ_FLAT exhausted for the effect.** Its 14 refs = 4 functions, all
+  civ-TEXT/message builders (ADJ_FLAT[civ] + format), none grant a bonus. The
+  bonus/UI strings still have 0 refs (indirect). main → FUN_00014900; the
+  grant is deep with no string/data anchor.
+
+**Verification:** n/a (static RE). ADJ_FLAT xref count (0→14) confirms the TOC
+fix works.
+
+**Open blockers:** effect-grant still unlocated; no static anchor reaches it.
+
+**Next (iter-6):** RUNTIME .bss-diff (sidesteps the static anchor problem):
+attach the rpcs3 gdb stub at main-menu vs in-game (China), diff the .bss
+pointer region to find the game/player-state globals (the civs-buffer holder
+0x1ac93b8 is a known one), follow to player[i].techs, diff China-vs-Rome to
+confirm the effect output, then find the writer. See path-b-plan.md "RE log —
+iter-5".
+
+**PRD changes made this iteration:** this Progress Log entry.

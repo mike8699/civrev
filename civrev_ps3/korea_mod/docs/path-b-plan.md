@@ -268,6 +268,50 @@ scope decision (see PRD progress log iter-4): keep investing in deep RE, or
 descope to display-only differentiation (data-driven, tractable), or stop at
 the shipped cosmetic v1.1.
 
+## RE log — iter-5 (2026-05-31) — TOC breakthrough; effect still anchor-less
+
+User chose to keep grinding. Major tooling win, but the effect anchor problem
+persists.
+
+- **TOC breakthrough (the key asset).** The civrev_clean decompiles were
+  garbled because Ghidra didn't know `r2` (PPC64 TOC base). Setting
+  `r2=0x193a288` as a register-context constant over the code
+  (`SetTocAndDecomp.py`) and re-analyzing gives: **ADJ_FLAT (0x195fe28) → 14
+  refs (was 0)**, readable decompiles (TOC loads show as `DAT_0193xxxx`), 1483
+  functions. This is THE reusable clean-ELF RE environment for all future
+  path-b work (saved in the gitignored `ghidra_clean/civrev_clean`; rebuild
+  with `SeedDisasmAnalyze.py` then `SetTocAndDecomp.py`).
+- **ADJ_FLAT fully exhausted for the effect.** Its 14 refs are 4 functions
+  (`FUN_0013cbf0`, `FUN_0017e95c`, `FUN_0097d8f0`, `FUN_009f95e0`). With
+  readable decompiles, all 4 are civ-TEXT/message builders (`ADJ_FLAT[civ]` +
+  format/notify); the big one (`FUN_009f95e0`) is game-logic that flag-ORs a
+  player/2D matrix and uses the adjective only for a message. None grant a
+  bonus. The bonus/UI strings (`CIVBONUSTEXT`, `theSelectedOption`) still have
+  0 refs (indirect). `main` (0x147d0) is a thin wrapper → `FUN_00014900` (real
+  main); the grant is deep in the call graph with no string/data anchor.
+
+**iter-6 plan — RUNTIME `.bss`-diff (the route that sidesteps the static
+anchor problem):** the game runs in the docker harness with an RPCS3 gdb stub
+(port 2345); `gdb_client.py` does `read_memory`, and iter-202/203 already
+attach mid-game (the civs-buffer holder `0x1ac93b8` is a known `.bss` global
+populated at init). Concrete steps:
+  1. Attach gdb at the MAIN MENU; snapshot the `.bss` pointer region (scan a
+     few KB around the known holders, e.g. `0x1ac8000..0x1aca000`, widen as
+     needed) — game not started, so game-state globals are null/stale.
+  2. Start a game as China; attach IN-GAME; snapshot the same region.
+  3. DIFF: `.bss` words that flipped null→heap (or changed) are the game/
+     player-state globals. Follow them to the player array → `player[i].civ`
+     and the tech bitfield (China has Writing set).
+  4. Repeat starting as Rome; the tech bitfield differs → that IS the effect
+     output. Then find the writer: set a Z0 code breakpoint on the function
+     that writes the tech field (find via the static decompiler now that we
+     can read it), or static-analyze around the found player-struct offset.
+  5. The civ-keyed grant site + the per-civ bonus table fall out from there →
+     extend to 17 for Korea, then tackle the OOB gate.
+
+New scripts: `SetTocAndDecomp.py` (the TOC fix — run after SeedDisasmAnalyze),
+`ProbeEffectLayer.py`, `ProbeMainAndBig.py`.
+
 **iter-4 plan (two routes; try runtime first — it's likely faster):**
 1. **Runtime diff (preferred).** The game runs in the docker harness. Start a
    game as China (slot 6) and as Rome (slot 0); read player memory via the
