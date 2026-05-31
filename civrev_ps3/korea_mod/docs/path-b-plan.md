@@ -226,6 +226,48 @@ that contains data. iter-4 must SEED from known code entries and let
 auto-analysis follow flow (or disassemble only the true `.text` sub-range,
 not all of seg0 which includes rodata).
 
+## RE log — iter-4 (2026-05-31)
+
+Built a working clean-ELF project and exhausted the ADJ_FLAT lead.
+
+- **Resolved the real entry.** The ELF entry `0x18b5b20` is a PPC64 function
+  descriptor; `*0x18b5b20 = {entry=0x147d0, toc=0x193a288}`. The toc
+  `0x193a288` == `addresses.py` `KOREA_MOD_TOC_BASE` — final confirmation that
+  the clean ELF == `addresses.py` space.
+- **Seeded disassembly works** (`SeedDisasmAnalyze.py`, 6G heap via Ghidra
+  `support/launch.properties MAXMEM=6G`). Seeding from the real entry + the
+  `addresses.py` functions and FOLLOWING FLOW raised coverage 510 → **1357
+  functions** and the project saved. This is the reusable clean-ELF project
+  for future RE (`ghidra_clean/civrev_clean`, gitignored). In it the ADJ_FLAT
+  call sites now match `addresses.py` exactly (`lwz r9,-0x1f34(r2)`), proving
+  the binary/addresses are right.
+- **ADJ_FLAT consumers are TEXT BUILDERS, not the effect.** `FUN_0013cbf0`
+  does `ADJ_FLAT[civ]` (`*(TOC[-0x1f34] + (civ<<2))`) + several fixed
+  template-string TOC slots — it formats "The [adjective] ..." text. The
+  other consumers similarly build/compare civ text. None index a *second*
+  civ table that looks like a bonus/effect table. So the adjective anchor
+  does NOT reach the bonus grant.
+- **Coverage/quality still limited.** 1357 functions is far short of full
+  coverage (static flow misses C++ vtable/function-pointer targets), and
+  decompiles are garbled (no TOC/`r2` propagation → `unaff_r2`), so reading
+  the bonus logic by eye is unreliable. ADJ_FLAT still has 0 data-xrefs
+  (pointer analyzer didn't classify the TOC entry).
+
+**Conclusion after 4 iterations:** the EFFECT layer (per-civ starting-bonus
+grant) is a genuinely deep hunt — enum-driven, no string anchor, the adjective
+anchor leads only to text, and Ghidra static coverage/quality is poor for this
+binary. The remaining realistic routes are both substantial:
+  (a) **Runtime** — find the player/game struct by observation (the known
+      civs-buffer holder `0x1ac93b8` is names only; the gameplay struct is
+      unmapped), then read tech state / breakpoint the grant.
+  (b) **Deeper static** — improve TOC propagation + coverage in
+      `civrev_clean`, then navigate the call graph from `main` (0x147d0) to
+      the StartGame/new-game init and read the per-civ setup.
+Plus the civ-16 OOB gate still looms after the table is found. This warrants a
+scope decision (see PRD progress log iter-4): keep investing in deep RE, or
+descope to display-only differentiation (data-driven, tractable), or stop at
+the shipped cosmetic v1.1.
+
 **iter-4 plan (two routes; try runtime first — it's likely faster):**
 1. **Runtime diff (preferred).** The game runs in the docker harness. Start a
    game as China (slot 6) and as Rome (slot 0); read player memory via the

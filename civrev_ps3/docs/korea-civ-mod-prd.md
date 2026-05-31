@@ -9762,3 +9762,36 @@ decompile the ADJ_FLAT consumers in clean-ELF space. See path-b-plan.md
 "RE log — iter-3".
 
 **PRD changes made this iteration:** this Progress Log entry.
+
+### 2026-05-31 — resume (path (b) RE iter-4 — clean project built; ADJ_FLAT exhausted)
+
+**Status:** investigating (scope decision pending)
+**Working on:** path (b) effect layer.
+
+**Did this iteration:**
+- Resolved the real entry: ELF entry 0x18b5b20 is a PPC64 descriptor;
+  *0x18b5b20 = {entry=0x147d0, toc=0x193a288}. The toc matches addresses.py
+  KOREA_MOD_TOC_BASE — final proof clean-ELF == addresses.py space.
+- Built a WORKING clean-ELF Ghidra project via seeded disassembly
+  (SeedDisasmAnalyze.py, 6G heap): 510 → 1357 functions, saved, ADJ_FLAT call
+  sites now match addresses.py (`lwz r9,-0x1f34(r2)`). Reusable asset.
+- Decompiled the ADJ_FLAT consumers in the correct space: they are civ-TEXT
+  builders (`ADJ_FLAT[civ]` + template strings), NOT the bonus effect. The
+  adjective anchor does not reach the bonus grant. Decompiles are garbled (no
+  TOC propagation) so reading by eye is unreliable; coverage is still partial.
+
+**Verification:** n/a (static RE).
+
+**Open blockers:** effect-grant site still unlocated after 4 iterations. It's
+enum-driven with no string anchor; the only solid anchor (ADJ_FLAT) leads to
+text, not effect. Plus the civ-16 OOB gate still looms.
+
+**SCOPE DECISION raised for the user:** full path-b (a real differentiated
+17th civ) is a large, uncertain, multi-iteration RE effort (effect-table hunt
++ OOB gate). Options: (1) keep investing in deep RE (runtime memory diffing or
+deeper static call-graph navigation from main 0x147d0); (2) descope to
+display-only differentiation (data-driven via text.ini, tractable — Korea
+SHOWS different bonus text but plays China's gameplay); (3) stop at the shipped
+cosmetic v1.1 (Sejong portrait). See path-b-plan.md "RE log — iter-4".
+
+**PRD changes made this iteration:** this Progress Log entry.
