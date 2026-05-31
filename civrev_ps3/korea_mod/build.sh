@@ -41,11 +41,20 @@ if [ -f "$HERE/eboot_patches.py" ]; then
     python3 "$HERE/eboot_patches.py" --in "$ROOT/EBOOT_v130_decrypted.ELF" --out "$STAGE/EBOOT_korea.ELF"
 fi
 
-# Extract Sejong portrait from CivRev2 (needed before FPK repack).
-if [ -f "$HERE/extract_cr2_sejong.py" ]; then
-    echo "[build] extracting Sejong portrait from CivRev2"
-    python3 "$HERE/extract_cr2_sejong.py" --out "$STAGE/portraits" || \
-        echo "  WARNING: Sejong portrait extraction failed (CivRev2 data may not be present)"
+# Sejong portrait extraction (PRD §9.AA part A). Pull Kor_Sejong_DIFF from
+# the CivRev2 Unity bundle, crop the face, and emit ldr_korea.dds in the
+# stock LDR portrait format. Runs via `uv run` so UnityPy/numpy/Pillow are
+# provisioned in an ephemeral env without touching system Python. The DDS
+# lands in $STAGE/portraits where pack_korea.sh picks it up for the FPK.
+CR2_DATA="$ROOT/../civrev2/main.19.com.t2kgames.civrev2/assets/bin/Data"
+if [ -f "$HERE/extract_cr2_sejong.py" ] && [ -d "$CR2_DATA" ]; then
+    echo "[build] extracting Sejong portrait from CivRev2 (uv run + UnityPy)"
+    uv run --with UnityPy --with numpy --with Pillow \
+        python3 "$HERE/extract_cr2_sejong.py" \
+        --cr2-data "$CR2_DATA" --out "$STAGE/portraits"
+elif [ -f "$HERE/extract_cr2_sejong.py" ]; then
+    echo "[build] WARNING: CivRev2 data dir absent ($CR2_DATA);"
+    echo "         skipping Sejong portrait — carousel ships without ldr_korea.dds"
 fi
 
 # FPK repack step.

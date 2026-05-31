@@ -112,17 +112,37 @@ stage_pregame_repack() {
             "$dst/gfx_chooseciv.gfx"
     fi
 
-    # Sejong portrait: copy ldr_korea.dds + ldr_lrg_korea.dds into
-    # the Pregame staging dir so they're packed alongside the stock
-    # LDR_*.dds portraits. The AS2 loadClip("LDR_korea.dds") call
-    # will find them in the FPK at runtime.
-    local portraits="$STAGE/portraits"
-    if [ -d "$portraits" ]; then
-        for dds in "$portraits"/ldr_korea*.dds; do
-            [ -f "$dds" ] || continue
-            cp "$dds" "$dst/"
-            echo "[pack_korea] Pregame: added $(basename "$dds")"
-        done
+    # Sejong portrait (PRD §9.AA part A): add ldr_korea.dds into the
+    # Pregame staging dir so the AS2 loadClip("LDR_korea.dds") call (via
+    # GetImageName "16" -> "korea") finds it in the FPK at runtime.
+    #
+    # This is the ONE new entry added to Pregame.FPK. fpk.py requires
+    # (a) a per-file .extradata companion and (b) the file listed in
+    # ordering.json, with len(ordering) == file count. We copy
+    # ldr_china.dds.extradata verbatim (ldr_korea is the same 128x128
+    # 32-bit format/size class) and append the name to ordering.json.
+    #
+    # Only the small carousel thumbnail is added; the ldr_lrg_* large
+    # portrait is loaded by a different sprite that Korea never reaches
+    # (selecting Korea remaps to China per iter-1188), so adding it would
+    # be a second unnecessary new FPK entry.
+    local portrait="$STAGE/portraits/ldr_korea.dds"
+    if [ -f "$portrait" ]; then
+        cp "$portrait" "$dst/ldr_korea.dds"
+        cp "$dst/ldr_china.dds.extradata" "$dst/ldr_korea.dds.extradata"
+        python3 - "$dst/ordering.json" <<'PY'
+import json, sys
+p = sys.argv[1]
+order = json.load(open(p))
+if "ldr_korea.dds" not in order:
+    # place it right after ldr_china.dds for tidiness; order is functionally
+    # irrelevant (each entry carries its own offset) but keep it grouped.
+    idx = order.index("ldr_china.dds") + 1 if "ldr_china.dds" in order else len(order)
+    order.insert(idx, "ldr_korea.dds")
+    json.dump(order, open(p, "w"))
+    print(f"[pack_korea] Pregame: ordering.json now {len(order)} entries (added ldr_korea.dds)")
+PY
+        echo "[pack_korea] Pregame: added ldr_korea.dds (+extradata)"
     fi
 
     python3 "$PS3_ROOT/fpk.py" repack "$dst"

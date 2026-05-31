@@ -1932,89 +1932,87 @@ overwrite is the correct mechanism. iter-1188 is COMPLETE.
 Sejong's actual leader art on the civ-select screen. Two visual
 systems need updating:
 
-#### A. Small carousel thumbnail (SWF-embedded DDS)
+#### A. Small carousel thumbnail (external FPK DDS)
 
-The ChooseCivLeader sprite's `SetPortrait()` calls
-`GetImageName(slotData[0])` to map a portrait index to a nation
-key, then loads `LDR_<nation>.dds` from the SWF's embedded
-assets. Currently Korea's slotData16[0] = "6" → "china" →
-LDR_china.dds (Mao's face).
+**Mechanism (corrected — empirically verified 2026-05-30 by
+decompiling the stock gfx_chooseciv.gfx with JPEXS):** the
+ChooseCivLeader sprite (DefineSprite_96) `SetPortrait(s)` calls
+`SetPortraitImage(s)` → `GetImageName(s)` → nation key, then
+`myMCL.loadClip("LDR_" + name + ".dds", ...portraitImage)`. This
+is a **MovieClipLoader external-file load**, NOT an SWF-embedded
+bitmap — the portrait DDS is a *separate file in Pregame.FPK*. So
+no JPEXS bitmap embedding is needed; the portrait just has to
+exist in the FPK as `ldr_korea.dds`. Stock small portraits are
+**128×128 uncompressed 32-bit BGRA, 65664 bytes** (pf_flags 0x41,
+fourcc 0), each with a small `.extradata` companion. Korea's cell
+clones slotData6 so slotData16[0] = "6" → GetImageName → "china"
+→ LDR_china.dds (Mao) unless overridden.
 
-**Implementation plan:**
+The original plan in this section was wrong on three counts and
+is superseded by the mechanism above: (1) it called the DDS
+"SWF-embedded" — it is external; (2) it named source
+`PEDIA_SEJONG_1.dds` — no such texture exists in CR2, the only
+Sejong texture is `Kor_Sejong_DIFF`; (3) it said ~80×80 — stock
+is 128×128.
 
-1. **Extract Sejong portrait from CivRev2.** Source data is in
-   Unity asset bundles under
-   `civrev2/main.19.com.t2kgames.civrev2/assets/bin/Data/`.
-   The pedia reference is `PEDIA_SEJONG_1.dds`. Use
-   AssetStudio or a Python Unity asset unpacker to extract.
-   Commit the extraction script as
-   `korea_mod/extract_cr2_assets.py`.
+**Implementation (as built — iter-resume 2026-05-30):**
 
-2. **Convert to PS3 LDR format.** The stock `LDR_*.dds`
-   portraits are ~80×80 DDS images embedded in the SWF.
-   Resize/reformat the CivRev2 portrait to match. If CR2
-   only has a pedia-style full-body image, crop to head-and-
-   shoulders. Processing script goes in
-   `korea_mod/convert_sejong_portrait.py`.
+1. **Extract Sejong face from CR2.** `korea_mod/extract_cr2_sejong.py`
+   loads `Kor_Sejong_DIFF` (1024×1024 UV atlas) from Unity bundle
+   `0384035ce88066041b0472c1c6e88c91` via UnityPy, crops the face
+   island `FACE_CROP = (585, 50, 885, 362)` (visually validated
+   against the rendered atlas — forehead→beard plus the gat), fills
+   the pure-black UV void with a dark slate, and writes
+   `ldr_korea.dds` (128×128) + `ldr_lrg_korea.dds` (272×288) in the
+   exact stock BGRA DDS format. The face and robe are separate UV
+   islands, so a head-and-shoulders crop like the stock Mao portrait
+   is not available from this source — a face portrait is the best
+   the data supports. **UnityPy is the reason prior iterations
+   produced no artifact: it was never installed.** The build now
+   runs the extractor via `uv run --with UnityPy --with numpy
+   --with Pillow` so no system-Python install is needed.
 
-3. **Embed in gfx_chooseciv.gfx.** Use JPEXS to import the
-   new DDS as a DefineBitsLossless2 or DefineBitsJPEG tag,
-   named `LDR_korea.dds` to match the GetImageName
-   convention. Automate via `gfx_chooseciv_patch.py`.
+2. **Add to Pregame.FPK (one new entry).** `pack_korea.sh` copies
+   `ldr_korea.dds` into the Pregame staging dir, copies
+   `ldr_china.dds.extradata` → `ldr_korea.dds.extradata` (same
+   128×128 format/size class), and registers `ldr_korea.dds` in
+   `ordering.json`. Both are mandatory: `fpk.py` requires a
+   `.extradata` per file and asserts `len(ordering) == file count`.
+   Only the small thumbnail is added; the `ldr_lrg_*` large
+   portrait is loaded by a different sprite (DefineSprite_132) that
+   the Korea-as-China flow never reaches, so adding it would be a
+   second needless new FPK entry.
 
-4. **Update GetImageName() AS2.** Add:
-   ```actionscript
-   case "16":
-   case "korea":
-   case "korean":
-   case "sejong":
-      _loc1_ = "korea";
-      break;
-   ```
-   This goes in ChooseCivLeader's DoAction.as (DefineSprite_96).
-   Injected via JPEXS `-importScript` alongside the existing
-   LoadOptions and OnAccept edits.
+3. **Route GetImageName "16" → "korea".** `gfx_chooseciv_patch.py`
+   `_patch_getimage_korea()` repurposes the stock dead `case "16":
+   barbarian` branch to `"korea"` (there was never an
+   `ldr_barbarian.dds`, so that branch was always a failed load).
 
-5. **Update LOAD_OPTIONS_KOREA.** Change
-   `_parent.slotData16[0]` from inheriting slot 6's value to
-   explicitly setting `"16"` so SetPortrait routes to the new
-   Korea image. This does NOT break Korea-plays-as-China
-   because iter-1188's Plan A2 overwrites theSelectedOption
-   (not slotData) at OnAccept time.
+4. **Override the slot-16 thumbnail in SetUpUnits.**
+   `_patch_setupunits_korea()` appends, after the cell's
+   `SetPortrait(myDataArray[0])`, an `if(j == 16)
+   _loc2_.SetPortraitImage("16")`. `SetPortraitImage` is a real
+   method on the cell (confirmed in the decompile); calling it with
+   "16" reloads the portrait as `LDR_korea.dds` while leaving
+   slotData16[0] = "6" so the PPU still binds Mao's 3D leaderhead
+   (Part B). This replaces the earlier slotData[0] save/restore
+   approach (which had a render race) — it is simpler and correct.
 
-**Verification (automated — run `verify.sh --tier=static`):**
-
-The portrait pipeline is verified by `verify_portrait.py`,
-which is integrated into verify.sh's M0c step:
-
-1. **DDS presence**: `ldr_korea.dds` exists in the Pregame
-   staging dir with correct size (65664 bytes = 128×128×4 + 128
-   byte header).
-2. **GetImageName patch**: re-exports the built GFX via JPEXS
-   and greps for `case "16"` → `"korea"` in
-   ChooseCivLeader/DoAction.as.
-3. **SetUpUnits patch**: re-exports DoAction_4.as and checks
-   for the `j == 16` save/restore block that swaps
-   `myDataArray[0]` to `"16"` before SetPortrait and restores
-   to `"6"` after.
-
-All three checks must PASS for M0 to be green. If any fails,
-`verify.sh --tier=static` exits non-zero with a diagnostic.
-
-**Manual verification (if automated checks pass but portrait
-still shows Mao):**
-
-1. Build: `cd korea_mod && ./install.sh`
-2. Launch RPCS3 with the modded disc
-3. Navigate: Main Menu → Single Player → New Game → any
-   difficulty → scroll to Korea (slot 16)
-4. The small carousel cell thumbnail for "Sejong / Koreans"
-   should show a face from the CivRev2 UV atlas (darker
-   skin tone, Korean gat hat) — NOT Mao's face
-5. The large central 3D portrait still shows Mao's model
-   (expected — Phase B 3D model swap is not yet implemented)
-6. Idle animation should play when lingering on Korea
-   (Mao's model animates)
+**Verification:**
+- **Static (M0c, green):** `korea_mod/verify_portrait.py`, wired
+  into `verify.sh --tier=static`, confirms the built staging tree
+  has `ldr_korea.dds` (128×128 / 65664 B / +extradata / in
+  ordering) and that the repacked GFX routes GetImageName "16" →
+  "korea" and carries the `SetPortraitImage("16")` override. An FPK
+  pack→unpack round-trip confirms `ldr_korea.dds` is byte-identical
+  in `Pregame_korea.FPK` and all four AS2 edits survive.
+- **Runtime (M9):** the docker `korea_play 16 korea` run boots the
+  patched EBOOT + new-entry FPK, navigates to the Korea cell, and
+  screenshots the carousel (`06_slot_highlighted`). This both proves
+  the new FPK entry does not crash boot (the MEMORY "adding FPK
+  entries crashes the game" caveat was learned on the DLC map FPK,
+  not confirmed for Pregame.FPK) and provides the Sejong-vs-Mao
+  visual diff. Result recorded in the Progress Log.
 
 #### B. Large 3D leaderhead (Gamebryo/Granny2)
 
@@ -9580,3 +9578,64 @@ downstream followed trivially from that.
 **PRD changes made this iteration:** iter-1186 Progress
 Log entry. §9.X SUPERSEDED banner was added in iter-1185
 commit, not this one.
+
+### 2026-05-30 — resume (Sejong carousel portrait, §9.AA A — DONE + VERIFIED)
+
+**Status:** done
+**Working on:** §9.AA part A — small carousel thumbnail (Sejong portrait)
+
+**Did this iteration:**
+- Found the real reason every prior portrait commit (6a16bde /
+  e0a1c00 / 93bfc98) was inert: **UnityPy was never installed**, so
+  `extract_cr2_sejong.py` always exited early and no `ldr_korea.dds`
+  was ever produced. `build.sh` swallowed the failure with
+  `|| echo WARNING`. Separately, `pack_korea.sh` added the DDS without
+  the `.extradata` + `ordering.json` that `fpk.py` repack requires, so
+  the pipeline could not have completed even with the DDS present.
+- Decompiled the stock `gfx_chooseciv.gfx`: the portrait is an
+  **external** `loadClip("LDR_<name>.dds")` (MovieClipLoader), NOT an
+  SWF-embedded bitmap — so no JPEXS bitmap embedding is needed, the DDS
+  just has to exist in Pregame.FPK. Stock small portraits are 128x128
+  uncompressed 32-bit BGRA / 65664 B. Corrected PRD §9.AA-A, which had
+  this wrong (claimed embedded, cited a non-existent `PEDIA_SEJONG_1.dds`,
+  said ~80x80).
+- Extracted `Kor_Sejong_DIFF` (1024x1024 UV atlas) via
+  `uv run --with UnityPy`, visually validated `FACE_CROP=(585,50,885,362)`
+  against the rendered atlas, recolored the black UV void to dark slate,
+  emitted `ldr_korea.dds` (byte-exact stock format).
+- Fixed `pack_korea.sh` to add the one new FPK entry properly
+  (`.extradata` from `ldr_china`, `ordering.json` -> 293 entries).
+- Kept the AS2 wiring (GetImageName "16"->"korea"; SetUpUnits
+  `SetPortraitImage("16")` override — confirmed a real method).
+- Restored a corrected `verify_portrait.py` (the dirty tree had deleted
+  it; old checks were stale vs the `SetPortraitImage` approach) and
+  rewired it as verify.sh M0f.
+- Fixed `test_korea_play.py`'s stale OCR keyword map (slot 16 was
+  "Random", now correctly "Sejong/Korean"; slot 17 -> "Random").
+
+**Verification:**
+- **Static** `verify.sh --tier=static` (M0f) — **PASS**: `ldr_korea.dds`
+  present (128x128/65664/+extradata/in ordering), GFX routes "16"->korea
+  + carries `SetPortraitImage("16")`, FPK round-trip byte-identical.
+- **Runtime M9** `korea_play 16 korea` — **PASS** (result.json in
+  `verification/iter_resume_sejong_partA/`): boots clean with the new FPK
+  entry, Korea reachable at slot 16, label "Sejong Koreans", reaches
+  in-game (Korea-plays-as-China, China start at 4000 BC). **Disproves the
+  MEMORY "adding FPK entries crashes the game" caveat for Pregame.FPK**
+  (that was learned on the DLC map FPK).
+- **Runtime visual** `korea_play 15 elizabeth` (flanking) — Korea's small
+  carousel thumbnail renders **Sejong's face** (bearded, dark hair, slate
+  bg), visibly distinct from Mao. See
+  `korea_play_elizabeth_06_slot_highlighted.png` +
+  `sejong_thumbnail_zoom.png`. The *centered* Korea cell still shows the
+  3D Mao leaderhead — that is §9.AA part B (3D model swap), not yet done.
+
+**Open blockers:** none for part A. Part B (3D leaderhead swap) remains
+the next §9.AA item.
+
+**Next iteration should:** tackle §9.AA part B (extract Kor_Sejong model
+from CR2 bundle ca2d2c60…, convert to Granny2 .gr2, repack leaderhead.FPK)
+— or close §9.AA as part-A-only if the 3D pipeline proves out of reach.
+
+**PRD changes made this iteration:** §9.AA-A rewritten with the corrected
+external-file mechanism and as-built steps; this Progress Log entry.

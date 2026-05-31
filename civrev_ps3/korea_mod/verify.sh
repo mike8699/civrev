@@ -158,9 +158,11 @@ PY
     fi
 fi
 
-# M0c — Sejong portrait verification. Checks that ldr_korea.dds is
-# present in the built Pregame staging dir, GetImageName routes "16"
-# → "korea", and SetUpUnits has the portrait save/restore for slot 16.
+# M0f — Sejong carousel-portrait pipeline (PRD §9.AA A). Confirms the
+# built Pregame staging tree has ldr_korea.dds (stock format, +extradata,
+# in ordering.json) and that the patched gfx_chooseciv.gfx routes
+# GetImageName "16" -> "korea" and overrides the slot-16 thumbnail via
+# SetPortraitImage("16"). Skips cleanly (pass) when no build is staged.
 if [ -f "$HERE/verify_portrait.py" ]; then
     if ! python3 "$HERE/verify_portrait.py"; then
         m0_pass=false

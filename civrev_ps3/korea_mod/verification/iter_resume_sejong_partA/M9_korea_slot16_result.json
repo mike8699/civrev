@@ -1,0 +1,16 @@
+{
+  "milestone": "M9",
+  "slot": 16,
+  "label": "korea",
+  "pass": true,
+  "oracle": "OCR in-game HUD after selecting slot 16 (korea)",
+  "stages": {
+    "main_menu": true,
+    "difficulty_selected": true,
+    "highlighted_ok": true,
+    "in_game_hud": true
+  },
+  "select_ocr": "pumice) qj. \\qmmmememees/ (hemes Fy i GAY \\ \u2014 | | Shaka Genghis Elizabeth ; i Random | Zulu Khan English : 5.) o . Random | 7 i : | Wi 4 > \\) end 4. \u2018 \u201ci | y \u201c \u2019 \u00b0 * cae | 2 Pi ee by Sejong By ais vas",
+  "diplomacy_ocr": "a | eS *, \u201ca | tie . | %. = , a \u2018 . | a aig Ti i | \u2014 PZ 3 FG as vy ie | : = \u2014\u2014 et | / eo \u00a9 Ze | Pes Bg : Ny  @ y | > ~ \u00bb ot MI c \u2014 _ | & \u2019 \u2018 | | c - SS | \" ~ > i , \u00a5 e. % | \u2018i. => | ee _\u2122 te | ' ~_ \u2014 9 a",
+  "diplo_civ_hits": {}
+}

@@ -27,9 +27,22 @@ from PIL import Image
 SEJONG_DIFF_BUNDLE = "0384035ce88066041b0472c1c6e88c91"
 SEJONG_DIFF_NAME = "Kor_Sejong_DIFF"
 
-FACE_CROP = (540, 55, 790, 300)
-CANVAS_SIZE = 280
-BLACK_THRESHOLD = 20
+# Face island in the 1024x1024 Kor_Sejong_DIFF UV atlas. Visually
+# validated 2026-05-30 against the rendered atlas: this box frames
+# Sejong's full face (forehead → chin/beard) plus the gat (hat) brim,
+# while excluding the neighbouring UV islands (robe, hands, hat-inside)
+# that sit elsewhere in the atlas. The face and body are separate UV
+# islands so a head-and-shoulders crop (like the stock Mao portrait) is
+# not available — a face portrait is the best the source supports.
+FACE_CROP = (585, 50, 885, 362)
+
+# The unused atlas space behind the face island is pure black. We recolor
+# only those near-black void pixels to a dark slate so the portrait has a
+# subtle background tint (closer to the stock blue-grey portraits) without
+# masking the dark hair/hat, which would create halos or reveal adjacent
+# UV islands. Hair luma is well above this threshold.
+VOID_LUMA_THRESHOLD = 12
+VOID_FILL = (40, 50, 68)
 
 SMALL_SIZE = (128, 128)
 LARGE_SIZE = (272, 288)
@@ -87,21 +100,22 @@ def extract_sejong_diff(cr2_data: Path) -> Image.Image:
 
 
 def make_portrait(diff_img: Image.Image) -> Image.Image:
-    """Crop Sejong's face from the UV atlas and mask background."""
-    face = diff_img.crop(FACE_CROP)
-    px = np.array(face.convert("RGBA"))
-    mask = (
-        (px[:, :, 0] < BLACK_THRESHOLD)
-        & (px[:, :, 1] < BLACK_THRESHOLD)
-        & (px[:, :, 2] < BLACK_THRESHOLD)
-    )
-    px[mask] = [0, 0, 0, 0]
+    """Crop Sejong's face from the UV atlas, recolor the void, return RGBA.
 
-    canvas = Image.new("RGBA", (CANVAS_SIZE, CANVAS_SIZE), (0, 0, 0, 0))
-    face_clean = Image.fromarray(px)
-    fw, fh = face_clean.size
-    canvas.paste(face_clean, ((CANVAS_SIZE - fw) // 2, (CANVAS_SIZE - fh) // 2))
-    return canvas
+    The crop is near-square and already framed on the face, so no
+    centering canvas is needed. We keep the portrait fully opaque to
+    match the stock LDR_*.dds format (every stock portrait is opaque
+    32-bit BGRA with a baked background); only the pure-black UV void
+    behind the face is recolored to a dark slate tint.
+    """
+    face = np.array(diff_img.crop(FACE_CROP).convert("RGBA"))
+    luma = face[:, :, :3].max(axis=2)
+    void = luma < VOID_LUMA_THRESHOLD
+    face[void, 0] = VOID_FILL[0]
+    face[void, 1] = VOID_FILL[1]
+    face[void, 2] = VOID_FILL[2]
+    face[:, :, 3] = 255  # fully opaque, matches stock portraits
+    return Image.fromarray(face)
 
 
 def main() -> int:
