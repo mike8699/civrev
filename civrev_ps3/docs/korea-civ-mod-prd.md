@@ -2069,11 +2069,23 @@ portrait injection pipeline. (B) second.
 All extraction/conversion must be reproducible via Python
 scripts committed under `korea_mod/`.
 
-#### Deferral of path (b) — unique civ gameplay
+#### Path (b) — unique civ gameplay (NOW ACTIVE, v1.2)
 
-Path (b) — real Korean civ attributes via civ-record table
-extension — is formally deferred to a new **PRD §11 v1.2
-differentiation roadmap**. The forward path is:
+**2026-05-31: user chose path (b).** No longer deferred. The
+full plan now lives in **`korea_mod/docs/path-b-plan.md`** —
+read that first. Key reframing from the first path-b iteration:
+civ behaviour splits into a **display layer** (bonus *text*,
+data-driven in `extracted/Pregame/text.ini` `__VAR` sections —
+`[CIVBONUSTEXT]` is 16 entries indexed by civ, verified idx 6 =
+"knowledge of Writing" = China), a **mapping/effect layer**
+(EBOOT integer tables + game-init code, the RE target; xref
+anchors: `"CIVBONUSTEXT"` @ EBOOT `0x16CF0DE`, `"LBTEXT"` @
+`0x16811A9`), and the **civ-16 OOB gate** (the §9.X blocker, but
+on the gameplay path, which is separate from the already-mapped
+name-parse fault). Korea's design reuses existing bonus pool
+strings (e.g. the Hwacha → "+2 Cannon attack" LBTEXT entry) so
+no new mechanics are needed. The original 6-step sketch below is
+superseded by path-b-plan.md's roadmap; retained for history:
 
 1. Reverse-engineer PS3 civ-record struct layout. iter-198
    partially mapped it in
@@ -9639,3 +9651,41 @@ from CR2 bundle ca2d2c60…, convert to Granny2 .gr2, repack leaderhead.FPK)
 
 **PRD changes made this iteration:** §9.AA-A rewritten with the corrected
 external-file mechanism and as-built steps; this Progress Log entry.
+
+### 2026-05-31 — resume (path (b) kickoff — plan + display-layer findings)
+
+**Status:** investigating
+**Working on:** path (b) — Korea as a differentiated civ (v1.2). User chose
+this over the 3D leaderhead (Part B) and over shipping as-is.
+
+**Did this iteration:**
+- Re-oriented the whole gameplay-data question and wrote
+  `korea_mod/docs/path-b-plan.md` — the durable plan for the 10–20 iter effort.
+- **Display layer is data-driven (verified).** `extracted/Pregame/text.ini`
+  `[CIVBONUSTEXT]` = 16 entries indexed by civ (idx 6 = "knowledge of Writing"
+  = China, matches the carousel). `[LBTEXT]` = a flat pool of leader-bonus
+  strings indexed per era. So Korea's bonus *text* is extensible by adding a
+  17th `__VAR` entry — the hard part is the EBOOT effect layer + the civ-16
+  OOB gate.
+- Found EBOOT xref anchors: `"CIVBONUSTEXT"` @ file `0x16CF0DE`, `"LBTEXT"` @
+  `0x16811A9` — entry points for the Ghidra mapping/effect RE.
+- Confirmed CR2's pedia is descriptive-only (no mechanical abilities; Hwacha
+  absent), so Korea's design reuses CivRev1's existing bonus pool (e.g. Hwacha
+  → the existing "+2 Cannon attack" leader bonus) rather than porting CR2.
+- Confirmed Ghidra is ready: 370 MB analyzed `civrev.rep`, analyzeHeadless +
+  ~50 Jython helpers present (all on the name-parse path, not gameplay).
+
+**Verification:** data-layer findings verified directly against text.ini +
+the in-game carousel screenshot. No emulator run this iteration (planning).
+
+**Open blockers:** the civ-16 OOB gate on the *gameplay* path is unexplored
+(distinct from the known name-parse fault at 0xc26a98). Feasibility verdict is
+roadmap step 4.
+
+**Next iteration should:** RE the mapping layer — run a Ghidra Jython
+post-script anchored on the `"CIVBONUSTEXT"` / `"LBTEXT"` string xrefs to find
+the per-civ bonus consumer + the leader→LBTEXT index table; record in
+addresses.py. (task #6)
+
+**PRD changes made this iteration:** §9.AA "path (b)" subsection marked ACTIVE
+with the layered model + anchors + pointer to path-b-plan.md; this entry.
