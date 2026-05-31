@@ -196,6 +196,22 @@ KOREA_MOD_STR_CHOOSECIV           = 0x0169f438  # UI screen name
 # disassembly from known code addresses. See path-b-plan.md "RE log — iter-3".
 
 # ---------------------------------------------------------------------------
+# path-b iter-6 (2026-05-31): RUNTIME game-state anchors (found via
+# test_player_dump.py — boot in-game, scan .bss for heap pointers). The static
+# effect-grant hunt had no anchor; runtime found the game objects directly.
+# .bss globals are fixed; the heap pointers they hold vary per run.
+# ---------------------------------------------------------------------------
+KOREA_MOD_GAME_OBJ_BSS_HOLDER   = 0x01ac1678  # .bss -> heap game session object
+KOREA_MOD_GAME_OBJ_VTABLE       = 0x018a2738  # vtable of the game session obj
+#   vtable methods (descriptors): 0x9a6018, 0x9a7228, 0x9a7350, ... ; these use
+#   TOC 0x194a1f8 (parser-module TOC), NOT the main 0x193a288 — set r2 to
+#   0x194a1f8 when decompiling them in civrev_clean.
+KOREA_MOD_OBJ_B_BSS_HOLDERS     = (0x01ad8114, 0x01add514)  # vtable 0x0188ac38
+# Next: follow GAME_OBJ -> player array -> player.civ / player.techs; diff
+# China vs Rome to locate the per-civ starting-tech effect output, then the
+# civ-keyed grant site. See path-b-plan.md "RE log — iter-6/7".
+
+# ---------------------------------------------------------------------------
 # Expected values for verification oracles (M5)
 # ---------------------------------------------------------------------------
 

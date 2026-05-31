@@ -312,6 +312,40 @@ populated at init). Concrete steps:
 New scripts: `SetTocAndDecomp.py` (the TOC fix — run after SeedDisasmAnalyze),
 `ProbeEffectLayer.py`, `ProbeMainAndBig.py`.
 
+## RE log — iter-6 (2026-05-31) — RUNTIME route works; game-object found
+
+Pivoted to runtime and it WORKS — the breakthrough the static hunt couldn't
+reach.
+
+- **`test_player_dump.py`** (new harness mode `player_dump`) boots a game to
+  the in-game HUD as a chosen civ, attaches the rpcs3 gdb stub, and scans a
+  `.bss` window for heap pointers. China run: `in_game=True`, civs buffer at
+  runtime `0x4002a0e0`, **14 unique game-state `.bss` globals** found (heap
+  ptrs `0x4xxxxxxx`), peeks showing live data (city "Karakorum", entity
+  objects with float stats).
+- **Found the game session object.** `.bss 0x1ac1678 → heap 0x40003000`, whose
+  first word is **vtable `0x18a2738`** — confirmed a real C++ vtable (entries
+  are PPC64 function descriptors → methods at `0x9a6018`/`0x9a7228`/`0x9a7350`,
+  compiled in the `0x194a1f8`-TOC module, same as the parser). Two more C++
+  objects share vtable `0x0188ac38` (`.bss 0x1ad8114`, `0x1add514`). The
+  `0x40003000` object has member pointers into both EBOOT and heap — it is the
+  gateway to players → civs → techs.
+
+**iter-7 (clear, tooling all in place):**
+1. STATIC: decompile the game-object class methods (vtable `0x18a2738`,
+   set `r2=0x194a1f8` for these — they use the parser module's TOC) to find
+   the member offset of the player array / player count.
+2. RUNTIME: extend `test_player_dump.py` to follow `0x1ac1678 → 0x40003000`,
+   walk to the player array, find the human (China) player, and read its tech
+   bitfield/array. Identify the tech-state offset.
+3. DIFF: run `player_dump 0 rome` and compare the China vs Rome player tech
+   state — the bytes that differ ARE the starting-bonus effect output (China:
+   Writing). Then set a Z0 breakpoint on / static-trace the writer to find the
+   civ-keyed grant + the per-civ bonus table. Extend to 17 for Korea; then the
+   OOB gate.
+
+Runtime anchors recorded in addresses.py.
+
 **iter-4 plan (two routes; try runtime first — it's likely faster):**
 1. **Runtime diff (preferred).** The game runs in the docker harness. Start a
    game as China (slot 6) and as Rome (slot 0); read player memory via the

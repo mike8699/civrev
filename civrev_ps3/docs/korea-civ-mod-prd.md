@@ -9825,3 +9825,30 @@ confirm the effect output, then find the writer. See path-b-plan.md "RE log —
 iter-5".
 
 **PRD changes made this iteration:** this Progress Log entry.
+
+### 2026-05-31 — resume (path (b) RE iter-6 — runtime route works; game object found)
+
+**Status:** investigating (real momentum)
+**Working on:** path (b) effect layer via runtime memory.
+
+**Did this iteration:**
+- Built `test_player_dump.py` (harness mode `player_dump`): boots to the
+  in-game HUD as a chosen civ, attaches the rpcs3 gdb stub, scans `.bss` for
+  heap pointers. **It works** — China run reached in-game, found 14 unique
+  game-state `.bss` globals with live data.
+- **Found the game session object:** `.bss 0x1ac1678 → heap 0x40003000`, vtable
+  `0x18a2738` (confirmed C++ — methods at 0x9a6018/0x9a7228/0x9a7350, TOC
+  0x194a1f8). This is the gateway to players → civs → techs. Recorded in
+  addresses.py. Artifact: `verification/iter6_runtime_bss_scan/`.
+
+**Verification:** runtime — boot to in-game PASS, gdb attach + .bss scan PASS.
+
+**Open blockers:** none new — the runtime route is yielding. Effect output not
+yet read (need to walk the game object to the player tech state).
+
+**Next (iter-7):** (1) static-decompile the game-object class methods (vtable
+0x18a2738, r2=0x194a1f8) for the player-array offset; (2) extend player_dump to
+follow 0x40003000 → player array → China player → tech bitfield; (3) diff vs
+Rome to confirm the per-civ starting-tech effect, then find the writer.
+
+**PRD changes made this iteration:** this Progress Log entry.
