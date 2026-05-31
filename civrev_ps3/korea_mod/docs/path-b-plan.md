@@ -346,6 +346,39 @@ reach.
 
 Runtime anchors recorded in addresses.py.
 
+## RE log — iter-7 (2026-05-31) — in-window objects ruled out; widen the scan
+
+Used the now-working static decompiler to identify the runtime objects found
+in iter-6, and they are NOT the game session:
+- `0x1ac1678 → vtable 0x18a2738` is a **charset/locale object** — its methods
+  index 256-entry u16 tables by a byte (members at 0xc/0x10 = case-conversion
+  / encoding tables). That's why text/city-names were near it.
+- `0x1ad8114` / `0x1add514 → vtable 0x0188ac38` are small **widget/data-display
+  objects** (members 0x10/0x14 u32, 0x18 float, 0x1c, 0x35). Not the players.
+- The other in-window globals point to entity/city objects ("Karakorum",
+  "Barbarian"+floats), not the player array.
+
+**Root issue:** the iter-6 `.bss` scan window (`0x1ab0000..0x1ae0000`, 192 KB)
+was too narrow — `.bss` spans ~2.4 MB (`0x198be78..0x1bd5f38`). The game
+session / player array global is almost certainly outside it. `test_player_dump.py`
+scan widened to `0x1990000..0x1bd0000`. New helper `GameObjMethods.py`
+disassembles + decompiles a class's vtable methods (with a per-method TOC) to
+identify an object — reuse it to classify the wider scan's candidates.
+
+**iter-8:** re-run `player_dump` with the wide scan; among the game-state
+globals, find the one whose object holds an **array of ~8-16 similar sub-objects**
+(the player array) or a civ-index byte field (0-16). Classify candidates with
+`GameObjMethods.py`. Then read the human (China) player's tech bitfield, diff
+vs Rome. (If the wide blind scan is still ambiguous, pivot to finding a
+`GetGame()`/`GetActivePlayer()` accessor statically now that xrefs work, or
+search the heap for the civ-index/tech signature directly.)
+
+**Honest status:** this is among the hardest RE — a stripped, enum-driven,
+indirection-heavy console C++ binary whose gameplay code has no string/data
+anchors. Tooling is now strong (working clean-ELF decompiler+xrefs + runtime
+probe), and leads are being ruled out methodically, but pinning the
+effect-grant may take several more iterations of runtime exploration.
+
 **iter-4 plan (two routes; try runtime first — it's likely faster):**
 1. **Runtime diff (preferred).** The game runs in the docker harness. Start a
    game as China (slot 6) and as Rome (slot 0); read player memory via the

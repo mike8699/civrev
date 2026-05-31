@@ -27,10 +27,11 @@ from config import RPCS3_BIN, RPCS3_BOOT_TIMEOUT  # noqa: E402
 from gdb_client import GDBClient  # noqa: E402
 
 # .bss window to scan for game-state heap pointers. seg1 (RW) is
-# 0x1870000..0x1bd5f38; the known name-file holders cluster at 0x1ac93xx.
-# Scan a generous window around there for heap pointers.
-BSS_SCAN_LO = 0x01ab0000
-BSS_SCAN_HI = 0x01ae0000
+# 0x1870000..0x1bd5f38. iter-7: the narrow 0x1ab0000..0x1ae0000 window held
+# only charset/widget/entity objects, not the game session / player array, so
+# scan the full .bss range. (~2.3MB; slower but one-time per run.)
+BSS_SCAN_LO = 0x01990000
+BSS_SCAN_HI = 0x01bd0000
 CIVS_BUF_HOLDER = 0x01ac93b8
 HEAP_LO, HEAP_HI = 0x40000000, 0x50000000
 
