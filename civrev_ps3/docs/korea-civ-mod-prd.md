@@ -2079,8 +2079,8 @@ data-driven in `extracted/Pregame/text.ini` `__VAR` sections —
 `[CIVBONUSTEXT]` is 16 entries indexed by civ, verified idx 6 =
 "knowledge of Writing" = China), a **mapping/effect layer**
 (EBOOT integer tables + game-init code, the RE target; xref
-anchors: `"CIVBONUSTEXT"` @ EBOOT `0x16CF0DE`, `"LBTEXT"` @
-`0x16811A9`), and the **civ-16 OOB gate** (the §9.X blocker, but
+anchors (clean-ELF vaddr): `"CIVBONUSTEXT"` @ `0x16DD35E`,
+`"LBTEXT"` @ `0x16928A9`), and the **civ-16 OOB gate** (the §9.X blocker, but
 on the gameplay path, which is separate from the already-mapped
 name-parse fault). Korea's design reuses existing bonus pool
 strings (e.g. the Hwacha → "+2 Cannon attack" LBTEXT entry) so
@@ -9667,8 +9667,8 @@ this over the 3D leaderhead (Part B) and over shipping as-is.
   strings indexed per era. So Korea's bonus *text* is extensible by adding a
   17th `__VAR` entry — the hard part is the EBOOT effect layer + the civ-16
   OOB gate.
-- Found EBOOT xref anchors: `"CIVBONUSTEXT"` @ file `0x16CF0DE`, `"LBTEXT"` @
-  `0x16811A9` — entry points for the Ghidra mapping/effect RE.
+- Found EBOOT xref anchors (clean-ELF vaddr): `"CIVBONUSTEXT"` @ `0x16DD35E`,
+  `"LBTEXT"` @ `0x16928A9` — entry points for the Ghidra mapping/effect RE.
 - Confirmed CR2's pedia is descriptive-only (no mechanical abilities; Hwacha
   absent), so Korea's design reuses CivRev1's existing bonus pool (e.g. Hwacha
   → the existing "+2 Cannon attack" leader bonus) rather than porting CR2.

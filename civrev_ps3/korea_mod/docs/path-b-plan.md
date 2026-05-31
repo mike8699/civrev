@@ -63,9 +63,11 @@ To give Korea its own *display* bonuses we add a 17th entry to the relevant
 The `text.ini` section-name keys appear in the EBOOT — these are the xref
 anchors that lead to the parser and then the per-civ consumer tables:
 
-- `"CIVBONUSTEXT"` — EBOOT file offset `0x16CF0DE` (and a 2nd ref).
-- `"LBTEXT"` — EBOOT file offset `0x16811A9` (and a 2nd ref).
-- `"CIVBONUS"` — present (2 refs).
+Addresses are clean-ELF (`EBOOT_v130_clean.ELF`) offsets, which equal
+vaddr for seg0 == the address Ghidra shows (per addresses.py):
+- `"CIVBONUSTEXT"` — vaddr `0x16DD35E` (2nd ref `0x16EE4D2`).
+- `"LBTEXT"` — vaddr `0x16928A9` (2nd ref `0x169BF94`).
+- (`"CIVBONUS"` is just a substring of `CIVBONUSTEXT`; no separate section.)
 
 Method (for a Ghidra Jython post-script under `scripts/ghidra_helpers/`):
 1. Resolve each string's vaddr, find xrefs → the `.ini` section-registration
