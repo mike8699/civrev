@@ -186,3 +186,56 @@ pointer scan — came up empty, documents the @token indirection) and
 `DecompAdjFlatConsumers.py` (decompiled the ADJ_FLAT callsite functions;
 they are buffer/parser routines, not the bonus assembly — and exposed the
 Ghidra-vs-clean address-space mismatch).
+
+## RE log — iter-3 (2026-05-31)
+
+Goal: locate the EFFECT layer (the code that grants a civ its starting
+bonus). Confirmed it is NOT data-driven (leaderhead `chi_mao.xml` etc. are
+pure 3D-asset manifests — model/anim/texture paths, no gameplay), so it is
+EBOOT code. Then hit the **anchor problem** and a **Ghidra tooling problem**.
+
+**The anchor problem (key finding).** The gameplay/effect code is enum-driven
+C++ with almost no string anchors. The strings that *look* like anchors all
+live in one big Scaleform/UI/entity string pool around `0x169xxxx` and lead to
+the UI/binding layer, NOT gameplay:
+- `theSelectedOption` (`0x169cacd`) is part of an SWF variable path
+  (`this.theSelectedOption`) — Flash binding.
+- `OnAccept` (`0x1694708`), `OnCancel`, `OnPressY/X` — fscommand names.
+- `CcCivFlagEntity` (`0x1692728`), `CcGameCamera` (`0x1693630`) — C++ entity
+  class-name strings (RTTI/registration), not the civ-bonus logic.
+- `CIVBONUSTEXT`/`LBTEXT` — `@`-tokens in templates (iter-2).
+None of these have a `lis/addi` load, a 4-byte pointer, or a Ghidra ref
+(validated scanner; the same scan DOES find ADJ_FLAT's pointer at
+`0x1938354`). So string-xref RE cannot reach the effect grant. The only solid
+*gameplay* anchor remains **ADJ_FLAT `0x195fe28`** and its 9 call sites
+(`addresses.py`) — real civ-text builders that index by civ; the bonus table
+is most likely accessed nearby.
+
+**The Ghidra tooling problem.** Built a fresh, correctly-addressed project
+`ghidra_clean/civrev_clean` by importing `EBOOT_v130_clean.ELF` (gitignored).
+BUT Ghidra's default analysis under-covers it: only ~510 functions, and even
+ADJ_FLAT has no refs — because the ELF entry (`0x18b5b20`) is a PPC64 function
+*descriptor* in the data segment, so flow-seeded disassembly never reached
+`.text`. A brute-force `DisassembleCommand` over `0x10000..0x1680000`
+(`ForceDisasmAnalyze.py`) is pathologically slow under the default 2 GB heap
+(>22 min CPU and still going) and may not be the right fix.
+
+**iter-4 plan (two routes; try runtime first — it's likely faster):**
+1. **Runtime diff (preferred).** The game runs in the docker harness. Start a
+   game as China (slot 6) and as Rome (slot 0); read player memory via the
+   rpcs3 gdb stub (`gdb_client.py read_memory`) and diff to locate the tech/
+   bonus storage (China has Writing, Rome has Republic+Code of Laws). That
+   anchors the EFFECT in the live process with no static-analysis guesswork;
+   then find the writer (Z0 code breakpoint — Z2 watchpoints are rejected by
+   the RPCS3 stub per iter-201) or static analysis around the found address.
+2. **Better static analysis.** Rebuild `civrev_clean` with a larger heap
+   (set Ghidra `support/launch.properties` `MAXMEM=8G`, or `-Xmx`) and seed
+   disassembly from KNOWN code addresses (the `addresses.py` functions /
+   ADJ_FLAT call sites) so auto-analysis follows flow, instead of a brute
+   range disassemble. Then decompile the ADJ_FLAT consumers (`0x13cbf8` etc.)
+   in the correct clean-ELF space — they should reveal the civ-indexed bonus
+   table accessed alongside the adjective lookup.
+
+New helper scripts: `CleanProbeAnchors.py` (anchor refs + function-count
+sanity), `ForceDisasmAnalyze.py` (force-disassemble — too slow as written;
+iter-4 should seed instead). `ghidra_clean/` is gitignored.

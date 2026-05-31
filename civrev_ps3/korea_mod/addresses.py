@@ -173,6 +173,29 @@ KOREA_MOD_CIV_CITY_COUNT_OFFSET   = None
 KOREA_MOD_TURN_COUNTER_ADDR       = None
 
 # ---------------------------------------------------------------------------
+# path-b iter-3 (2026-05-31): rodata string anchors located in clean-ELF
+# space (file_off==vaddr). NOTE: these are all in the Scaleform/UI/entity
+# string pool (~0x169xxxx) and lead to the UI/binding layer, NOT the civ
+# gameplay/effect code (which is enum-driven with few string anchors). Kept
+# for reference; the effect-layer RE must anchor on ADJ_FLAT (0x195fe28) +
+# its call sites, or on runtime memory diffing. None of these have a
+# lis/addi load, a 4-byte pointer, or a Ghidra ref (all loaded indirectly).
+# ---------------------------------------------------------------------------
+KOREA_MOD_STR_THE_SELECTED_OPTION = 0x0169cacd  # SWF var path (Flash binding)
+KOREA_MOD_STR_ONACCEPT            = 0x01694708  # fscommand name
+KOREA_MOD_STR_ONPRESSY            = 0x01693e50  # fscommand name (pedia/bonus btn)
+KOREA_MOD_STR_CIVBONUSTEXT        = 0x016dd35e  # @CIVBONUSTEXT template token
+KOREA_MOD_STR_LBTEXT              = 0x016928a9  # @LBTEXT template token
+KOREA_MOD_STR_CC_CIV_FLAG_ENTITY  = 0x01692728  # C++ entity class name
+KOREA_MOD_STR_CHOOSECIV           = 0x0169f438  # UI screen name
+
+# Fresh clean-ELF Ghidra project (correct addressing, unlike ghidra/civrev.rep
+# which is a different binary). Built by importing EBOOT_v130_clean.ELF; lives
+# at ghidra_clean/civrev_clean (gitignored). Default analysis under-covers it
+# (entry is a PPC64 descriptor in .data) — rebuild with a larger heap + seed
+# disassembly from known code addresses. See path-b-plan.md "RE log — iter-3".
+
+# ---------------------------------------------------------------------------
 # Expected values for verification oracles (M5)
 # ---------------------------------------------------------------------------
 

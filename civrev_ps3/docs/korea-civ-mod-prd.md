@@ -9727,3 +9727,38 @@ watchpoint on the player's first tech/bonus write, backtraced to the grant
 site. Work in clean-ELF address space.
 
 **PRD changes made this iteration:** this Progress Log entry.
+
+### 2026-05-31 — resume (path (b) RE iter-3 — effect-layer anchors + tooling)
+
+**Status:** investigating
+**Working on:** path (b) — locate the civ-bonus EFFECT layer (game-init grant).
+
+**Did this iteration:**
+- Confirmed the effect layer is **EBOOT code, not data** (leaderhead
+  `chi_mao.xml` etc. are pure 3D-asset manifests — no gameplay).
+- **Anchor problem identified:** the gameplay code is enum-driven with almost
+  no string anchors. The plausible-looking strings (`theSelectedOption`,
+  `OnAccept`, `CcCivFlagEntity`, `CcGameCamera`, `CIVBONUSTEXT`/`LBTEXT` tokens)
+  all live in the Scaleform/UI/entity string pool (~0x169xxxx) and lead to the
+  UI/binding layer, not gameplay — and none are referenced by lis/addi,
+  pointer, or Ghidra ref. Located + recorded in addresses.py with the caveat.
+  The only solid gameplay anchor stays ADJ_FLAT (0x195fe28) + its 9 call sites.
+- **Built a fresh, correctly-addressed Ghidra project** `ghidra_clean/civrev_clean`
+  from EBOOT_v130_clean.ELF (the old `ghidra/civrev.rep` is a different binary).
+  Default analysis under-covers it (~510 funcs; entry is a PPC64 descriptor in
+  .data so flow never reached .text). A brute-force range disassemble is
+  pathologically slow under the 2 GB heap (still running).
+
+**Verification:** n/a (static RE). Scanner validated against ADJ_FLAT.
+
+**Open blockers:** effect-grant site still not located; static tooling needs a
+bigger heap + seeded disassembly; string-xref RE is ruled out (UI strings).
+
+**Next (iter-4):** prefer **runtime diffing** — start as China vs Rome, read
+player memory via the rpcs3 gdb stub, diff to find the tech/bonus storage,
+then find the writer (Z0 breakpoint; Z2 watchpoints rejected by RPCS3). Fall
+back to rebuilding civrev_clean with MAXMEM=8G + seeded disassembly, then
+decompile the ADJ_FLAT consumers in clean-ELF space. See path-b-plan.md
+"RE log — iter-3".
+
+**PRD changes made this iteration:** this Progress Log entry.
