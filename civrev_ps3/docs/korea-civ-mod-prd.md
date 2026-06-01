@@ -9796,6 +9796,41 @@ cosmetic v1.1 (Sejong portrait). See path-b-plan.md "RE log — iter-4".
 
 **PRD changes made this iteration:** this Progress Log entry.
 
+### 2026-06-01 — path b ACHIEVED: Korea is a verified differentiated 17th civ
+
+**Status:** done (core path-b goal reached)
+
+**The "not reachable" verdict (iter-10) was WRONG and is reversed.** The unlock
+was the user's "heavier tooling" pivot — mining the already-decompiled SIBLING
+ports instead of hammering the stripped PS3 binary.
+
+**Did this (iter-11):**
+- Parallel cross-port scout (Xbox360 recomp / iOS / CR2 C# / PS3 RTTI). The
+  **iOS iPad build is symbolicated** = a Rosetta Stone; it gave the exact
+  effect-layer model. KEY insight: civ/tech state is PARALLEL GLOBAL ARRAYS,
+  not heap structs (why 10 iters of runtime object scans only hit UI caches —
+  the Cc* classes are all engine presentation, -fno-rtti).
+- Mapped it onto PS3: a signature scan (qBeginTurn era-thresholds cmpwi
+  4+0xd+0x17) hit ONE site -> qBeginTurn 0x9e366c -> HasLBonus 0xa22810,
+  AddTech 0x9d1bac; resolved the _lbonus table 0x1971e88 (int[16][4]).
+- Extended _lbonus to 17 civs (relocate + 7 TOC redirects, ADJ_FLAT pattern),
+  Korea row = [0xa,9,0x14,0x2a]; removed the AS2 slot-16->6 remap.
+- **Verified in-game**: TeamMap = [9,2,1,8,6,16,-1,15,...] — player 5 = civ 16
+  (Korea); _lbonus TOC slot reads the relocated 0x17f4100; boots to a real game,
+  NO crash. The civ-16 OOB gate (the §9.X "structural blocker") did not fault on
+  the gameplay path.
+
+**Verification:** runtime gdb read of TeamMap (test_verify_civ16.py) — civ 16
+present + relocation confirmed. Artifacts in
+korea_mod/verification/iter11_civ16_boot/. Full account in path-b-plan.md
+"## BREAKTHROUGH (iter-11)" + "## ACHIEVED (iter-11)".
+
+**Open (optional v1.2 polish):** direct tech-state delta check; the separate
+"begin with X" starting-tech table; 17th display text entries; richer Korea
+bonus set / true Hwacha unique unit.
+
+**PRD changes made this iteration:** this Progress Log entry.
+
 ### 2026-05-31 — resume (path (b) RE iter-5 — TOC breakthrough; effect anchor-less)
 
 **Status:** investigating

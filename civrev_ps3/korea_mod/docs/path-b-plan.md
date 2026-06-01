@@ -575,3 +575,42 @@ Use the working `ghidra_clean` decompiler + these fingerprints:
 
 The runtime 3-way diff + the symbolicated iOS reference together are now
 sufficient. This is real, scoped engineering — not an open-ended search.
+
+## ACHIEVED (iter-11, 2026-06-01) — Korea is a VERIFIED differentiated 17th civ
+
+Path b works. Implemented + verified in-game:
+- **Extended `_lbonus` 16->17** (eboot_patches.py): relocated to 0x17f4100 in
+  .rodata padding, all 7 TOC pointers redirected. Korea (civ 16) row =
+  [0x0a,0x09,0x14,0x2a] (Literacy+Math free-techs; science theme) vs China's
+  [0x24,0xa,0x14,0x2a].
+- **Removed the AS2 slot-16->6 remap** (gfx_chooseciv_patch.py) so slot 16
+  flows to the PPU as civ index 16.
+- **Boot verification** (test_verify_civ16.py, gdb read of TeamMap):
+  `TeamMap = [9,2,1,8,6,16,-1,15,...]` — player 5 = civ 16 (Korea); `_lbonus`
+  TOC slot reads 0x17f4100 (relocation took); `in_game: true`, no crash.
+  Artifacts in verification/iter11_civ16_boot/.
+
+**The civ-16 OOB gate did NOT crash the gameplay path** — contradicting the
+prior ~25 iterations' "structural blocker" verdict. Those iterations hit a
+name-parse (cosmetic) OOB; the gameplay per-civ tables tolerate civ 16 (the one
+that would OOB-read, `_lbonus`, is now extended). The boot-crash-fix loop
+converged on the FIRST iteration.
+
+WHY this succeeded where 25+ prior iterations failed: (1) the cross-port iOS
+Rosetta Stone gave the exact data model (parallel global arrays, not heap
+structs) + function semantics; (2) that let a signature scan pin qBeginTurn ->
+HasLBonus -> _lbonus on PS3; (3) the _lbonus relocation reused the proven
+ADJ_FLAT patch pattern. The "heavier tooling" pivot (mining sibling ports) was
+the unlock.
+
+### Remaining polish (optional, v1.2+)
+- Verify the tech-state delta directly (read Korea's Techs vs a China game:
+  Korea should have Literacy from era-0 _lbonus).
+- The "begin the game with X" STARTING bonus (China=Writing) is a separate
+  per-civ table still aliased/OOB for civ 16 — find + extend it if a distinct
+  *starting* tech is wanted (currently Korea's differentiation is the era
+  leader bonuses).
+- Add the 17th [LBTEXT]/[CIVBONUSTEXT] display entries so the civ-select shows
+  Korea-specific bonus text.
+- Design a richer Korea bonus set / a true Hwacha unique unit (getRealUnitType
+  case 0x10).
