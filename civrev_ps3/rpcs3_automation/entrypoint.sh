@@ -292,6 +292,10 @@ elif [ "${1:-}" = "player_dump" ]; then
     shift
     _run_and_copy_log "player_dump" python3 test_player_dump.py "$@"
     exit $?
+elif [ "${1:-}" = "verify_civ16" ]; then
+    shift
+    _run_and_copy_log "verify_civ16" python3 test_verify_civ16.py "$@"
+    exit $?
 elif [ "${1:-}" = "korea_soak" ]; then
     shift
     _run_and_copy_log "korea_soak" python3 test_korea_soak.py "$@"
