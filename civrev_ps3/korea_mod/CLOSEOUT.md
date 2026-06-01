@@ -1,4 +1,34 @@
-# Korea Civilization Mod for PS3 — v1.0 closeout (6/6 MET)
+# Korea Civilization Mod for PS3 — closeout
+
+## v1.2 update (2026-06-01) — Korea is now a REAL differentiated 17th civ
+
+**Path b ACHIEVED.** Korea no longer merely plays as China — it is a genuine,
+distinct civilization (civ index 16), verified in-game:
+- `test_verify_civ16.py` gdb read: `TeamMap = [9,2,1,8,6,16,-1,15,...]` —
+  player 5 = civ **16** (Korea), not aliased to China (6). `in_game: true`,
+  no crash. Artifacts: `verification/iter11_civ16_boot/`.
+- Korea has its **own per-era leader bonuses** (`_lbonus[16]=[0xa,9,0x14,0x2a]`,
+  science-themed vs China's `[0x24,0xa,0x14,0x2a]`); the relocated 17-entry
+  `_lbonus` table is live (TOC pointer reads `0x17f4100`).
+- The civ-16 OOB gate (the §9.X "structural blocker") did **not fault** on the
+  gameplay path.
+
+How: a cross-port scout found the iOS iPad build is symbolicated (a Rosetta
+Stone) and revealed the effect-layer model (parallel global arrays + the
+qBeginTurn/HasLBonus/AddTech grant chain). A signature scan pinned them on PS3;
+`_lbonus` was extended to 17 via the proven ADJ_FLAT relocation pattern in
+`eboot_patches.py`; the iter-1188 AS2 slot-16->6 remap was removed. Full
+write-up: `docs/path-b-plan.md` "## BREAKTHROUGH / ## ACHIEVED (iter-11)".
+
+Optional v1.2+ polish remains (separate starting-tech table, 17th display-text
+entries, a true Hwacha unique unit) — see path-b-plan.md.
+
+The v1.0/v1.1 closeout below is retained for history (Korea-plays-as-China +
+Sejong portrait).
+
+---
+
+# v1.0 closeout (6/6 MET)
 
 **Status (iter-1186, 2026-04-15):** v1.0 **ships complete**
 under the iter-189 strict-reading directive. **§9 Definition
