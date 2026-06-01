@@ -379,6 +379,29 @@ anchors. Tooling is now strong (working clean-ELF decompiler+xrefs + runtime
 probe), and leads are being ruled out methodically, but pinning the
 effect-grant may take several more iterations of runtime exploration.
 
+## RE log — iter-8 (2026-05-31) — wide runtime diff works but is noise-dominated
+
+- Rewrote `test_player_dump.py` to deep-dump (0x400 B, pointer-masked) EVERY
+  heap-pointer global in the full `.bss` range. China + Rome each found ~3160
+  globals. (Note: two concurrent emulator boots FAIL — GPU/RSX starvation; run
+  them SEQUENTIALLY. The full-`.bss` gdb scan is slow, ~16 min/run.)
+- `diff_player_dumps.py` (China vs Rome): 1518 globals differ. But the cleanest
+  "localized" 1-byte signal (`7→6` in a 5-object cluster) turned out to be a
+  **GPU render-pass counter** — the object held "Render Click / Render Frame /
+  ShadowCubeMap / TexTransform" strings. **The diff is dominated by map / RNG /
+  render noise** (two different New-Game maps differ in everything); the human
+  civ index isn't even cleanly a `6→0` byte in any low-diff global.
+
+## iter-9 plan — 3-way noise subtraction
+
+Dump China TWICE (A, B — both civ 6, different maps) + Rome (civ 0).
+`diff3_player_dumps.py`: per `.bss` global, a byte that DIFFERS China_A-vs-Rome
+but is STABLE China_A-vs-China_B is **civ-specific** (changes with civ, not the
+random map). That cancels the map/render noise and should surface the civ-index
+/ starting-tech bitfield. Then read the full struct there and trace/breakpoint
+the writer (Z0; the static decompiler now works to identify it). China-B run is
+launched; run `diff3_player_dumps.py chinaA rome chinaB` when it lands.
+
 **iter-4 plan (two routes; try runtime first — it's likely faster):**
 1. **Runtime diff (preferred).** The game runs in the docker harness. Start a
    game as China (slot 6) and as Rome (slot 0); read player memory via the
