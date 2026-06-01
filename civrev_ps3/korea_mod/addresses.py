@@ -268,8 +268,22 @@ KOREA_MOD_PS3_LBONUS_TOC_PTR_SLOT    = 0x0194af5c
 #   9 France [3b,01,0d,0c] 10 India [2a,2b,05,12] 11 Arabia[26,09,0e,2f]
 #  12 Aztec  [2e,04,01,19] 13 Africa[37,08,19,11] 14 Mongol[28,03,38,30]
 #  15 England[3d,06,29,33]
-# free-tech bonus IDs (HasLBonus->AddTech in qBeginTurn): 9,0xd?,0x13?,0x3c,...
-# (qBeginTurn grants: HasLBonus(0x3c)->Currency0xf, HasLBonus(9)->Math0xd, etc.)
+# COMPLETE free-tech map (qBeginTurn FUN_009e366c: !HasTech(tech) &&
+# HasLBonus(bonusID,player,0) -> AddTech(player,tech,...,6)):
+#   bonusID 0x3c -> tech 0x0f Currency      bonusID 0x2b -> 0x13 Monarchy
+#   bonusID 0x09 -> 0x0d Mathematics        bonusID 0x0a -> 0x0c Literacy
+#   bonusID 0x30 -> 0x20 Communism          bonusID 0x39 -> 0x12 Feudalism
+#   bonusID 0x3a -> 0x0b Construction       bonusID 0x3b -> 0x05 Pottery
+# NOTE: NO Writing(8) grant here -> _lbonus is the per-era LEADER bonuses (the
+# in-game "Era Bonuses"), NOT the "begin the game with X" starting bonus. The
+# starting bonus (China=Writing) is a SEPARATE per-civ table, still TBD.
+#
+# _lbonus is TIGHTLY PACKED: 16 civs x 0x10 = 0x100 bytes, 0x1971e88..0x1971f88,
+# immediately followed by a threshold table (0x64,0xfa,0x1f4,0x3e8,...). NO room
+# to extend in place. To add civ 16 (Korea): relocate _lbonus to a 17-entry copy
+# in .rodata padding + redirect the TOC ptr at 0x194af5c -> new base (EXACTLY the
+# ADJ_FLAT relocation pattern already in eboot_patches.py). Then fix HasLBonus's
+# civ-index bound to accept 16.
 
 # STILL TO FIND for full Korea impl:
 KOREA_MOD_PS3_UCSTARTTECHS_TABLE     = None   # byte[civ*0x2f] starting techs
