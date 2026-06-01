@@ -35,6 +35,30 @@ def main():
         diffs = [i for i in range(n) if a[i] != b[i]]
         if diffs:
             differing.append((bss, diffs, a, b))
+    # FOCUSED HUNT: two different New-Game maps means most state differs (map/
+    # RNG/units = noise). The sharp signal is the civ-index byte: China's human
+    # player civ = 6, Rome's = 0. Find globals with a byte == 6 in China and
+    # == 0 at the SAME offset in Rome (and vice-versa nearby), which is the
+    # player/civ struct.
+    print("=== FOCUSED: offsets where China byte==6 and Rome byte==0 (civ idx) ===")
+    civ_hits = []
+    for bss in common:
+        a, b = A[bss], B[bss]
+        n = min(len(a), len(b))
+        offs = [i for i in range(n) if a[i] == 6 and b[i] == 0]
+        if offs:
+            civ_hits.append((bss, offs, a, b))
+    # rank by how few such offsets (a real civ field is rare, not a coincidence)
+    civ_hits.sort(key=lambda x: len(x[1]))
+    for bss, offs, a, b in civ_hits[:40]:
+        ctx = []
+        for off in offs[:6]:
+            lo = max(0, off - 4)
+            ctx.append(f"+{off:#x}[ctx {a[lo:off+4].hex()} vs {b[lo:off+4].hex()}]")
+        print(f"  {bss}: {len(offs)} '6->0' offs  {' '.join(ctx)}")
+    print(f"  ({len(civ_hits)} globals have a 6->0 byte)")
+    print()
+
     # rank: fewer diffs = more localized (a civ-index byte or small bitfield)
     differing.sort(key=lambda x: len(x[1]))
     print(f"=== {len(differing)} globals differ between China and Rome ===")
