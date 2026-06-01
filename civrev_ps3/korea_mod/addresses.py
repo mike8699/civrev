@@ -238,14 +238,43 @@ KOREA_MOD_PLAYER_CIV_OBJ_VTABLE      = 0x0188ac38
 #   [0,3] + civ*0x10+era*4 scan (~200B); qBeginTurn = nested if(NTech>4/0xd/0x17)
 #   SetEra; AddTech = Techs[t]|=1<<player + flag const 6; tech bound 0x30,
 #   sentinel 0x2f; Writing=tech 8, Currency=0xf, Monarchy=0x13.
-# PS3 addresses TO BE FILLED as found:
-KOREA_MOD_PS3_ADDTECH                = None
-KOREA_MOD_PS3_HASLBONUS              = None
-KOREA_MOD_PS3_LBONUS_TABLE           = None   # int[NUM_CIV][4], stride 0x10
-KOREA_MOD_PS3_UCSTARTTECHS_TABLE     = None   # byte[civ*0x2f]
-KOREA_MOD_PS3_INITCUSTOMGAME         = None
-KOREA_MOD_PS3_QBEGINTURN             = None
-KOREA_MOD_PS3_TEAMMAP                = None   # player->civ index
+# PS3 EFFECT-LAYER ADDRESSES — LOCATED 2026-06-01 (iter-11). Found by:
+# (1) cross-port scout gave the iOS-symbol model + signatures; (2) a Python
+# scan for the qBeginTurn era-threshold signature (cmpwi 4 + 0xd + 0x17 in
+# proximity) hit EXACTLY ONE site -> qBeginTurn; (3) decompiling it in
+# ghidra_clean revealed HasLBonus/AddTech/HasTech by the iOS pattern
+# (!HasTech(t) && HasLBonus(id)->AddTech(t,...,6)); (4) reading HasLBonus's
+# TOC loads under the parser-module TOC resolved the _lbonus table.
+#
+# CRITICAL: the 0x9exxxx-0xa2xxxx game-logic module uses TOC r2 = 0x194a1f8
+# (NOT the main 0x193a288). Set r2=0x194a1f8 when decompiling these in
+# ghidra_clean, and resolve their TOC data loads against 0x194a1f8.
+KOREA_MOD_PS3_GAMELOGIC_TOC          = 0x0194a1f8
+
+KOREA_MOD_PS3_QBEGINTURN             = 0x009e366c  # per-player turn proc; era-bonus tech grants
+KOREA_MOD_PS3_HASLBONUS              = 0x00a22810  # HasLBonus(bonusID,player,era); 212 bytes
+KOREA_MOD_PS3_ADDTECH                = 0x009d1bac  # AddTech(player,tech,src,flags,?); flags 6=free
+KOREA_MOD_PS3_HASTECH                = 0x00a2203c  # HasTech(tech,player)
+
+# _lbonus: int[16 civs][4 eras] of leader-bonus IDs. TOC ptr at 0x194af5c
+# (disp 0xd64 from 0x194a1f8). Per-civ stride 0x10 (4 ints). Extend to 17 for
+# Korea (relocate like ADJ_FLAT) + bump the civ-index bound in HasLBonus.
+KOREA_MOD_PS3_LBONUS_TABLE           = 0x01971e88
+KOREA_MOD_PS3_LBONUS_TOC_PTR_SLOT    = 0x0194af5c
+# The 16 civs' era bonus-IDs (for reference / Korea design):
+#   0 Rome   [01,18,17,24]  1 Egypt [20,3a,0c,26]  2 Greece[3c,17,14,1c]
+#   3 Spain  [07,06,19,29]  4 Germ  [32,1e,13,2f]  5 Russia[10,1a,11,22]
+#   6 China  [24,0a,14,2a]  7 Amer  [2f,23,10,02]  8 Japan [1c,1b,2a,1a]
+#   9 France [3b,01,0d,0c] 10 India [2a,2b,05,12] 11 Arabia[26,09,0e,2f]
+#  12 Aztec  [2e,04,01,19] 13 Africa[37,08,19,11] 14 Mongol[28,03,38,30]
+#  15 England[3d,06,29,33]
+# free-tech bonus IDs (HasLBonus->AddTech in qBeginTurn): 9,0xd?,0x13?,0x3c,...
+# (qBeginTurn grants: HasLBonus(0x3c)->Currency0xf, HasLBonus(9)->Math0xd, etc.)
+
+# STILL TO FIND for full Korea impl:
+KOREA_MOD_PS3_UCSTARTTECHS_TABLE     = None   # byte[civ*0x2f] starting techs
+KOREA_MOD_PS3_INITCUSTOMGAME         = None   # reads ucStartTechs -> AddTech
+KOREA_MOD_PS3_TEAMMAP                = None   # player->civ (runtime .bss)
 # See path-b-plan.md "## BREAKTHROUGH (iter-11)".
 
 # ---------------------------------------------------------------------------
