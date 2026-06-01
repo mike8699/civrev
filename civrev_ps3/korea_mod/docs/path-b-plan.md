@@ -449,3 +449,45 @@ the grant + the OOB gate.
 New helper scripts: `CleanProbeAnchors.py` (anchor refs + function-count
 sanity), `ForceDisasmAnalyze.py` (force-disassemble — too slow as written;
 iter-4 should seed instead). `ghidra_clean/` is gitignored.
+
+## RE log — iter-10 (2026-05-31) — localized objects are UI caches, not the struct
+
+- Decompiled the vtable `0x0188ac38` class (the iter-9 "player/civ" objects)
+  fully: its big methods (`0xa6e784`/`0xa6e4b4`) format a value at `+0x10` for
+  display, with a float at `+0x18` and render/state flag bits at `+0x4` — a
+  **UI display-widget class**, NOT the authoritative player struct. The civ
+  data inside (index, color, name, 24-byte list) is a CACHED/displayed copy of
+  the human player's civ, not the game-logic state the grant writes.
+- Hunted the authoritative starting-tech BITFIELD directly (small region with
+  individual bit flips, noise-subtracted): **41,630 candidates — far too
+  noisy.** The recurring `88 08 02`/`86 08 02` patterns are UI-list/coordinate
+  data, not techs.
+
+**The hard wall (after 10 iterations):** civ data propagates to a great many
+UI/cache/display objects, and EVERY object the runtime diff localizes is one of
+those — never the single authoritative game-logic player/game struct the
+effect-grant writes. Reaching it needs either (a) the real game/player
+singleton found STATICALLY — but the gameplay code is enum-driven with NO
+string/data anchor (exhaustively confirmed iters 2-5), or (b) per-object class
+identification across thousands of `.bss`-referenced heap objects to separate
+UI from logic — intractable by hand. And even if the grant were found, the
+**civ-16 OOB gate** (unsolved by ~25 prior iterations) still blocks a real
+17th civ.
+
+## FEASIBILITY CONCLUSION (path b)
+
+Full path b — a true differentiated 17th civ — is **not reachable with the
+available tooling in a reasonable number of further iterations.** Ten
+iterations built excellent infrastructure (working clean-ELF decompiler+xrefs,
+runtime probe, the 3-way noise-subtraction method) and ruled out every avenue:
+static gameplay anchors don't exist; the runtime route localizes only UI caches
+of the civ data, not the authoritative struct; the OOB gate looms beyond.
+A realistic path b would need a *full* game decompilation/symbolication effort
+(recovered types across the whole binary, or original source/symbols) — well
+beyond this loop's scope.
+
+**Recommended outcome:** ship the cosmetic v1.1 (Korea selectable + Sejong
+portrait, done + verified) and, if visible differentiation is wanted, the
+DISPLAY-ONLY path (data-driven `text.ini` `__VAR` 17th entries — tractable),
+leaving this fully-documented deep-RE trail (tooling + findings + the exact
+walls) for any future attempt with heavier tooling. All artifacts committed.
