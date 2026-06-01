@@ -219,6 +219,34 @@ KOREA_MOD_PLAYER_CIV_OBJ_VTABLE      = 0x0188ac38
 # iter-10: find the starting-tech BITFIELD within these objects (bits differ
 # China=Writing vs Rome), then trace/Z0-breakpoint its writer = the civ-keyed
 # effect-grant. See path-b-plan.md "RE log — iter-9".
+#
+# iter-11 BREAKTHROUGH (2026-06-01): the cross-port scout (iOS symbolicated
+# build = Rosetta Stone) revealed the effect layer fully. The authoritative
+# state is PARALLEL GLOBAL ARRAYS (not heap structs — that's why runtime object
+# scans only hit UI/Cc* caches). iOS reference (civrev_ios decompiled, with
+# symbols; SAME Firaxis CcCiv engine as PS3):
+#   AddTech(player,tech,src,type,flags)   iOS vaddr 0x338b0  (flags 6 = free)
+#   InitCustomGame  (start-tech grant)    iOS vaddr 0x3130c  (reads ucStartTechs)
+#   InitCGame       (random-game init)    iOS vaddr 0x2e49c
+#   qBeginTurn      (era-bonus AddTech)   iOS vaddr 0x3c9a0
+#   HasLBonus(id,player,era)              iOS vaddr 0x72574  (_lbonus[civ*0x10+era*4])
+#   getRealUnitType (civ->unique unit)    iOS _global.c:4062
+# iOS data tables: _lbonus 0x1fc554 (int[NUM_CIV][4], stride 0x10);
+#   ucStartTechs 0x1fc488 (byte[civ*0x2f]); TeamMap 0x1fc0ec (player->civ);
+#   Techs 0x1fc29c (bitmask 1<<player, 0x30 slots, 0x2f sentinel).
+# PS3 value-match signatures (find via ghidra_clean): HasLBonus = era clamp
+#   [0,3] + civ*0x10+era*4 scan (~200B); qBeginTurn = nested if(NTech>4/0xd/0x17)
+#   SetEra; AddTech = Techs[t]|=1<<player + flag const 6; tech bound 0x30,
+#   sentinel 0x2f; Writing=tech 8, Currency=0xf, Monarchy=0x13.
+# PS3 addresses TO BE FILLED as found:
+KOREA_MOD_PS3_ADDTECH                = None
+KOREA_MOD_PS3_HASLBONUS              = None
+KOREA_MOD_PS3_LBONUS_TABLE           = None   # int[NUM_CIV][4], stride 0x10
+KOREA_MOD_PS3_UCSTARTTECHS_TABLE     = None   # byte[civ*0x2f]
+KOREA_MOD_PS3_INITCUSTOMGAME         = None
+KOREA_MOD_PS3_QBEGINTURN             = None
+KOREA_MOD_PS3_TEAMMAP                = None   # player->civ index
+# See path-b-plan.md "## BREAKTHROUGH (iter-11)".
 
 # ---------------------------------------------------------------------------
 # Expected values for verification oracles (M5)

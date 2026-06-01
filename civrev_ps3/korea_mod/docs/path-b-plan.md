@@ -474,7 +474,13 @@ UI from logic — intractable by hand. And even if the grant were found, the
 **civ-16 OOB gate** (unsolved by ~25 prior iterations) still blocks a real
 17th civ.
 
-## FEASIBILITY CONCLUSION (path b)
+## FEASIBILITY CONCLUSION (path b) — SUPERSEDED by the iter-11 BREAKTHROUGH below
+
+**SUPERSEDED 2026-06-01.** The conclusion below ("not reachable") was WRONG —
+it was reached by hammering the stripped PS3 binary alone. Pivoting to the
+already-decompiled **sibling ports** cracked it: see "## BREAKTHROUGH" at the
+end of this file. The effect layer is now fully understood in readable form.
+Keeping the original text for the record:
 
 Full path b — a true differentiated 17th civ — is **not reachable with the
 available tooling in a reasonable number of further iterations.** Ten
@@ -491,3 +497,81 @@ portrait, done + verified) and, if visible differentiation is wanted, the
 DISPLAY-ONLY path (data-driven `text.ini` `__VAR` 17th entries — tractable),
 leaving this fully-documented deep-RE trail (tooling + findings + the exact
 walls) for any future attempt with heavier tooling. All artifacts committed.
+
+## BREAKTHROUGH (iter-11, 2026-06-01) — effect layer fully understood via sibling ports
+
+A 4-way parallel cross-port scout (Xbox360 recomp / iOS / CR2 C# / PS3 RTTI)
+broke the wall. Two findings reverse the "not reachable" conclusion:
+
+**1. The authoritative state is PARALLEL GLOBAL ARRAYS, not a heap struct.**
+That is exactly why 10 iterations of runtime object scanning only ever hit UI
+caches: the PS3-RTTI scout proved the entire `Cc*` namespace (CcCivFlagEntity,
+CcGameCamera, CcCityEntity, … 98 classes) is the engine PRESENTATION/entity
+layer (Gamebryo/PhysX, has RTTI); the GAME-LOGIC classes are compiled
+`-fno-rtti` and store civ/tech/player state in `.data`/`.bss` arrays indexed by
+player or civ — the same shape as the ADJ_FLAT name arrays found in iter-1.
+
+**2. The iOS iPad build (`civrev_ios/`) is a SYMBOLICATED Rosetta Stone.**
+Decompiled at `civrev_ios/ghidra_decompiled/_all_functions.c` (+`_global.c`,
+`NDSEraBonusesScreen.c`) with real function names. Same Firaxis CcCiv engine as
+PS3. It handed over the entire effect layer:
+
+### The effect-layer model (from decompiled iOS C, symbol names)
+- `TeamMap[player]` = civ index 0..0x10 (`PTR__TeamMap_001fc0ec`).
+- `Techs[tech]` = bitmask of which players own the tech (`|= 1<<player`),
+  0x30=48 slots, 0x2f=47 future-tech sentinel (`PTR__Techs_001fc29c`).
+- `_lbonus[ civ*0x10 + era*4 ]` = per-civ, per-era (4 eras) leader-bonus IDs;
+  `int[NUM_CIV][4]`, stride 0x10 (`PTR__lbonus_001fc554`). Read by
+  `HasLBonus(bonusID, player, era)` (vaddr 0x72574).
+- `ucStartTechs[ civ*0x2f + tech ]` = byte table of per-civ starting techs
+  (`PTR_ucStartTechs_001fc488`).
+- Other per-player arrays: Era, NTech, Researched/Researching, TFirst, TSource
+  (stride 0xc0=48*4), NRes (0x28), Gold, Govt, etc.
+
+### Grant sites (where the bonus is APPLIED)
+- `AddTech(player, tech, src, type, flags)` (vaddr 0x338b0) — primitive;
+  **flags value 6 = "free/granted"** (vs 0=researched, 5=traded).
+- `InitCustomGame` (0x3130c) — per-player loop reads `ucStartTechs` (0x2f/civ)
+  and calls `AddTech(player, tech, -1, 6, 1)` for each set byte. (scenario/custom)
+- `InitCGame` (0x2e49c) — random-game init; zeroes the arrays; the civ's
+  starting tech is delivered as the **era-0 `_lbonus` entry that is a free-tech
+  bonus-ID**, applied in `qBeginTurn`. Free-tech bonus IDs: 9,10,0x2b,0x30,
+  0x39,0x3a,0x3b,0x3c (→ AddTech of Mathematics/Literacy/Monarchy/Communism/
+  Feudalism/Construction/Pottery/Currency).
+- `qBeginTurn` (0x3c9a0) — each turn, `HasLBonus(id,player,0)` gates
+  `AddTech(...,6,1)` + unique-unit/extra effects.
+- `getRealUnitType` (`_global.c:4062`) — `switch(TeamMap[player])` civ→unique
+  unit (Hwacha would be a `case 0x10`).
+
+### PS3 value-match signatures (to locate the same code in the stripped EBOOT)
+Use the working `ghidra_clean` decompiler + these fingerprints:
+- **HasLBonus**: tiny (~200B), clamps era to [0,3], then `civ*0x10 + era*4`
+  indexing + linear scan comparing table ints to the bonus-ID arg. Its base
+  pointer reveals the PS3 `_lbonus` table → dump 17*4 ints for the per-civ
+  bonuses + which are free-tech.
+- **qBeginTurn**: nested `if(NTech>4){SetEra(p,1); if(NTech>0xd){SetEra(p,2);
+  if(NTech>0x17)SetEra(p,3)}}`.
+- **AddTech**: `Techs[tech] |= 1<<player`; flag const 6.
+- Tech enum: Writing=8, Currency=0xf, Monarchy=0x13 (TechNames_enu.txt).
+- String anchors likely in PS3 .rodata: `@LBTEXT`, `@TECHNAME`, `@ERA`,
+  `gamecore/CcCiv.cpp`, "What shall we research next?", "Era Bonuses\n".
+- Distinctive strides to confirm a struct match: 0x5800 (unit block), 0x110
+  (city), 0xc0 (TSource), 0x28 (NRes), 0x98 (unit-type record), 0x10 (_lbonus).
+
+### The plan to differentiate Korea (civ 0x10)
+1. PS3-locate `_lbonus` + `HasLBonus` (era-clamp+civ*0x10 sig), `ucStartTechs`
+   + `InitCustomGame`, `AddTech`, `qBeginTurn`. Record in addresses.py.
+2. Read the 16 civs' `_lbonus`/`ucStartTechs` rows; design Korea's row (e.g.
+   era-0 free-tech = Writing or a science tech; reuse existing LBTEXT bonus IDs,
+   incl. a "+Cannon"/Hwacha-flavored one). No new mechanics needed.
+3. **The OOB gate, now precisely scoped:** the per-civ tables are sized for
+   16/17 (`_lbonus` 0x10-stride ×16, `DAT_001fa760[16]` AI table, 16-case
+   switches, `< 0x10` bounds). Extend each to 17 (relocate like ADJ_FLAT in
+   iter-1) + bump the `< 0x10` bounds to `< 0x11`. Atomic — miss one and civ 16
+   reads OOB.
+4. Remove the iter-1188 AS2 slot-16→6 remap so slot 16 flows as civ 16.
+5. Verify: M9 boot + a new oracle (read `Techs`/`_lbonus` for the Korea player,
+   confirm it differs from China's start).
+
+The runtime 3-way diff + the symbolicated iOS reference together are now
+sufficient. This is real, scoped engineering — not an open-ended search.
