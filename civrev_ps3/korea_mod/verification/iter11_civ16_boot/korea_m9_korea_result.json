@@ -1,0 +1,16 @@
+{
+  "milestone": "M9",
+  "slot": 16,
+  "label": "korea",
+  "pass": true,
+  "oracle": "OCR in-game HUD after selecting slot 16 (korea)",
+  "stages": {
+    "main_menu": true,
+    "difficulty_selected": true,
+    "highlighted_ok": true,
+    "in_game_hud": true
+  },
+  "select_ocr": "SS ee ee Fy i GAY \\ \u2014\u2014 | | Shaka Genghis Elizabeth ; i Random | Zulu Khan English \\ a i % wee Random | a y Wea ( \u2018 a * _/ 1 Ln j 7] |. i SF ee pe | Ws c \\ aa? a mead u wee SoN | 2a ay sejong ie abs | ",
+  "diplomacy_ocr": "; _a\u2014\u2014 . aire a \u2014 | Z ma tae 4 =e . ~\u2014\u2014\u2014 | Pa = - \u2014 Se | \u2014- -* : (@ End Tur | e < a e -_ - | pe a. \u201cfice r= : 4 | . : \u2018i ZA Ng ny | ad a fo fr \\aaia | a PF is a Pe < \u2018 | a. om\" | ; OS 4 \u00a5. \u20183 = \u00ab i. -\u2014 \\ he | e,. =, SS ee nite A A | \u2018s 4 ay 5 y ~Neae ere LS wr | ae ee ; \u201c2a oe : | Aig Ss 1 P ue, ee \u201c_ See | f WW x ed Sp Mis \u2014 ee. ii SA | 2) | aa Settlers os | \u20ac . na & Activate unit \\ | \u00bb mv 40 wes | iu ane +. Ba | 4 - = Ee WY 0 ay | 7 e Zr 7 | df ey. ae | = x ae \\ es ay",
+  "diplo_civ_hits": {}
+}
