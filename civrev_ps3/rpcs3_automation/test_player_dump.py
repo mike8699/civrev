@@ -66,33 +66,9 @@ def navigate_in_game(rpcs3, slot):
     return False
 
 
-def scan_bss(gdb):
-    """Return list of (bss_addr, heap_ptr, peek_hex) for heap pointers in .bss."""
-    hits = []
-    addr = BSS_SCAN_LO
-    while addr < BSS_SCAN_HI:
-        chunk = gdb.read_memory(addr, 0x400)
-        if chunk:
-            for i in range(0, len(chunk) - 3, 4):
-                v = int.from_bytes(chunk[i:i + 4], "big")
-                if HEAP_LO <= v < HEAP_HI:
-                    peek = gdb.read_memory(v, 32) or b""
-                    hits.append({
-                        "bss": hex(addr + i),
-                        "ptr": hex(v),
-                        "peek": peek.hex(),
-                    })
-        addr += 0x400
-    return hits
-
-
-GAME_OBJ_HOLDER = 0x01ac1678  # .bss -> game session object (vtable 0x18a2738)
-
-
-def _mask_ptrs(buf):
-    """Zero out 4-byte words that look like heap/EBOOT pointers so a China-vs-
-    Rome diff isolates real data (tech bitfields, civ index, stats) and ignores
-    per-run allocation addresses."""
+def _mask(buf):
+    """Zero 4-byte words that look like heap/EBOOT pointers so China-vs-Rome
+    diffs isolate real data (civ index, tech bitfield, stats) not addresses."""
     out = bytearray(buf)
     for i in range(0, len(out) - 3, 4):
         v = int.from_bytes(out[i:i + 4], "big")
@@ -101,29 +77,25 @@ def _mask_ptrs(buf):
     return bytes(out)
 
 
-def deep_dump_game_obj(gdb):
-    """Read the game session object + follow its heap-pointer members one level.
-    Returns {obj_ptr, self (masked hex), members:[{off, ptr, data masked hex}]}.
-    Pointers are masked so the dump is diff-able across runs."""
-    obj = gdb.read_u32(GAME_OBJ_HOLDER)
-    res = {"holder": hex(GAME_OBJ_HOLDER), "obj_ptr": hex(obj),
-           "self": "", "members": []}
-    if not (HEAP_LO <= obj < HEAP_HI):
-        return res
-    raw = gdb.read_memory(obj, 0x1000) or b""
-    res["self"] = _mask_ptrs(raw).hex()
-    # follow each heap-pointer member one level
-    seen = set()
-    for i in range(0, len(raw) - 3, 4):
-        v = int.from_bytes(raw[i:i + 4], "big")
-        if HEAP_LO <= v < HEAP_HI and v not in seen:
-            seen.add(v)
-            sub = gdb.read_memory(v, 0x400) or b""
-            res["members"].append({"off": hex(i), "ptr": hex(v),
-                                   "data": _mask_ptrs(sub).hex()})
-            if len(res["members"]) > 64:
-                break
-    return res
+def scan_bss(gdb):
+    """Scan the .bss range for heap-pointer globals; for each UNIQUE global,
+    deep-dump 0x400 bytes of the pointed object with pointers masked, so the
+    full set is diff-able China-vs-Rome to localize per-civ state."""
+    seen = {}
+    addr = BSS_SCAN_LO
+    while addr < BSS_SCAN_HI:
+        chunk = gdb.read_memory(addr, 0x400)
+        if chunk:
+            for i in range(0, len(chunk) - 3, 4):
+                v = int.from_bytes(chunk[i:i + 4], "big")
+                if HEAP_LO <= v < HEAP_HI:
+                    bss = addr + i
+                    if bss not in seen:
+                        obj = gdb.read_memory(v, 0x400) or b""
+                        seen[bss] = {"bss": hex(bss), "ptr": hex(v),
+                                     "dump": _mask(obj).hex()}
+        addr += 0x400
+    return list(seen.values())
 
 
 def main():
@@ -149,11 +121,8 @@ def main():
             print(f"civs buffer ptr = {civs_ptr:#x} (orientation)")
             hits = scan_bss(gdb)
             result["bss_hits"] = hits
-            print(f"found {len(hits)} heap pointers in .bss window "
+            print(f"deep-dumped {len(hits)} unique game-state .bss globals in "
                   f"{BSS_SCAN_LO:#x}..{BSS_SCAN_HI:#x}")
-            result["game_obj"] = deep_dump_game_obj(gdb)
-            print(f"deep-dumped game obj {result['game_obj']['obj_ptr']} "
-                  f"with {len(result['game_obj']['members'])} heap members")
             gdb.resume()
     except Exception as e:
         import traceback; traceback.print_exc()
