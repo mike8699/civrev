@@ -402,6 +402,34 @@ random map). That cancels the map/render noise and should surface the civ-index
 the writer (Z0; the static decompiler now works to identify it). China-B run is
 launched; run `diff3_player_dumps.py chinaA rome chinaB` when it lands.
 
+## RE log — iter-9 (2026-05-31) — 3-way subtraction localizes the player/civ state
+
+**The 3-way noise subtraction works** — biggest effect-layer progress yet. With
+China-A, China-B (both civ 6) and Rome (civ 0), bytes that differ
+China-vs-Rome but are stable across the two China runs are civ-deterministic.
+This cancels the map/render noise and cleanly surfaced civ-specific data:
+- **Civ team colors**: China `06 96 44` vs Rome `05 aa a3` (RGB) — confirms
+  we're in real player/civ state (propagates to ~15 globals).
+- **Leader-name strings** that differ by civ.
+- **The human civ index `06` (China) → `00` (Rome)** in a cluster of objects.
+
+**Candidate player/civ objects (vtable `0x0188ac38`):** five `.bss` globals
+spaced EXACTLY `0x5400` apart — `0x1ad8114, 0x1add514, 0x1ae2914, 0x1ae7d14,
+0x1aed114` — each holds the human civ index (6→0) + ~80 civ-specific bytes
+(color, name, civ). (Two of these were the iter-7 "widgets"; they are actually
+large per-player/per-civ objects, civ data deep at offset ~0x4d3..0x853.) The
+`0x1ad8114` object's civ region is a list of 24-byte `{type, payload}` entries
+reordered by civ — likely a civ-info/UI cache rather than the raw tech array.
+
+**iter-10:** within the player/civ objects, find the **starting-tech bitfield**
+(a region where individual BITS differ — China=Writing set; Rome=its starting
+techs — not a reordered list). Then static-trace or Z0-breakpoint the WRITER of
+that offset (the decompiler works now). That writer, keyed on civ, IS the
+effect-grant. The civ index field itself is also a patch target (it's read to
+look up bonuses). Tooling (3-way runtime diff + clean-ELF decompiler) is now
+sufficient; this is mechanical from here, though still several iterations to
+the grant + the OOB gate.
+
 **iter-4 plan (two routes; try runtime first — it's likely faster):**
 1. **Runtime diff (preferred).** The game runs in the docker harness. Start a
    game as China (slot 6) and as Rome (slot 0); read player memory via the

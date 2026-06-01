@@ -207,9 +207,18 @@ KOREA_MOD_GAME_OBJ_VTABLE       = 0x018a2738  # vtable of the game session obj
 #   TOC 0x194a1f8 (parser-module TOC), NOT the main 0x193a288 — set r2 to
 #   0x194a1f8 when decompiling them in civrev_clean.
 KOREA_MOD_OBJ_B_BSS_HOLDERS     = (0x01ad8114, 0x01add514)  # vtable 0x0188ac38
-# Next: follow GAME_OBJ -> player array -> player.civ / player.techs; diff
-# China vs Rome to locate the per-civ starting-tech effect output, then the
-# civ-keyed grant site. See path-b-plan.md "RE log — iter-6/7".
+# iter-9 (2026-05-31): 3-way noise-subtracted runtime diff (China-A/China-B/
+# Rome via diff3_player_dumps.py) localized the player/civ game-state region.
+# Candidate per-player/per-civ objects (vtable 0x0188ac38), .bss holders spaced
+# exactly 0x5400 apart, each holding the human civ index (China=6, Rome=0) +
+# civ team color (China RGB 0x069644, Rome 0x05aaa3) + leader name:
+KOREA_MOD_PLAYER_CIV_OBJ_BSS_HOLDERS = (
+    0x01ad8114, 0x01add514, 0x01ae2914, 0x01ae7d14, 0x01aed114,
+)
+KOREA_MOD_PLAYER_CIV_OBJ_VTABLE      = 0x0188ac38
+# iter-10: find the starting-tech BITFIELD within these objects (bits differ
+# China=Writing vs Rome), then trace/Z0-breakpoint its writer = the civ-keyed
+# effect-grant. See path-b-plan.md "RE log — iter-9".
 
 # ---------------------------------------------------------------------------
 # Expected values for verification oracles (M5)
