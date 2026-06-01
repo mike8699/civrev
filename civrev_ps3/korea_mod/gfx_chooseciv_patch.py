@@ -185,18 +185,14 @@ var EnterMode = function(theMode)
                   break;
                case 13:
                case 90:
-                  // iter-1188 Plan A2: overwrite theSelectedOption
-                  // itself before the fscommand so any PPU-side
-                  // getVariable("_level0.theSelectedOption") read at
-                  // dispatch time picks up slot 6 (China) when the
-                  // user confirms slot 16 (Korea). Iter-1188 attempt
-                  // A1 proved the fscommand argument is ignored — the
-                  // PPU must read the selection from a SWF variable
-                  // instead. This in-place overwrite covers that path.
-                  if(theSelectedOption == 16)
-                  {
-                     theSelectedOption = 6;
-                  }
+                  // iter-11 (path b): the iter-1188 slot-16->6 remap is
+                  // REMOVED so slot 16 (Korea) flows to the PPU as civ
+                  // index 16 — a real, differentiated 17th civ — instead
+                  // of aliasing to civ 6 (China). The PPU reads the
+                  // selection via getVariable("_level0.theSelectedOption"),
+                  // so leaving theSelectedOption = 16 makes the game start
+                  // as civ 16. Requires the EBOOT per-civ tables extended
+                  // to 17 (eboot_patches.py: _lbonus etc.). See PRD path b.
                   trace("fscommand(\\"OnAccept\\", " + theSelectedOption + ");");
                   fscommand("OnAccept",theSelectedOption);
                   break;
