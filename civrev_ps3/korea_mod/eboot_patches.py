@@ -126,6 +126,47 @@ _KOREAN_BYTES    = b"Korean\0\0"
 _OLD_BASE_BE = _struct.pack(">I", 0x0195fe28)
 _NEW_BASE_BE = _struct.pack(">I", _NEW_TABLE_VA)
 
+# ---------------------------------------------------------------------------
+# iter-11 (2026-06-01): extend _lbonus (per-civ / per-era leader-bonus IDs)
+# from 16 to 17 civs so Korea (civ 16) has its own leader bonuses instead of
+# OOB-reading the adjacent threshold table. _lbonus is at 0x1971e88
+# (int[16 civs][4 eras], civ stride 0x10), read by HasLBonus(0xa22810) +
+# the era-bonus display etc. It is tightly packed (followed by a threshold
+# table 0x64,0xfa,...), so relocate to a 17-entry copy in the .rodata padding
+# and redirect ALL 7 TOC pointers that currently hold 0x1971e88. Korea's row
+# is science-themed and distinct from China[6]=[0x24,0xa,0x14,0x2a]:
+#   era0 0x0a -> Literacy free-tech, era1 0x09 -> Mathematics free-tech.
+# Both are valid existing bonus IDs (qBeginTurn HasLBonus->AddTech map).
+_ORIG_LBONUS = [
+    1, 24, 23, 36,  32, 58, 12, 38,  60, 23, 20, 28,   7,  6, 25, 41,
+    50, 30, 19, 47,  16, 26, 17, 34,  36, 10, 20, 42,  47, 35, 16,  2,
+    28, 27, 42, 26,  59,  1, 13, 12,  42, 43,  5, 18,  38,  9, 14, 47,
+    46,  4,  1, 25,  55,  8, 25, 17,  40,  3, 56, 48,  61,  6, 41, 51,
+]
+_KOREA_LBONUS      = [0x0a, 0x09, 0x14, 0x2a]
+_NEW_LBONUS_VA     = 0x017f4100          # 17*4*4 = 0x110 B; clear of ADJ_FLAT
+_NEW_LBONUS_BYTES  = b"".join(_struct.pack(">I", v) for v in _ORIG_LBONUS + _KOREA_LBONUS)
+_OLD_LBONUS_BE     = _struct.pack(">I", 0x01971e88)
+_NEW_LBONUS_BE     = _struct.pack(">I", _NEW_LBONUS_VA)
+_LBONUS_TOC_PTRS   = [0x1933714, 0x1935ba8, 0x1936334, 0x1938e90,
+                      0x193b5d8, 0x194967c, 0x194af5c]
+_LBONUS_PATCHES = [
+    Patch(
+        offset=_NEW_LBONUS_VA,
+        expected_old=b"\0" * len(_NEW_LBONUS_BYTES),
+        new=_NEW_LBONUS_BYTES,
+        description="write extended _lbonus (17 civs x 4 eras) to .rodata padding",
+    ),
+] + [
+    Patch(
+        offset=slot,
+        expected_old=_OLD_LBONUS_BE,
+        new=_NEW_LBONUS_BE,
+        description="redirect _lbonus TOC ptr @0x%x -> new 17-entry table" % slot,
+    )
+    for slot in _LBONUS_TOC_PTRS
+]
+
 PATCHES: list[Patch] = [
     # ITER-14: bump InitGenderedNames entry-count from 17 → 18 for
     # RulerNames and CivNames. The parser allocates a 17-wide buffer
@@ -512,6 +553,9 @@ PATCHES: list[Patch] = [
     # any of them is a one-line addition to PATCHES below, so no
     # code is lost — just disabled.
 ]
+
+# iter-11: append the _lbonus 17-civ extension (Korea = civ 16). Defined above.
+PATCHES += _LBONUS_PATCHES
 
 
 def _build_vaddr_to_file_offset(raw: bytes):
