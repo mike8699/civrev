@@ -31,6 +31,24 @@ start_oracle_container() {
     # Xenia, record its PID, and keep the container alive regardless of its fate.
     local supervisor='
         set -e
+        # Fast, deterministic boot: skip the intro/attract/pre-game movies by
+        # bind-mounting an empty file over them INSIDE the container. The host
+        # gamedata (a read-only mount) is never modified. The game hits its
+        # "Error reading Bink header" path and proceeds straight to the title.
+        if [ "${CIVREV_KEEP_MOVIES:-0}" != 1 ]; then
+            : > /tmp/empty.bik
+            for m in IntroMovie AttractMovie DawnOfMan; do
+                f="/game_data/Resource/Common/Art/Movies/$m.bik"
+                if [ -f "$f" ] && mount --bind /tmp/empty.bik "$f" 2>/dev/null; then echo "movie-skip: $m"; fi
+            done
+        fi
+        # Seed a fresh Xenia profile so the game never blocks on "No Profiles
+        # Found" (Xenia GUI dialogs do not accept synthetic clicks headlessly).
+        # The content dir is not persisted, so this is deterministic per run.
+        if [ -d /profile_seed ]; then
+            mkdir -p /root/.local/share/Xenia/content
+            cp -a /profile_seed/. /root/.local/share/Xenia/content/ 2>/dev/null && echo "profile seeded"
+        fi
         # Virtual Xbox 360 pad for controller input (see oracle/virtpad.py).
         if [ -w /dev/uinput ]; then
             if ! python3 -c "import evdev" 2>/dev/null; then
@@ -58,6 +76,7 @@ start_oracle_container() {
     # human can watch any scenario run live: vncviewer localhost:5900. Best-effort
     # — if 5900 is busy the run still proceeds headless.
     local vnc_pub=(-p 5900:5900)
+    local profile_mount=(); [ -d "$PROFILE_SEED" ] && profile_mount=(-v "$PROFILE_SEED:/profile_seed:ro")
     if ! docker run -d --name "$ORACLE_CONTAINER" \
         --privileged \
         --tmpfs /dev/shm:rw,nosuid,nodev,exec,size=1g \
@@ -69,7 +88,7 @@ start_oracle_container() {
         -v "$ORACLE_DIR:/oracle:ro" \
         -v "$game_dir:/game_data:ro" \
         -v "$out_dir:/output:rw" \
-        -v "$XENIA_CONTENT_DIR:/root/.local/share/Xenia/content:rw" \
+        "${profile_mount[@]}" \
         "$DOCKER_IMAGE" \
         bash -c "$supervisor" >/dev/null 2>&1; then
         log_warn "VNC port 5900 unavailable; retrying headless (no live view)"
@@ -83,7 +102,7 @@ start_oracle_container() {
             -v "$ORACLE_DIR:/oracle:ro" \
             -v "$game_dir:/game_data:ro" \
             -v "$out_dir:/output:rw" \
-            -v "$XENIA_CONTENT_DIR:/root/.local/share/Xenia/content:rw" \
+            "${profile_mount[@]}" \
             "$DOCKER_IMAGE" \
             bash -c "$supervisor" >/dev/null \
             || die "docker run failed for $ORACLE_CONTAINER"

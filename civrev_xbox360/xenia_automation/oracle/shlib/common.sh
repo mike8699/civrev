@@ -32,6 +32,12 @@ SCENARIOS_DIR="$ORACLE_DIR/scenarios"
 # Persistent Xenia content root (save games survive runs) — see H9.
 XENIA_CONTENT_DIR="${CIVREV_XENIA_CONTENT_DIR:-$FIXTURES_DIR/xenia_content}"
 
+# Profile seed: a fixed Xenia profile blob copied into the (ephemeral) content
+# dir at the start of EVERY run, so Xenia finds a profile and never shows the
+# blocking "No Profiles Found" dialog. Deterministic — the same profile is
+# seeded fresh each run and nothing persists between runs.
+PROFILE_SEED="${CIVREV_PROFILE_SEED:-$FIXTURES_DIR/saves/base_profile/content}"
+
 # --- Pinned configuration (H2) -------------------------------------------------
 # The Docker image itself pins the xenia-edge build; these are recorded here too
 # so host scripts and docs agree on the known-good configuration.
