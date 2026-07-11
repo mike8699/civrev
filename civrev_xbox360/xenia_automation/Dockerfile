@@ -25,20 +25,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libasound2t64 libpulse0 \
     # JDK 21 for Ghidra
     openjdk-21-jdk-headless \
-    # Build tools (Gradle for building Ghidra extensions from source)
-    gradle \
-    # Misc
-    libfuse2t64 file curl wget procps unzip git \
+    # Misc (zip: packaging the GhidraXenon extension; unzip: Ghidra/AppImage)
+    libfuse2t64 file curl wget procps unzip zip git \
     && rm -rf /var/lib/apt/lists/*
-
-# Download xenia-edge Linux AppImage (has critical Linux JIT/signal fixes over xenia-canary)
-RUN cd /tmp && \
-    wget -q "https://github.com/has207/xenia-edge/releases/latest/download/xenia_edge_linux.AppImage" -O xenia.AppImage && \
-    chmod +x xenia.AppImage && \
-    ./xenia.AppImage --appimage-extract && \
-    mv squashfs-root /opt/xenia && \
-    rm -f xenia.AppImage && \
-    ln -sf /opt/xenia/usr/bin/xenia_edge /usr/local/bin/xenia
 
 # ---- Ghidra 12.0.4 ----
 ENV GHIDRA_VERSION=12.0.4
@@ -64,12 +53,20 @@ RUN cd /tmp && \
     rm XEXLoaderWV.zip
 
 # ---- GhidraXenon (VMX128 Xenon PowerPC instructions + MSVC switch table recovery) ----
-# Build from source against our Ghidra version
+# Adds the PowerPC:BE:64:Xenon language + MSVC switch-recovery scripts. The repo
+# is a prebuilt SLEIGH package: build_extension.sh just stamps the Ghidra version
+# and zips it (no gradle/compilation). Pinned to a specific commit for a
+# reproducible build; the version stamp must match Ghidra's application.version
+# or Ghidra refuses to load the extension. Fails the build hard on any error.
+ENV GHIDRA_XENON_COMMIT=3db42fe7db507f45d413b9536e259a08e427d23b
 RUN cd /tmp && \
-    git clone --depth 1 https://github.com/freeqaz/ghidra-xenon-extension.git && \
+    git clone https://github.com/freeqaz/ghidra-xenon-extension.git && \
     cd ghidra-xenon-extension && \
-    GHIDRA_INSTALL_DIR=${GHIDRA_HOME} gradle buildExtension --no-daemon 2>/dev/null && \
-    unzip -q dist/*.zip -d ${GHIDRA_HOME}/Ghidra/Extensions/ && \
+    git checkout ${GHIDRA_XENON_COMMIT} && \
+    GV=$(grep -E '^application.version=' ${GHIDRA_HOME}/Ghidra/application.properties | cut -d= -f2) && \
+    ./build_extension.sh "$GV" && \
+    unzip -q ghidra_*_GhidraXenon.zip -d ${GHIDRA_HOME}/Ghidra/Extensions/ && \
+    test -f ${GHIDRA_HOME}/Ghidra/Extensions/GhidraXenon/data/languages/ppc_64_xenon.sla && \
     cd / && rm -rf /tmp/ghidra-xenon-extension
 
 # ---- Xbox 360 SDK Function ID Databases (auto-identify SDK library functions) ----
@@ -77,6 +74,22 @@ RUN git clone --depth 1 https://github.com/tomcl7/ghidra-fidb-xenonsdk.git /tmp/
     mkdir -p ${GHIDRA_HOME}/Ghidra/Features/Base/data/fidb && \
     cp /tmp/fidb/*.fidb ${GHIDRA_HOME}/Ghidra/Features/Base/data/fidb/ && \
     rm -rf /tmp/fidb
+
+# ---- xenia-edge (PINNED) ----
+# Pinned to a specific release + sha256 for a reproducible oracle (H2). xenia-edge
+# has the Linux JIT/signal fixes over xenia-canary. Placed AFTER Ghidra so bumping
+# the pin does not invalidate the expensive Ghidra layers. To bump: update TAG +
+# SHA256 (get the sha with: curl -sL <url> | sha256sum).
+ENV XENIA_EDGE_TAG=d158580
+ENV XENIA_EDGE_SHA256=6b1b958a1d336e79d8e2a9403e0fc2c86285e89ee3b9b3938f5e30a01faccd2d
+RUN cd /tmp && \
+    wget -q "https://github.com/has207/xenia-edge/releases/download/${XENIA_EDGE_TAG}/xenia_edge_linux.AppImage" -O xenia.AppImage && \
+    echo "${XENIA_EDGE_SHA256}  xenia.AppImage" | sha256sum -c - && \
+    chmod +x xenia.AppImage && \
+    ./xenia.AppImage --appimage-extract && \
+    mv squashfs-root /opt/xenia && \
+    rm -f xenia.AppImage && \
+    ln -sf /opt/xenia/usr/bin/xenia_edge /usr/local/bin/xenia
 
 COPY entrypoint.sh /tools/
 RUN chmod +x /tools/entrypoint.sh
