@@ -25,6 +25,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libasound2t64 libpulse0 \
     # JDK 21 for Ghidra
     openjdk-21-jdk-headless \
+    # Virtual gamepad for driving Xenia's hid=sdl input (oracle/virtpad.py)
+    python3-evdev \
     # Misc (zip: packaging the GhidraXenon extension; unzip: Ghidra/AppImage)
     libfuse2t64 file curl wget procps unzip zip git \
     && rm -rf /var/lib/apt/lists/*
@@ -80,8 +82,11 @@ RUN git clone --depth 1 https://github.com/tomcl7/ghidra-fidb-xenonsdk.git /tmp/
 # has the Linux JIT/signal fixes over xenia-canary. Placed AFTER Ghidra so bumping
 # the pin does not invalidate the expensive Ghidra layers. To bump: update TAG +
 # SHA256 (get the sha with: curl -sL <url> | sha256sum).
-ENV XENIA_EDGE_TAG=d158580
-ENV XENIA_EDGE_SHA256=6b1b958a1d336e79d8e2a9403e0fc2c86285e89ee3b9b3938f5e30a01faccd2d
+# Pinned to 7acf88d (edge@7acf88d59, 2026-03-21): the build CivRev actually boots
+# on (reaches the opening CG / menu). The newer d158580 black-screens this title —
+# do not bump without re-verifying CivRev boots. sha256 of the linux AppImage.
+ENV XENIA_EDGE_TAG=7acf88d
+ENV XENIA_EDGE_SHA256=9335cdb237a8f76aecfd1504633233897a3443c11acdc3a4776e29e3c47b46ab
 RUN cd /tmp && \
     wget -q "https://github.com/has207/xenia-edge/releases/download/${XENIA_EDGE_TAG}/xenia_edge_linux.AppImage" -O xenia.AppImage && \
     echo "${XENIA_EDGE_SHA256}  xenia.AppImage" | sha256sum -c - && \

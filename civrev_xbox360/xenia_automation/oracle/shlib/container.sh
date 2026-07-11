@@ -26,10 +26,26 @@ start_oracle_container() {
     local mode="${VULKAN_DISPLAY:-$ORACLE_DISPLAY_MODE}"
     log_info "starting oracle container '$ORACLE_CONTAINER' (display=$mode, game=$game_dir)"
 
-    # The supervisor: launch Xenia in the background, record its PID, then keep
-    # the container alive regardless of Xenia's fate.
+    # The supervisor: bring up the virtual gamepad FIRST (so SDL enumerates it at
+    # init — Xenia hid="sdl" reads controllers, not the keyboard), then launch
+    # Xenia, record its PID, and keep the container alive regardless of its fate.
     local supervisor='
         set -e
+        # Virtual Xbox 360 pad for controller input (see oracle/virtpad.py).
+        if [ -w /dev/uinput ]; then
+            if ! python3 -c "import evdev" 2>/dev/null; then
+                apt-get update -qq >/dev/null 2>&1 && apt-get install -y -qq python3-evdev >/dev/null 2>&1 || true
+            fi
+            if python3 -c "import evdev" 2>/dev/null; then
+                python3 /oracle/virtpad.py /tmp/virtpad.cmd >/output/virtpad.log 2>&1 &
+                for i in $(seq 1 20); do grep -q "created Xbox" /output/virtpad.log 2>/dev/null && break; sleep 0.3; done
+                echo "virtpad: $(head -1 /output/virtpad.log 2>/dev/null)"
+            else
+                echo "WARN: evdev unavailable; controller input disabled"
+            fi
+        else
+            echo "WARN: /dev/uinput not writable; controller input disabled"
+        fi
         GAME=/game_data/default.xex
         xenia --apu=sdl --license_mask=-1 --protect_zero=false \
               --log_file=/output/run.log "$GAME" >/output/xenia.stdout 2>&1 &
@@ -38,18 +54,40 @@ start_oracle_container() {
         tail -f /dev/null
     '
 
-    docker run -d --name "$ORACLE_CONTAINER" \
+    # Publish the in-container VNC server (entrypoint runs x11vnc on :5900) so a
+    # human can watch any scenario run live: vncviewer localhost:5900. Best-effort
+    # — if 5900 is busy the run still proceeds headless.
+    local vnc_pub=(-p 5900:5900)
+    if ! docker run -d --name "$ORACLE_CONTAINER" \
         --privileged \
         --tmpfs /dev/shm:rw,nosuid,nodev,exec,size=1g \
         --security-opt seccomp=unconfined \
         --device /dev/dri:/dev/dri \
+        "${vnc_pub[@]}" \
         -e VULKAN_DISPLAY="$mode" \
+        -e SDL_AUDIODRIVER=dummy \
+        -v "$ORACLE_DIR:/oracle:ro" \
         -v "$game_dir:/game_data:ro" \
         -v "$out_dir:/output:rw" \
         -v "$XENIA_CONTENT_DIR:/root/.local/share/Xenia/content:rw" \
         "$DOCKER_IMAGE" \
-        bash -c "$supervisor" >/dev/null \
-        || die "docker run failed for $ORACLE_CONTAINER"
+        bash -c "$supervisor" >/dev/null 2>&1; then
+        log_warn "VNC port 5900 unavailable; retrying headless (no live view)"
+        docker run -d --name "$ORACLE_CONTAINER" \
+            --privileged \
+            --tmpfs /dev/shm:rw,nosuid,nodev,exec,size=1g \
+            --security-opt seccomp=unconfined \
+            --device /dev/dri:/dev/dri \
+            -e VULKAN_DISPLAY="$mode" \
+            -e SDL_AUDIODRIVER=dummy \
+            -v "$ORACLE_DIR:/oracle:ro" \
+            -v "$game_dir:/game_data:ro" \
+            -v "$out_dir:/output:rw" \
+            -v "$XENIA_CONTENT_DIR:/root/.local/share/Xenia/content:rw" \
+            "$DOCKER_IMAGE" \
+            bash -c "$supervisor" >/dev/null \
+            || die "docker run failed for $ORACLE_CONTAINER"
+    fi
 }
 
 # stop_oracle_container : remove the container (best-effort).

@@ -3,6 +3,12 @@ set -e
 
 echo "=== CivRev Xbox 360 (Xenia) ==="
 
+# Headless containers have no audio device; without this the game's audio init
+# fails ("CreateDriver failed") and CivRev null-derefs / crashes at boot. SDL's
+# dummy driver makes audio init succeed silently. Override by exporting
+# SDL_AUDIODRIVER before launch if a real device is available.
+export SDL_AUDIODRIVER="${SDL_AUDIODRIVER:-dummy}"
+
 # ---------------------------------------------------------------------------
 # Display mode: VULKAN_DISPLAY controls how Vulkan presents to VNC.
 #

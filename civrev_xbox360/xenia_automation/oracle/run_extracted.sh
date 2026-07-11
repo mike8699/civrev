@@ -31,6 +31,7 @@ exec docker run --rm -it \
     --device /dev/dri:/dev/dri \
     -p 5900:5900 \
     -e VULKAN_DISPLAY="$mode" \
+    -e SDL_AUDIODRIVER=dummy \
     -v "$EXTRACTED_TREE:/game_data:ro" \
     -v "$OUTPUT_DIR:/output:rw" \
     -v "$XENIA_CONTENT_DIR:/root/.local/share/Xenia/content:rw" \

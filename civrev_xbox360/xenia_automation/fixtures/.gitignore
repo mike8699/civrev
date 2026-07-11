@@ -2,3 +2,4 @@
 # commit it. Named snapshots under saves/ (created by fixtures.sh export) ARE
 # meant to be committed.
 xenia_content/
+xenia_storage/

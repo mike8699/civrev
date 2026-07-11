@@ -35,8 +35,10 @@ XENIA_CONTENT_DIR="${CIVREV_XENIA_CONTENT_DIR:-$FIXTURES_DIR/xenia_content}"
 # --- Pinned configuration (H2) -------------------------------------------------
 # The Docker image itself pins the xenia-edge build; these are recorded here too
 # so host scripts and docs agree on the known-good configuration.
-XENIA_EDGE_TAG="d158580"
-XENIA_EDGE_SHA256="6b1b958a1d336e79d8e2a9403e0fc2c86285e89ee3b9b3938f5e30a01faccd2d"
+# 7acf88d (edge@7acf88d59, 2026-03-21) — the build CivRev boots on. Newer d158580
+# black-screens this title; keep this pin until re-verified.
+XENIA_EDGE_TAG="7acf88d"
+XENIA_EDGE_SHA256="9335cdb237a8f76aecfd1504633233897a3443c11acdc3a4776e29e3c47b46ab"
 DOCKER_IMAGE="${CIVREV_DOCKER_IMAGE:-civrev-xbox360}"
 TITLE_ID="545407E5"
 
