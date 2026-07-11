@@ -215,8 +215,12 @@ run_script() {
                 do_wait_stable "$sidle" "$smax" ;;
             wait_text)
                 # pattern may contain spaces; the LAST token is the timeout.
+                # rstrip the pattern: aligned script columns (two+ spaces before
+                # the timeout) otherwise leave a trailing space in the regex,
+                # which silently fails at end-of-text (e.g. 'Loading\.\.\. ').
                 local tpat="$rest" tto=90
                 if [[ "$rest" == *" "* ]]; then tpat="${rest% *}"; tto="${rest##* }"; fi
+                tpat="${tpat%"${tpat##*[![:space:]]}"}"
                 do_wait_text "$tpat" "$tto" ;;
             wait_text_shot)
                 # wait_text_shot <name> <pattern...> <timeout> — like wait_text
@@ -224,6 +228,7 @@ run_script() {
                 local wname wrest; read -r wname wrest <<< "$rest"
                 local wpat="$wrest" wto=90
                 if [[ "$wrest" == *" "* ]]; then wpat="${wrest% *}"; wto="${wrest##* }"; fi
+                wpat="${wpat%"${wpat##*[![:space:]]}"}"
                 do_wait_text "$wpat" "$wto" "$wname" ;;
             find_text)
                 # find_text <action> <max> [crop=L,T,R,B] <pattern...>

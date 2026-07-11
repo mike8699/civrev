@@ -13,6 +13,7 @@ include(generated/rexglue.cmake)
 # Sources
 set(CIVREV_SOURCES
     src/main.cpp
+    src/kernel_stubs.cpp
 )
 
 if(WIN32)

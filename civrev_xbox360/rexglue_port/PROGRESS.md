@@ -32,13 +32,48 @@ screens render correctly (PRD M0→M4-partial).
   an older boot script, status=crash, screenshot shows profile dialog —
   predates profile seeding). Needs recapture before M3/M4 comparisons.
 
-### In flight
-- First `rexglue codegen` run (no `--force`) — collecting validation errors.
-- Docker toolchain image build.
+### M1 — PASSED
+- Run 1: 3 unresolved tail-call targets (0x827F8840, 0x82324B48, 0x82841038;
+  callers are 4-byte `b` thunks). Added `[entrypoint.functions]` sizes from the
+  XenonRecomp corpus. Run 2: validation clean, emission 71 s, no `--force`.
+- Function-count sanity: ReXGlue 40,067 vs XenonRecomp 62,939 — NOT a red flag:
+  20,467+ of XR's are `.long 0x0` zero-padding stubs and XR splits switch cases
+  into mini-functions (0x82D72318 verified as internal `loc_` label in ReXGlue,
+  standalone stub-func in XR). Real counts agree within ~6%.
+
+### Boot-reference work (goal: copyright screens)
+- Discovered boot legal sequence via frame-grab run: copyright page
+  (©2005-2008 Take-Two, ~4 s) → ESRB notice (~4 s) → "Loading..." splash →
+  Press START title. OCR patterns validated on real frames.
+- Stale `references/boot` bundle explained: pre-dated SDL_AUDIODRIVER=dummy and
+  profile seeding fixes (audio-thread guest crash at 0x82A6DE1C + profile
+  dialog on screen). Needs recapture — DO NOT diff against it.
+- Harness: added `wait_text_shot` (checkpoint = the exact OCR-matched frame;
+  short-lived screens can't be shot after the wait); OCR poll 2 s → 1 s;
+  FIXED parser bug: aligned columns left a trailing space in wait_text
+  patterns → `Loading\.\.\. ` can never match at end-of-text.
+- boot_legal_v2 run: copyright + ESRB checkpoints captured ✓; game lingered on
+  Loading splash >150 s (vs 43-48 s total in boot_fast3) — log identical to
+  good runs (goes quiet after WSAStartup), so game alive; cause unclear
+  (suspect CPU contention from 1 s OCR+tesseract polling under lavapipe).
+  boot_legal_v3 rerunning with parser fix.
+
+### M2 — in progress
+- Build in rexglue-toolchain image: 117 recomp TUs compile clean (~19 min,
+  all cores). Link failed: 6 undefined `__imp__XUsbcam*` (Xbox Live Vision
+  camera XAM exports absent from SDK v0.8.0). Fix: `src/kernel_stubs.cpp`
+  using REX_EXPORT_STUB_RETURN, semantics copied from Xenia
+  (xboxkrnl_usbcam.cc): Create MUST return 0/success (error breaks some titles'
+  init), GetState 0 = not connected. Rebuild pending (serialized after the
+  Xenia run to avoid CPU starvation).
+- `run_port.sh` written: container runner mirroring oracle semantics
+  (movie-blank bind mounts, dummy audio, Xvfb+lavapipe 1280x720, RO game
+  mount, frame grabs, GPU lock). Note: SDK hardcodes Vulkan backend on Linux —
+  no --gpu_backend flag exists in v0.8.0.
 
 ### Next
-- M1: iterate codegen to exit 0 without `--force`; sanity-check function count
-  vs XenonRecomp's 63,266.
-- Recapture `references/boot` (take GPU lock; verify legal-screen checkpoint
-  present and non-crashed).
-- M2: build port in `rexglue-toolchain` container.
+- Rebuild port (stubs) → M2 launch check.
+- Green boot run → `capture_reference.sh boot` for the real reference bundle.
+- M3: file-trace diff (extract_file_trace.py already handles ReXGlue shapes).
+- M4-goal: port renders copyright/ESRB screens; compare vs reference
+  checkpoints 00_copyright/01_esrb.
