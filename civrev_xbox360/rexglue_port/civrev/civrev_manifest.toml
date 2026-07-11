@@ -9,3 +9,13 @@ game_root = "../../xenon_recomp/work/extracted"
 file_path = "../../xenon_recomp/work/extracted/default.xex"
 out_directory_path = "generated/default"
 includes = []
+
+# Manual function boundaries. ReXGlue's analysis left 3 tail-call targets out of
+# any function (each caller is a 4-byte `b <target>` thunk). Boundaries taken
+# from the XenonRecomp reference corpus (recomp_output/), which resolved all
+# three; sizes = next-function start minus target start, cross-checked against
+# the translated bodies' final blr/b.
+[entrypoint.functions]
+0x827F8840 = { size = 0x14 }   # CRT helper: cmplwi/bne + tail b 0x827F0148; target of b from 0x824683E0
+0x82324B48 = { size = 0x23C }  # target of b from 0x82324730
+0x82841038 = { size = 0x108 }  # leaf float routine; target of b from 0x8286B1F0
