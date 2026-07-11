@@ -113,6 +113,29 @@ do_wait_text() {
     rm -f "$shot"; log_warn "wait_text '$pattern' timed out (${timeout}s)"; return 0
 }
 
+# find_text <action> <max> <pattern> : OCR the screen; if <pattern> is not
+# visible, press <action> (e.g. DPAD_DOWN) and retry, up to <max> times. For
+# scrolling a list (e.g. the scenario list) until an item is on screen.
+do_find_text() {
+    local action="$1"; local max="$2"; local pattern="$3"; local shot="$out_dir/.ocr.png"
+    local in_container=0
+    oracle_exec sh -c 'command -v tesseract' >/dev/null 2>&1 && in_container=1
+    local i
+    for ((i = 0; i < max; i++)); do
+        oracle_exec import -window root /tmp/ocr.png >/dev/null 2>&1
+        if [ "$in_container" = 1 ]; then
+            oracle_exec python3 /oracle/ocr.py /tmp/ocr.png "$pattern" >/dev/null 2>&1 \
+                && { log_ok "find_text matched '$pattern' after $i $action"; return 0; }
+        elif docker cp "$ORACLE_CONTAINER:/tmp/ocr.png" "$shot" >/dev/null 2>&1 \
+             && python3 "$HERE/ocr.py" "$shot" "$pattern" >/dev/null 2>&1; then
+            log_ok "find_text matched '$pattern' after $i $action"; rm -f "$shot"; return 0
+        fi
+        bash "$HERE/input.sh" "$action" >/dev/null 2>&1
+        sleep 1
+    done
+    rm -f "$shot"; log_warn "find_text '$pattern' not found after $max $action"; return 1
+}
+
 # wait until the log stops growing for <idle> secs, or <maxwait> elapses.
 do_wait_idle() {
     local idle="$1"; local maxwait="${2:-60}"; local waited=0 last=-1 stable=0
@@ -163,6 +186,10 @@ run_script() {
                 local tpat="$rest" tto=90
                 if [[ "$rest" == *" "* ]]; then tpat="${rest% *}"; tto="${rest##* }"; fi
                 do_wait_text "$tpat" "$tto" ;;
+            find_text)
+                # find_text <action> <max> <pattern...>  (read collapses spaces)
+                local fa fm fp; read -r fa fm fp <<< "$rest"
+                do_find_text "$fa" "$fm" "$fp" ;;
             sleep) sleep "$rest" ;;
             shot)  do_shot "$rest" ;;
             input) bash "$HERE/input.sh" "$rest" >/dev/null 2>&1 || log_warn "input $rest failed" ;;

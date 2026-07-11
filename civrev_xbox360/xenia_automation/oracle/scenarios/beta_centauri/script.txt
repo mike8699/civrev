@@ -1,0 +1,75 @@
+# beta_centauri scenario — boot into gameplay on the Beta Centauri scenario at
+# Deity difficulty (deterministic + tutorial-free on Deity).
+#
+# Navigation adapted from civrev_ps3/rpcs3_automation/launch.py (X->A, O->B,
+# Down/Left/Right -> D-pad). Intro/pre-game movies are skipped at the container
+# level, so there is no CG to skip. OCR waits gate each menu transition so input
+# never fires early. Scenario list order (top->down): Attack of the Huns,
+# Chariots of the Gods, Ace of Imperial, Apocalypse!, Beta Centauri (index 4).
+
+# --- boot to main menu ---
+wait  Hardware scaler|Shader .* translated successfully  90
+wait_text  Press START  90
+input START
+sleep 3
+input B                       # decline sign-in -> main menu
+sleep 3
+shot 01_main_menu
+
+# --- main menu -> Single Player (1 Down, A) ---
+input DPAD_DOWN
+sleep 1
+input A
+sleep 3
+
+# --- Single Player -> Play Scenario (3 Down, A) ---
+input DPAD_DOWN
+sleep 0.6
+input DPAD_DOWN
+sleep 0.6
+input DPAD_DOWN
+sleep 0.6
+input A
+wait_text  Choose Scenario  30
+shot 02_scenario_list
+
+# --- move cursor onto Beta Centauri (index 4 from the top), select ---
+input DPAD_DOWN
+sleep 0.5
+input DPAD_DOWN
+sleep 0.5
+input DPAD_DOWN
+sleep 0.5
+input DPAD_DOWN
+sleep 0.8
+shot 03_beta_selected
+input A
+wait_text  DIFFICULTY|Chieftain  25
+shot 04_difficulty
+
+# --- Deity difficulty (4 Down from Chieftain, A) ---
+input DPAD_DOWN
+sleep 0.4
+input DPAD_DOWN
+sleep 0.4
+input DPAD_DOWN
+sleep 0.4
+input DPAD_DOWN
+sleep 0.6
+input A
+wait_text  Civilization|Accept  40
+sleep 2
+shot 05_civ_select
+
+# --- accept the default civ (Accept can need a second press), load the game ---
+input A
+sleep 2
+input A
+wait_text  Loading|Galley|Ranger  40
+shot 06_loading
+sleep 18                      # load into the map (Beta Centauri = Modern Era)
+input B                       # dismiss the "reached the Modern Era" popup
+sleep 3
+shot 07_gameplay
+
+expect_no_crash
