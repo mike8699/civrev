@@ -192,7 +192,10 @@ run_script() {
                 # find_text <action> <max> [crop=L,T,R,B] <pattern...>
                 local fa fm fp; read -r fa fm fp <<< "$rest"
                 local fcrop=""
-                if [[ "$fp" == crop=* ]]; then fcrop="${fp%% *}"; fcrop="${fcrop#crop=}"; fp="${fp#* }"; fi
+                if [[ "$fp" == crop=* ]]; then
+                    fcrop="${fp%% *}"; fcrop="${fcrop#crop=}"; fp="${fp#* }"
+                    fp="${fp#"${fp%%[![:space:]]*}"}"   # lstrip (aligned cols leave a leading space)
+                fi
                 do_find_text "$fa" "$fm" "$fp" "$fcrop" ;;
             sleep) sleep "$rest" ;;
             shot)  do_shot "$rest" ;;

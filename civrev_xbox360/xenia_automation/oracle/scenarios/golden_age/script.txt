@@ -22,7 +22,7 @@ shot 01_main_menu
 input DPAD_DOWN
 sleep 1
 input A
-wait_text  New Game|Play Scenario|Game of the Week  25
+sleep 3                       # Single Player submenu
 shot 02_single_player
 
 # --- Single Player -> Play Scenario (find it selected, then A) ---
@@ -36,29 +36,25 @@ sleep 0.6
 input DPAD_DOWN
 sleep 0.6
 input A
-wait_text  Choose Scenario  30
+wait_text  Choose|Scenario  15
 sleep 3                       # let the list finish animating in
 shot 03_scenario_list
 
 # --- select Golden Age (OCR-verified via the description-panel header) ---
-find_text  DPAD_DOWN  14  crop=0.54,0.21,0.82,0.33  Golden Age
+find_text  DPAD_DOWN  12  crop=0.54,0.21,0.82,0.33  Golden Age
 sleep 0.6
 shot 04_golden_selected
 input A
-wait_text  DIFFICULTY|Chieftain  25
+wait_text  Difficulty|Chieftain  15
+sleep 1
 shot 05_difficulty
 
-# --- Deity difficulty (4 Down from Chieftain, A) ---
-input DPAD_DOWN
-sleep 0.5
-input DPAD_DOWN
-sleep 0.5
-input DPAD_DOWN
-sleep 0.5
-input DPAD_DOWN
+# --- Deity difficulty (OCR-verified via the description-panel header) ---
+find_text  DPAD_DOWN  7  crop=0.56,0.35,0.80,0.45  Deity
 sleep 0.6
+shot 05b_deity_selected
 input A
-wait_text  Civilization|Accept  40
+wait_text  Civilization|Accept  20
 sleep 2
 shot 06_civ_select
 
