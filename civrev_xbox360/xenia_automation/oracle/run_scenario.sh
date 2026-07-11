@@ -122,8 +122,14 @@ do_find_text() {
     local cropargs=(); [ -n "$crop" ] && cropargs=(--crop "$crop")
     local in_container=0
     oracle_exec sh -c 'command -v tesseract' >/dev/null 2>&1 && in_container=1
+    # OCR-check the frame BEFORE each press AND once more after the final press
+    # (loop to <= max): D-pad presses drop intermittently on this game, so the
+    # target can land on the very last press — if we only checked before pressing
+    # we'd miss it (as happened selecting Russians: the 14th press landed on the
+    # civ but was never OCR'd). Settle 1.3s after each press so the carousel's
+    # slide animation finishes before the next OCR (a mid-animation frame garbles).
     local i
-    for ((i = 0; i < max; i++)); do
+    for ((i = 0; i <= max; i++)); do
         oracle_exec import -window root /tmp/ocr.png >/dev/null 2>&1
         if [ "$in_container" = 1 ]; then
             oracle_exec python3 /oracle/ocr.py /tmp/ocr.png "$pattern" "${cropargs[@]}" >/dev/null 2>&1 \
@@ -132,8 +138,9 @@ do_find_text() {
              && python3 "$HERE/ocr.py" "$shot" "$pattern" "${cropargs[@]}" >/dev/null 2>&1; then
             log_ok "find_text matched '$pattern' after $i $action"; rm -f "$shot"; return 0
         fi
+        [ "$i" -ge "$max" ] && break
         bash "$HERE/input.sh" "$action" >/dev/null 2>&1
-        sleep 1
+        sleep 1.3
     done
     rm -f "$shot"; log_warn "find_text '$pattern' not found after $max $action"; return 1
 }

@@ -58,8 +58,18 @@ wait_text  Civilization|Accept  20
 sleep 2
 shot 06_civ_select
 
-# --- select Russians (OCR-verified: Catherine shows in the civ description) ---
-find_text  DPAD_RIGHT  22  crop=0.38,0.49,0.64,0.63  Cath|ussia
+# --- select Russians (per civrev_ps3 launch.py): the carousel starts on a RANDOM
+#     civ and D-pad presses drop heavily here (~1 move per 2-3 presses), so both
+#     steps are OCR-VERIFIED via the civ-description panel (which shows the
+#     CENTERED civ's "<leader> <civ>"). First scroll LEFT to Romans — the leftmost
+#     civ, where left-scroll stops — confirming arrival by OCR (over-pressing is
+#     harmless since it can't move past Romans). Then scroll RIGHT to Russians
+#     (Catherine), 5 civs along, again confirmed by OCR. High maxes absorb drops;
+#     find_text stops the instant the target is centered.
+find_text  DPAD_LEFT   30  crop=0.38,0.49,0.64,0.63  Caesar|Roman
+sleep 0.6
+shot 06b_at_romans
+find_text  DPAD_RIGHT  20  crop=0.38,0.49,0.64,0.63  Cath|ussia
 sleep 0.6
 shot 07_russians
 
