@@ -1,0 +1,27 @@
+# save_load scenario — start a game, save, and confirm the save persists to the
+# content dir (which is bind-mounted, so it survives the container). The port
+# (ReXGlue) must load a save produced here — the strongest cross-implementation
+# correctness check (PRD M7).
+#
+# GATED on profile + verified input + verified save-menu bindings. The save
+# fixture export is handled by capture_reference.sh / fixtures (H9) after this
+# scenario reaches an in-game save.
+
+wait  Loading module|Setup: Initializing 60
+wait_idle 6 60
+shot  01_title
+
+# Start a game (placeholder navigation).
+input START
+sleep 2
+input A
+sleep 4
+shot  02_in_game
+
+# Open the pause/save menu and save (placeholder — correct after map verified).
+input START
+sleep 1
+shot  03_pause_menu
+# ... save-slot navigation to be filled in once bindings are known ...
+
+expect_no_crash

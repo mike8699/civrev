@@ -1,0 +1,21 @@
+# boot scenario — take the game from launch to the first rendered frame.
+# No input required, so this scenario is fully usable TODAY (menu/in-game
+# scenarios additionally need the profile + working input; see INPUT_MAP.md).
+#
+# Commands (see run_scenario.sh):
+#   wait <regex> <timeout_s>   wait for the run log to match (fails scenario on timeout)
+#   wait_idle <secs> [maxwait] wait until the log stops growing for <secs>
+#   sleep <secs>
+#   shot <name>                capture a screenshot checkpoint
+#   expect_no_crash            assert no crash dump so far (records, does not abort)
+
+# The module load + first device resolves confirm the guest is executing.
+wait  Loading module|Setup: Initializing 60
+shot  01_early_boot
+
+# Shaders translate as the renderer comes up; wait for the title to draw.
+wait  Shader .* translated successfully|Hardware scaler 120
+wait_idle 6 40
+shot  02_first_frame
+
+expect_no_crash

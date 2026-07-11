@@ -1,0 +1,27 @@
+# menu scenario — boot, dismiss to the main menu, into single-player setup.
+#
+# GATED: requires (a) a provisioned Xenia profile so the game does not crash at
+# the "No Profiles Found" dialog, and (b) verified input delivery (INPUT_MAP.md).
+# The input actions below use the UNVERIFIED input_map.conf bindings and will
+# need correction once the map is confirmed over VNC. Until then this scenario is
+# expected to stop at the profile crash — which run_scenario.sh will report as
+# status=crash (correctly), not a false pass.
+
+wait  Loading module|Setup: Initializing 60
+shot  01_boot
+wait_idle 6 40
+shot  02_title
+
+# Dismiss the title / advance to the main menu.
+input START
+sleep 3
+shot  03_after_start
+
+# Navigate to Single Player (placeholder motions — correct after map verified).
+input DPAD_DOWN
+sleep 1
+input A
+sleep 3
+shot  04_single_player
+
+expect_no_crash

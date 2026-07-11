@@ -1,0 +1,16 @@
+{
+  "scenario": "boot",
+  "status": "crash",
+  "crash": {
+    "detected": true
+  },
+  "checkpoints": {
+    "01_early_boot": "/tmp/tmp.9IngRLDWsp/run1/01_early_boot.png",
+    "02_first_frame": "/tmp/tmp.9IngRLDWsp/run1/02_first_frame.png"
+  },
+  "started": "2026-07-11T15:25:07Z",
+  "ended": "2026-07-11T15:25:30Z",
+  "seconds": 23,
+  "log": "run.log",
+  "xenia_exited": 0
+}

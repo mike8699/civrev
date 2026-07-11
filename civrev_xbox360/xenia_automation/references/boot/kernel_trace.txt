@@ -1,0 +1,16 @@
+# kernel trace
+
+## runtime gaps (undefined/unimplemented imports actually invoked)
+    2x  IoDismountVolumeByFileHandle  @82E86A3C
+    1x  XeKeysConsolePrivateKeySign  @82E86A1C
+
+## import libraries (from module banner)
+xboxkrnl.exe: 350 imports
+xam.xex: 170 imports
+
+## implemented summaries (pct, implemented, unimplemented)
+89%  162 implemented / 19 unimplemented
+95%  81 implemented / 4 unimplemented
+
+## thread markers
+host=0x56FFE6C0 guest=0x00000006

@@ -69,14 +69,14 @@ def extract(lines, fmt: str):
     token = None if fmt == 'xenia' else REXGLUE_TOKEN
     out = []
     for line in lines:
-        m = resolve.search(line)
         hit = None
-        if m:
-            hit = m.group(1)
-        elif opener and opener.search(line):
-            hit = opener.search(line).group(1)
-        elif token and token.search(line):
-            hit = token.search(line).group(1)
+        for pat in (resolve, opener, token):
+            if pat is None:
+                continue
+            m = pat.search(line)
+            if m:
+                hit = m.group(1)
+                break
         if hit is None:
             continue
         norm = normalize(hit)

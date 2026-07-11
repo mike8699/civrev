@@ -1,0 +1,5 @@
+scenario=boot
+runs=2
+statuses=crash crash
+file_trace_consistent=1
+shots_consistent=0

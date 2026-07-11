@@ -1,0 +1,68 @@
+# newgame_20turns scenario — start a single-player game and advance 20 turns.
+#
+# GATED on the same prerequisites as menu (profile + verified input), plus the
+# in-game end-turn binding. Motions below are placeholders to be corrected once
+# the map is verified over VNC. Provides the M6 reference once unblocked.
+
+wait  Loading module|Setup: Initializing 60
+wait_idle 6 60
+shot  01_title
+
+# Reach single-player new-game and start (placeholder navigation).
+input START
+sleep 2
+input A
+sleep 2
+input A
+sleep 4
+shot  02_map_loaded
+
+# Advance 20 turns. END_TURN is not yet a mapped action — using B/Start as a
+# placeholder; replace with the verified end-turn binding.
+# (repeat block; run_scenario.sh has no loop construct, so unrolled)
+key  Return
+sleep 2
+key  Return
+sleep 2
+key  Return
+sleep 2
+key  Return
+sleep 2
+key  Return
+sleep 2
+shot  03_turn05
+key  Return
+sleep 2
+key  Return
+sleep 2
+key  Return
+sleep 2
+key  Return
+sleep 2
+key  Return
+sleep 2
+shot  04_turn10
+key  Return
+sleep 2
+key  Return
+sleep 2
+key  Return
+sleep 2
+key  Return
+sleep 2
+key  Return
+sleep 2
+shot  05_turn15
+key  Return
+sleep 2
+key  Return
+sleep 2
+key  Return
+sleep 2
+key  Return
+sleep 2
+key  Return
+sleep 2
+shot  06_turn20
+
+expect_no_crash
