@@ -1,0 +1,38 @@
+# ReXGlue SDK build/toolchain image — replicates the SDK's own linux-amd64 CI
+# (ubuntu 24.04 noble + clang-20 from apt.llvm.org + LunarG Vulkan SDK + GTK3).
+# Used to build the pinned SDK v0.8.0 and the civrev port; keeps Clang 20 off
+# the host. Build:  docker build -t rexglue-toolchain -f Dockerfile.toolchain .
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && \
+    apt-get install -y wget gnupg lsb-release software-properties-common ca-certificates
+
+# clang-20 via the official llvm.org apt script (same as SDK CI)
+RUN wget -q https://apt.llvm.org/llvm.sh -O /tmp/llvm.sh && \
+    chmod +x /tmp/llvm.sh && \
+    /tmp/llvm.sh 20 && \
+    apt-get install -y clang-20 lld-20 && \
+    update-alternatives --install /usr/bin/clang clang /usr/bin/clang-20 200 && \
+    update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-20 200
+
+# LunarG Vulkan SDK + build deps (same list as SDK CI linux-amd64)
+RUN wget -qO- https://packages.lunarg.com/lunarg-signing-key-pub.asc \
+        > /etc/apt/trusted.gpg.d/lunarg.asc && \
+    wget -qO /etc/apt/sources.list.d/lunarg-vulkan-noble.list \
+        http://packages.lunarg.com/vulkan/lunarg-vulkan-noble.list && \
+    apt-get update && \
+    apt-get install -y cmake ninja-build build-essential git curl unzip autoconf \
+        python3.12-venv libgtk-3-dev libx11-xcb-dev vulkan-sdk \
+        libasound2-dev libpulse-dev libpipewire-0.3-dev
+
+# Runtime bits for headless runs of the built port inside this image:
+# Xvfb display + software vulkan (lavapipe) + screenshot/OCR tooling mirror the
+# xenia oracle container so port runs emit comparable artifacts.
+RUN apt-get install -y xvfb x11-utils mesa-vulkan-drivers vulkan-tools \
+        imagemagick tesseract-ocr python3-pil python3-numpy && \
+    rm -rf /var/lib/apt/lists/*
+
+ENV CC=clang-20 CXX=clang++-20
+WORKDIR /work

@@ -1,0 +1,26 @@
+# LEGAL: never commit anything derived from the game (the remote is PUBLIC).
+# ReXGlue codegen output derives from the XEX — must never be pushed.
+civrev/generated/
+# Game data / assets in any form
+assets/
+game_data/
+*.xex
+*.iso
+*.bin
+*.fpk
+*.FPK
+*.bik
+*.sav
+# Third-party SDK checkout (pinned by version in docs, not vendored)
+rexglue-sdk/
+sdk_install/
+*.zip
+# Build output
+out/
+build/
+*.o
+*.a
+# Logs and run artifacts
+*.log
+run_output/
+port_output/
