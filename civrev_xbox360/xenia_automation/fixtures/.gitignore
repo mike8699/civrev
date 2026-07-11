@@ -1,0 +1,4 @@
+# The live persistent Xenia content root is volatile runtime state — do not
+# commit it. Named snapshots under saves/ (created by fixtures.sh export) ARE
+# meant to be committed.
+xenia_content/
