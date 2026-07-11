@@ -1,11 +1,13 @@
 # golden_age scenario — boot into gameplay on the "Golden Age" scenario at Deity
-# difficulty (deterministic + tutorial-free). Chosen over Beta Centauri because
-# it does not open with the Modern-Era notification popup.
+# difficulty as the Russians (deterministic + tutorial-free). Chosen over Beta
+# Centauri because it does not open with the Modern-Era popup.
 #
-# Same navigation as beta_centauri (adapted from civrev_ps3 launch.py: X->A,
-# Down/Left/Right -> D-pad), OCR-gated. Scenario list order (top->down): Attack
-# of the Huns(0), Chariots of the Gods(1), Ace of Imperial(2), Apocalypse!(3),
-# Beta Centauri(4), Blitzkrieg!(5), Golden Age(6).
+# Robust navigation (D-pad step-counts are unreliable — the pad drops/auto-repeats
+# intermittently): list/carousel selection is OCR-VERIFIED via `find_text` with a
+# --crop over the description panel, which shows the SELECTED item's name (so a
+# match means selected, not merely visible). Plain menus (main menu, Single Player
+# submenu, difficulty) use small fixed counts at the 0.2s D-pad hold, each
+# followed by a wait_text that verifies we landed on the right screen.
 
 # --- boot to main menu ---
 wait  Hardware scaler|Shader .* translated successfully  90
@@ -16,13 +18,17 @@ input B                       # decline sign-in -> main menu
 sleep 3
 shot 01_main_menu
 
-# --- main menu -> Single Player (1 Down, A) ---
+# --- main menu -> Single Player (1 Down, A), verify submenu ---
 input DPAD_DOWN
 sleep 1
 input A
-sleep 3
+wait_text  New Game|Play Scenario|Game of the Week  25
+shot 02_single_player
 
-# --- Single Player -> Play Scenario (3 Down, A) ---
+# --- Single Player -> Play Scenario (find it selected, then A) ---
+# The SP submenu has no description panel; scroll down and OCR the whole screen
+# for the "Choose Scenario" that appears after selecting Play Scenario. Press A
+# after each down until the scenario list loads.
 input DPAD_DOWN
 sleep 0.6
 input DPAD_DOWN
@@ -31,102 +37,45 @@ input DPAD_DOWN
 sleep 0.6
 input A
 wait_text  Choose Scenario  30
-sleep 3                       # let the list finish animating in before scrolling
-shot 02_scenario_list
+sleep 3                       # let the list finish animating in
+shot 03_scenario_list
 
-# --- move cursor onto Golden Age (index 6 from the top), select ---
-input DPAD_DOWN
+# --- select Golden Age (OCR-verified via the description-panel header) ---
+find_text  DPAD_DOWN  14  crop=0.54,0.21,0.82,0.33  Golden Age
 sleep 0.6
-input DPAD_DOWN
-sleep 0.4
-input DPAD_DOWN
-sleep 0.4
-input DPAD_DOWN
-sleep 0.4
-input DPAD_DOWN
-sleep 0.4
-input DPAD_DOWN
-sleep 0.8
-shot 03_golden_selected
+shot 04_golden_selected
 input A
 wait_text  DIFFICULTY|Chieftain  25
-shot 04_difficulty
+shot 05_difficulty
 
 # --- Deity difficulty (4 Down from Chieftain, A) ---
 input DPAD_DOWN
-sleep 0.4
+sleep 0.5
 input DPAD_DOWN
-sleep 0.4
+sleep 0.5
 input DPAD_DOWN
-sleep 0.4
+sleep 0.5
 input DPAD_DOWN
 sleep 0.6
 input A
 wait_text  Civilization|Accept  40
 sleep 2
-shot 05_civ_select
+shot 06_civ_select
 
-# --- select Russians (Catherine), then Accept ---
-# Per civrev_ps3/rpcs3_automation/launch.py: the carousel starts on a RANDOM civ,
-# so scroll LEFT to the leftmost civ (Romans) to reset the position — left-scroll
-# stops at the first civ, so 16 lefts (>= civ count) always lands on Romans — then
-# scroll RIGHT a fixed 5 to Russians. Xbox civ order matches PS3: Romans(0)
-# Egyptians(1) Greeks(2) Spanish(3) Germans(4) Russians(5).
-input DPAD_LEFT
-sleep 0.35
-input DPAD_LEFT
-sleep 0.35
-input DPAD_LEFT
-sleep 0.35
-input DPAD_LEFT
-sleep 0.35
-input DPAD_LEFT
-sleep 0.35
-input DPAD_LEFT
-sleep 0.35
-input DPAD_LEFT
-sleep 0.35
-input DPAD_LEFT
-sleep 0.35
-input DPAD_LEFT
-sleep 0.35
-input DPAD_LEFT
-sleep 0.35
-input DPAD_LEFT
-sleep 0.35
-input DPAD_LEFT
-sleep 0.35
-input DPAD_LEFT
-sleep 0.35
-input DPAD_LEFT
-sleep 0.35
-input DPAD_LEFT
-sleep 0.35
-input DPAD_LEFT
-sleep 0.5
-shot 05b_at_romans
-# right 5 to Russians
-input DPAD_RIGHT
-sleep 0.4
-input DPAD_RIGHT
-sleep 0.4
-input DPAD_RIGHT
-sleep 0.4
-input DPAD_RIGHT
-sleep 0.4
-input DPAD_RIGHT
+# --- select Russians (OCR-verified: Catherine shows in the civ description) ---
+find_text  DPAD_RIGHT  18  crop=0.40,0.50,0.63,0.63  Catherine|Russian
 sleep 0.6
-shot 05c_russians
+shot 07_russians
 
 # --- accept Russians (Accept can need a second press), load the game ---
 input A
 sleep 2
 input A
 wait_text  Loading|Galley|Ranger|Golden  40
-shot 06_loading
+shot 08_loading
 sleep 18
 input B                       # dismiss any start-of-game popup
 sleep 3
-shot 07_gameplay
+shot 09_gameplay
 
 expect_no_crash

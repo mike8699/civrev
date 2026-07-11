@@ -117,17 +117,19 @@ do_wait_text() {
 # visible, press <action> (e.g. DPAD_DOWN) and retry, up to <max> times. For
 # scrolling a list (e.g. the scenario list) until an item is on screen.
 do_find_text() {
-    local action="$1"; local max="$2"; local pattern="$3"; local shot="$out_dir/.ocr.png"
+    local action="$1"; local max="$2"; local pattern="$3"; local crop="${4:-}"
+    local shot="$out_dir/.ocr.png"
+    local cropargs=(); [ -n "$crop" ] && cropargs=(--crop "$crop")
     local in_container=0
     oracle_exec sh -c 'command -v tesseract' >/dev/null 2>&1 && in_container=1
     local i
     for ((i = 0; i < max; i++)); do
         oracle_exec import -window root /tmp/ocr.png >/dev/null 2>&1
         if [ "$in_container" = 1 ]; then
-            oracle_exec python3 /oracle/ocr.py /tmp/ocr.png "$pattern" >/dev/null 2>&1 \
+            oracle_exec python3 /oracle/ocr.py /tmp/ocr.png "$pattern" "${cropargs[@]}" >/dev/null 2>&1 \
                 && { log_ok "find_text matched '$pattern' after $i $action"; return 0; }
         elif docker cp "$ORACLE_CONTAINER:/tmp/ocr.png" "$shot" >/dev/null 2>&1 \
-             && python3 "$HERE/ocr.py" "$shot" "$pattern" >/dev/null 2>&1; then
+             && python3 "$HERE/ocr.py" "$shot" "$pattern" "${cropargs[@]}" >/dev/null 2>&1; then
             log_ok "find_text matched '$pattern' after $i $action"; rm -f "$shot"; return 0
         fi
         bash "$HERE/input.sh" "$action" >/dev/null 2>&1
@@ -187,9 +189,11 @@ run_script() {
                 if [[ "$rest" == *" "* ]]; then tpat="${rest% *}"; tto="${rest##* }"; fi
                 do_wait_text "$tpat" "$tto" ;;
             find_text)
-                # find_text <action> <max> <pattern...>  (read collapses spaces)
+                # find_text <action> <max> [crop=L,T,R,B] <pattern...>
                 local fa fm fp; read -r fa fm fp <<< "$rest"
-                do_find_text "$fa" "$fm" "$fp" ;;
+                local fcrop=""
+                if [[ "$fp" == crop=* ]]; then fcrop="${fp%% *}"; fcrop="${fcrop#crop=}"; fp="${fp#* }"; fi
+                do_find_text "$fa" "$fm" "$fp" "$fcrop" ;;
             sleep) sleep "$rest" ;;
             shot)  do_shot "$rest" ;;
             input) bash "$HERE/input.sh" "$rest" >/dev/null 2>&1 || log_warn "input $rest failed" ;;
