@@ -2,6 +2,47 @@
 
 Read `../REXGLUE_PORT_PRD.md` first; this file assumes it. Newest session at top.
 
+## Blocker investigation: guest main() returns 0 before first present (M2/M4)
+
+**Symptom:** port boots, loads all assets (file trace PASSES vs Xenia reference:
+49/49 paths, order ok), initializes D3D (full Vd sequence incl. ring buffer ×2,
+EDRAM training), completes fxobj round 1 of 3, then guest main returns 0
+("DbgPrint: [XAPI RETURN VALUE] 0" → TerminateTitle) ~0.76 s in. No crash, no
+error. Xenia does 3 fxobj rounds then presents (Hardware scaler) and registers
+audio. Port never presents, never calls XAudioRegisterRenderDriverClient.
+
+**Hypotheses ELIMINATED (each verified, most against Xenia source):**
+- XUsbcam/kernel export gaps (stubbed, Xenia semantics)
+- data-referenced functions missing (843 gap-fill entries + 341 branch
+  targets registered; zero unresolved fatals in generated code)
+- switch tables (ReXGlue analyzed them; per-case targets registered)
+- NtReadFile async/APC semantics (matches Xenia: sync read + APC + PENDING)
+- 0xC0000002 conversions: red herring — game's OWN XAPI stub sub_82816398
+  hardcodes li r3,0xC0000002; called once per fxobj on Xenia too
+- FindFirstFile/NtQueryDirectoryFile enumeration (works; patterns match)
+- movie blanking asymmetry (works; .bik query lines simply invisible in
+  Xenia's ResolvePath-based trace)
+- Vd* shims (VdInitializeEngines/RetrainEDRAM/IsHSIOTrainingSucceeded/
+  SystemCommandBuffer/QueryVideoMode — byte-identical semantics to Xenia)
+- vblank ISR delivery (instrumented: guest ISR 8269CDF8 invoked repeatedly)
+- GPU MMIO register file (matches Xenia's ReadRegister/WriteRegister)
+- audio backend (SDL, same as Xenia; game never got as far as audio init)
+
+**Root-cause lead (STRONG):** v0.8.0 codegen has KNOWN-BROKEN VMX128
+translations fixed after release:
+- `vpkd3d128 float16_4 mask=2/3 zero-clear` (711d4d3) shipped in v0.8.0,
+  REVERTED upstream 2026-06-03 (649a3b9) as wrong — 12 sites in our
+  generated code; vpkd3d128 = D3D pack, exactly the D3D-init path
+- `vaddsws` fixed 2026-06-03 (bd9b519) — 641 sites in our generated code
+- `recover function tail after conditional bcctr` fixed in nightly 8dadea63
+Guest D3D init computes with these → silently wrong values → device init
+validation fails → clean exit. Consistent with "diverges between fxobj
+rounds with nothing kernel-visible in between".
+
+**Action:** bump SDK pin v0.8.0 → nightly-20260628-8dadea63 (0.8.1.68-dev),
+per PRD §2.2 (bug-fix bump, recorded here). Debug instrumentation dropped on
+bump; patches/0001 (CallTarget fallback) re-evaluated against the nightly.
+
 ## Session 1 — 2026-07-11 — M0 (toolchain) → M1 (codegen)
 
 **Session goal:** boot the port far enough that the opening copyright/legal
