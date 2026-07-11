@@ -18,7 +18,7 @@ REPO_ROOT="$(dirname "$XBOX360_DIR")"                 # .../civrev  (git root)
 EXTRACTED_TREE="${CIVREV_EXTRACTED_TREE:-$XBOX360_DIR/xenon_recomp/work/extracted}"
 # NB: the ISO filename contains an apostrophe. A lone ' inside "${VAR:-default}"
 # re-opens quote parsing and breaks the script, so set the default separately.
-GAME_ISO="$CIVREV_ISO"
+GAME_ISO="${CIVREV_ISO:-}"
 if [ -z "$GAME_ISO" ]; then
     GAME_ISO="$XBOX360_DIR/Sid Meier's Civilization Revolution (USA) (En,Fr,De,Es,It).iso"
 fi
