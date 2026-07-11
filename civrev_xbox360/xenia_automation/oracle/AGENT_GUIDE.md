@@ -182,6 +182,7 @@ One command per line, `#` comments. Executed by `run_scenario.sh`:
 |---|---|
 | `wait <regex> <timeout>` | wait for a Xenia **log** line (pattern may contain spaces; last token is the timeout). Sets crash/timeout status on failure. |
 | `wait_text <regex> <timeout>` | wait until **screen OCR** matches (full frame). Use for UI states with no log signature (e.g. `Press START`). Non-fatal on timeout. |
+| `wait_text_shot <name> <regex> <timeout>` | like `wait_text`, but registers the exact frame that matched as checkpoint `<name>`. Use for short-lived screens (the ~4 s boot legal pages) where a separate `shot` after the wait would race the next transition. `MISSING` checkpoint on timeout. |
 | `find_text <ACTION> <max> [crop=..] <regex>` | OCR-verified stepping (above). Warns (rc 1 internally) if not found. |
 | `wait_stable <idle> [max]` | wait until the screen stops changing. **Unusable on screens with live 3D backgrounds** (title, menus) — they never settle; prefer `wait_text`. |
 | `wait_idle <idle> [max]` | wait until the log stops growing. |

@@ -91,8 +91,14 @@ do_wait_stable() {
 # wait_text <pattern> [timeout] : wait until OCR of the screen matches <pattern>
 # (case-insensitive regex). Robustly detects a specific UI state (e.g. the
 # "Press START" title) regardless of boot speed. OCR runs host-side (tesseract).
+#
+# Optional 3rd arg <save_name>: register the exact frame that MATCHED as
+# checkpoint <save_name> (script command `wait_text_shot`). For short-lived
+# screens (the boot legal/copyright pages last ~4 s) a separate `shot` after
+# the wait races the next transition; saving the matched frame cannot.
 do_wait_text() {
     local pattern="$1"; local timeout="${2:-90}"; local waited=0
+    local save_name="${3:-}"
     local shot="$out_dir/.ocr.png"
     # Prefer OCR inside the container (self-contained); fall back to host
     # tesseract for images predating the Dockerfile's tesseract-ocr.
@@ -100,17 +106,34 @@ do_wait_text() {
     oracle_exec sh -c 'command -v tesseract' >/dev/null 2>&1 && in_container=1
     while [ "$waited" -lt "$timeout" ]; do
         oracle_exec import -window root /tmp/ocr.png >/dev/null 2>&1
+        local matched=0
         if [ "$in_container" = 1 ]; then
-            if oracle_exec python3 /oracle/ocr.py /tmp/ocr.png "$pattern" >/dev/null 2>&1; then
-                log_ok "OCR matched '$pattern'"; return 0
-            fi
+            oracle_exec python3 /oracle/ocr.py /tmp/ocr.png "$pattern" >/dev/null 2>&1 && matched=1
         elif docker cp "$ORACLE_CONTAINER:/tmp/ocr.png" "$shot" >/dev/null 2>&1 \
              && python3 "$HERE/ocr.py" "$shot" "$pattern" >/dev/null 2>&1; then
-            log_ok "OCR matched '$pattern'"; rm -f "$shot"; return 0
+            matched=1
         fi
-        sleep 2; waited=$((waited + 2))
+        if [ "$matched" = 1 ]; then
+            log_ok "OCR matched '$pattern'"
+            if [ -n "$save_name" ]; then
+                if docker cp "$ORACLE_CONTAINER:/tmp/ocr.png" "$out_dir/$save_name.png" >/dev/null 2>&1; then
+                    CHECKPOINTS["$save_name"]="$out_dir/$save_name.png"
+                    log_ok "checkpoint $save_name (matched frame)"
+                else
+                    log_warn "checkpoint $save_name FAILED to save matched frame"
+                    CHECKPOINTS["$save_name"]="MISSING"
+                fi
+            fi
+            rm -f "$shot"; return 0
+        fi
+        # 1 s + OCR time ≈ a 1.5–2 s cycle: short-lived screens (~4 s legal
+        # pages) get 2–3 match chances instead of 1–2 at the old 2 s sleep.
+        sleep 1; waited=$((waited + 1))
     done
-    rm -f "$shot"; log_warn "wait_text '$pattern' timed out (${timeout}s)"; return 0
+    rm -f "$shot"
+    log_warn "wait_text '$pattern' timed out (${timeout}s)"
+    [ -n "$save_name" ] && CHECKPOINTS["$save_name"]="MISSING"
+    return 0
 }
 
 # find_text <action> <max> <pattern> : OCR the screen; if <pattern> is not
@@ -195,6 +218,13 @@ run_script() {
                 local tpat="$rest" tto=90
                 if [[ "$rest" == *" "* ]]; then tpat="${rest% *}"; tto="${rest##* }"; fi
                 do_wait_text "$tpat" "$tto" ;;
+            wait_text_shot)
+                # wait_text_shot <name> <pattern...> <timeout> — like wait_text
+                # but saves the frame that matched as checkpoint <name>.
+                local wname wrest; read -r wname wrest <<< "$rest"
+                local wpat="$wrest" wto=90
+                if [[ "$wrest" == *" "* ]]; then wpat="${wrest% *}"; wto="${wrest##* }"; fi
+                do_wait_text "$wpat" "$wto" "$wname" ;;
             find_text)
                 # find_text <action> <max> [crop=L,T,R,B] <pattern...>
                 local fa fm fp; read -r fa fm fp <<< "$rest"

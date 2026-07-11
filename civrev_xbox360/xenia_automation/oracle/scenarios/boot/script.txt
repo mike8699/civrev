@@ -1,21 +1,32 @@
-# boot scenario — take the game from launch to the MAIN MENU.
+# boot scenario — take the game from launch through the opening legal screens
+# to the MAIN MENU.
 #
 # The intro movies are skipped at the container level (empty bind-mount, see
 # container.sh) and a profile is seeded, so boot is fast and DETERMINISTIC:
-# render comes up, a brief static legal screen, then the "Press START" title.
-# Fixed timing is reliable here (wait_stable is unusable — the title background
-# is a live 3D scene that never fully settles).
+# render comes up, the copyright page (~4 s), the ESRB notice (~4 s), the
+# "Loading..." logo splash, then the "Press START" title. Fixed timing is
+# reliable here (wait_stable is unusable — the title background is a live 3D
+# scene that never fully settles).
 #
-# Flow: wait for render -> title -> START -> decline sign-in (B) -> main menu.
+# The legal screens are short-lived, so they are captured with wait_text_shot
+# (saves the exact OCR-matched frame — a separate `shot` after a wait races
+# the next transition). OCR patterns validated against captured frames
+# (output/legal_discover/frames, 2026-07-11); this font OCRs cleanly.
+#
+# Flow: legal screens -> render health gate -> title -> START ->
+#       decline sign-in (B) -> main menu.
 # Input goes through the virtual gamepad (virtpad.py / input.sh).
 
+wait_text_shot 00_copyright  Take.?Two Interactive  75
+wait_text_shot 01_esrb  ESRB Notice|Not Rated by the ESRB  60
 wait  Hardware scaler|Shader .* translated successfully  90
+wait_text_shot 02_loading  CIVILIZATION REVOLUTION Loading|Loading\.\.\.  60
 wait_text  Press START  90   # OCR-detect the title before advancing (robust)
-shot 01_title
+shot 03_title
 input START            # -> "Would you like to sign in?"
 sleep 3
 input B                # A=Yes / B=No -> decline -> main menu
 sleep 4
-shot 02_main_menu
+shot 04_main_menu
 
 expect_no_crash
