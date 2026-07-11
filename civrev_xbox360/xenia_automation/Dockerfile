@@ -27,6 +27,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     openjdk-21-jdk-headless \
     # Virtual gamepad for driving Xenia's hid=sdl input (oracle/virtpad.py)
     python3-evdev \
+    # OCR for detecting on-screen prompts (oracle/ocr.py wait_text): the
+    # tesseract binary (called directly, no pytesseract) + PIL for the
+    # upscale/autocontrast that makes the stylized prompt text readable.
+    tesseract-ocr python3-pil \
     # Misc (zip: packaging the GhidraXenon extension; unzip: Ghidra/AppImage)
     libfuse2t64 file curl wget procps unzip zip git \
     && rm -rf /var/lib/apt/lists/*

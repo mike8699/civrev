@@ -5,7 +5,7 @@
 # on Deity).
 
 wait  Hardware scaler|Shader .* translated successfully  90
-wait_stable 6 150      # logos + intro CG finish; "Press START" title is static
+wait_text  Press START  90   # OCR-detect the title before advancing (robust)
 shot 01_title
 input START            # -> sign-in
 sleep 3

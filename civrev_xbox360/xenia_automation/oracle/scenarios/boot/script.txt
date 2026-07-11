@@ -1,19 +1,20 @@
 # boot scenario — take the game from launch to the MAIN MENU.
 #
-# Verified reliable path (2026-07-11, xenia 7acf88d + virtual pad): do NOT skip
-# the intro — pressing a button mid-CG can freeze Xenia's Bink video decode.
-# Instead let the logos + intro CG play out and detect the static "Press START"
-# title screen (wait_stable), then advance the title (START) and decline the
-# sign-in prompt (B) — we have no Xbox profile.
+# The intro movies are skipped at the container level (empty bind-mount, see
+# container.sh) and a profile is seeded, so boot is fast and DETERMINISTIC:
+# render comes up, a brief static legal screen, then the "Press START" title.
+# Fixed timing is reliable here (wait_stable is unusable — the title background
+# is a live 3D scene that never fully settles).
 #
+# Flow: wait for render -> title -> START -> decline sign-in (B) -> main menu.
 # Input goes through the virtual gamepad (virtpad.py / input.sh).
 
 wait  Hardware scaler|Shader .* translated successfully  90
-wait_stable 6 150      # logos + intro CG finish; "Press START" title is static
+wait_text  Press START  90   # OCR-detect the title before advancing (robust)
 shot 01_title
 input START            # -> "Would you like to sign in?"
 sleep 3
-input B                # A=Yes / B=No -> decline (no profile) -> main menu
+input B                # A=Yes / B=No -> decline -> main menu
 sleep 4
 shot 02_main_menu
 

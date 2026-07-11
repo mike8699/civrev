@@ -88,6 +88,31 @@ do_wait_stable() {
     rm -f "$prev" "$cur"; log_warn "wait_stable timed out"; return 0
 }
 
+# wait_text <pattern> [timeout] : wait until OCR of the screen matches <pattern>
+# (case-insensitive regex). Robustly detects a specific UI state (e.g. the
+# "Press START" title) regardless of boot speed. OCR runs host-side (tesseract).
+do_wait_text() {
+    local pattern="$1"; local timeout="${2:-90}"; local waited=0
+    local shot="$out_dir/.ocr.png"
+    # Prefer OCR inside the container (self-contained); fall back to host
+    # tesseract for images predating the Dockerfile's tesseract-ocr.
+    local in_container=0
+    oracle_exec sh -c 'command -v tesseract' >/dev/null 2>&1 && in_container=1
+    while [ "$waited" -lt "$timeout" ]; do
+        oracle_exec import -window root /tmp/ocr.png >/dev/null 2>&1
+        if [ "$in_container" = 1 ]; then
+            if oracle_exec python3 /oracle/ocr.py /tmp/ocr.png "$pattern" >/dev/null 2>&1; then
+                log_ok "OCR matched '$pattern'"; return 0
+            fi
+        elif docker cp "$ORACLE_CONTAINER:/tmp/ocr.png" "$shot" >/dev/null 2>&1 \
+             && python3 "$HERE/ocr.py" "$shot" "$pattern" >/dev/null 2>&1; then
+            log_ok "OCR matched '$pattern'"; rm -f "$shot"; return 0
+        fi
+        sleep 2; waited=$((waited + 2))
+    done
+    rm -f "$shot"; log_warn "wait_text '$pattern' timed out (${timeout}s)"; return 0
+}
+
 # wait until the log stops growing for <idle> secs, or <maxwait> elapses.
 do_wait_idle() {
     local idle="$1"; local maxwait="${2:-60}"; local waited=0 last=-1 stable=0
@@ -133,6 +158,11 @@ run_script() {
                 local sidle="${rest%% *}" smax="${rest##* }"
                 [ "$sidle" = "$smax" ] && smax=120
                 do_wait_stable "$sidle" "$smax" ;;
+            wait_text)
+                # pattern may contain spaces; the LAST token is the timeout.
+                local tpat="$rest" tto=90
+                if [[ "$rest" == *" "* ]]; then tpat="${rest% *}"; tto="${rest##* }"; fi
+                do_wait_text "$tpat" "$tto" ;;
             sleep) sleep "$rest" ;;
             shot)  do_shot "$rest" ;;
             input) bash "$HERE/input.sh" "$rest" >/dev/null 2>&1 || log_warn "input $rest failed" ;;
