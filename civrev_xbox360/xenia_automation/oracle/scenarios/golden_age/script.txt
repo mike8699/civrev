@@ -50,7 +50,7 @@ sleep 1
 shot 05_difficulty
 
 # --- Deity difficulty (OCR-verified via the description-panel header) ---
-find_text  DPAD_DOWN  7  crop=0.56,0.35,0.80,0.45  Deity
+find_text  DPAD_DOWN  10  crop=0.56,0.34,0.82,0.46  De[il1]t|eity
 sleep 0.6
 shot 05b_deity_selected
 input A
@@ -59,7 +59,7 @@ sleep 2
 shot 06_civ_select
 
 # --- select Russians (OCR-verified: Catherine shows in the civ description) ---
-find_text  DPAD_RIGHT  18  crop=0.40,0.50,0.63,0.63  Catherine|Russian
+find_text  DPAD_RIGHT  22  crop=0.38,0.49,0.64,0.63  Cath|ussia
 sleep 0.6
 shot 07_russians
 
