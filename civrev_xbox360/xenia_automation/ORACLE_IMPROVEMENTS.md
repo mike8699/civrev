@@ -170,3 +170,29 @@ each produce committed reference bundles from the pinned configuration, self-con
 across two runs, and `run_scenario.sh` returns correct machine-readable statuses for
 healthy and deliberately-broken runs. At that point the porting agent (PRD §7) never
 needs a human in its verification loop.
+
+## Status (2026-07-11)
+
+All tooling H1–H10 is **built and verified** and lives under `oracle/` (see
+`oracle/README.md`); H11 is stretch/untouched. What is **fully done vs pending a
+one-time game-side step**:
+
+- ✅ **Done & verified without game changes:** H2 (pin + deterministic build),
+  H7 (traces + diff + selftest), H8 (GPU lock), H10 (comparator + calibration
+  test), H1 (extracted-tree boot), H3 (screenshot), H5 (scenario runner +
+  watchdog + result.json — proven on `boot`, correctly reports `crash`), H6
+  (self-consistency + promotion — `boot` file-trace run1==run2), H9 (fixture
+  snapshot/restore roundtrip). `references/boot/` is committed.
+- ⏳ **Pending a one-time game-side step (documented, not a tooling gap):** the
+  `menu` / `newgame_20turns` / `save_load` reference bundles. Two blockers, both
+  discovered and documented while building the harness:
+  1. **Profile** — CivRev crashes at boot without an Xbox profile ("No Profiles
+     Found"). Provision one once over VNC → persists in the mounted content dir
+     (`SAVES.md`).
+  2. **Input** — SDL ignores synthetic `--window` events on the WM-less Xvfb;
+     XTEST+focus is wired but unconfirmed on a real frame. Verify the map over
+     VNC (`INPUT_MAP.md`), possibly via the Weston display mode.
+
+  So the harness is oracle-ready for **boot** today; the remaining scenarios are
+  one VNC session (profile + input map) away — a game/setup step, not more
+  tooling.
