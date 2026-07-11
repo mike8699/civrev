@@ -108,9 +108,8 @@ run_script() {
             sleep) sleep "$rest" ;;
             shot)  do_shot "$rest" ;;
             input) bash "$HERE/input.sh" "$rest" >/dev/null 2>&1 || log_warn "input $rest failed" ;;
-            key)   bash "$HERE/input.sh" --key "$rest" >/dev/null 2>&1 || log_warn "key $rest failed" ;;
-            type)  bash "$HERE/input.sh" --type "$rest" >/dev/null 2>&1 || true ;;
-            hold)  bash "$HERE/input.sh" --script <(printf 'hold %s\n' "$rest") >/dev/null 2>&1 || true ;;
+            raw)   bash "$HERE/input.sh" --raw "$rest" >/dev/null 2>&1 || log_warn "raw $rest failed" ;;
+            hold)  local ha="${rest%% *}" hs="${rest##* }"; bash "$HERE/input.sh" --hold "$ha" "$hs" >/dev/null 2>&1 || true ;;
             expect_no_crash) if crash_seen; then CRASH_FOUND=1; fi ;;
             *) log_warn "unknown scenario command: $cmd" ;;
         esac
@@ -150,8 +149,11 @@ main() {
     log_info "scenario '$scenario' -> $out_dir  (display=${VULKAN_DISPLAY:-$ORACLE_DISPLAY_MODE})"
 
     start_oracle_container "$out_dir" "$game_dir"
-    # brief settle so the log/pid file exist before the first liveness poll
-    sleep 3
+    # Wait for the supervisor to finish bringing up the pad and actually launch
+    # Xenia (can take ~20s if evdev is apt-installed at start on a non-rebuilt
+    # image), so the script's first liveness/log checks are meaningful.
+    for _ in $(seq 1 60); do xenia_started && break; sleep 1; done
+    sleep 2
 
     # The first scenario 'wait' establishes boot; if it never matches we call it boot_fail.
     STATUS="running"

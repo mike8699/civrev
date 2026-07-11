@@ -110,6 +110,13 @@ container_running() {
     [ "$(docker inspect -f '{{.State.Running}}' "$ORACLE_CONTAINER" 2>/dev/null)" = "true" ]
 }
 
+# xenia_started : true once the supervisor has launched Xenia (pid file exists).
+# The supervisor may spend time bringing up the virtual pad first, so "no pid yet"
+# means "still starting", not "exited".
+xenia_started() {
+    oracle_exec sh -c 'test -f /tmp/xenia.pid' 2>/dev/null
+}
+
 # wait_for_log <regex> <timeout_s> : wait until the run log matches, Xenia dies,
 # or timeout. Echoes one of: matched | xenia_exit | timeout.
 wait_for_log() {
@@ -118,7 +125,8 @@ wait_for_log() {
         if oracle_exec sh -c "grep -qE '$pattern' /output/run.log 2>/dev/null"; then
             echo matched; return 0
         fi
-        if ! xenia_alive; then echo xenia_exit; return 0; fi
+        # Only "exited" if Xenia actually started and then died.
+        if xenia_started && ! xenia_alive; then echo xenia_exit; return 0; fi
         sleep 1; waited=$((waited + 1))
     done
     echo timeout; return 0
