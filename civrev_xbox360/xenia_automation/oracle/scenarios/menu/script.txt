@@ -1,27 +1,23 @@
-# menu scenario — boot, dismiss to the main menu, into single-player setup.
-#
-# GATED: requires (a) a provisioned Xenia profile so the game does not crash at
-# the "No Profiles Found" dialog, and (b) verified input delivery (INPUT_MAP.md).
-# The input actions below use the UNVERIFIED input_map.conf bindings and will
-# need correction once the map is confirmed over VNC. Until then this scenario is
-# expected to stop at the profile crash — which run_scenario.sh will report as
-# status=crash (correctly), not a false pass.
+# menu scenario — reach the main menu, then enter the Single Player submenu.
+# Extends the reliable boot flow (let the intro play out; do NOT skip mid-CG).
+# Used to reach a deterministic game start (Single Player -> Play Scenario ->
+# Deity -> civ), per the PS3 automation blueprint (deterministic, tutorial-free
+# on Deity).
 
-wait  Loading module|Setup: Initializing 60
-shot  01_boot
-wait_idle 6 40
-shot  02_title
-
-# Dismiss the title / advance to the main menu.
-input START
+wait  Hardware scaler|Shader .* translated successfully  90
+wait_stable 6 150      # logos + intro CG finish; "Press START" title is static
+shot 01_title
+input START            # -> sign-in
 sleep 3
-shot  03_after_start
+input B                # decline sign-in -> main menu
+sleep 4
+shot 02_main_menu
 
-# Navigate to Single Player (placeholder motions — correct after map verified).
+# main menu: Play Now highlighted -> move down to Single Player and enter
 input DPAD_DOWN
 sleep 1
 input A
-sleep 3
-shot  04_single_player
+sleep 4
+shot 03_single_player
 
 expect_no_crash

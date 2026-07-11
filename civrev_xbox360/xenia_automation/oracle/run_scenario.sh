@@ -64,6 +64,30 @@ do_shot() {
     fi
 }
 
+# wait_stable <idle_secs> [timeout] : wait until the SCREEN stops changing for
+# idle_secs (and is non-black). Robustly detects the end of the intro logos+CG —
+# the title "Press START" screen is static, the intro is a moving video — without
+# pressing anything (skipping mid-CG can freeze Xenia's Bink decode).
+do_wait_stable() {
+    local idle="$1"; local timeout="${2:-120}"; local waited=0 stable=0
+    local prev="$out_dir/.ws_prev.png" cur="$out_dir/.ws_cur.png"; rm -f "$prev"
+    local step=3
+    while [ "$waited" -lt "$timeout" ]; do
+        oracle_exec import -window root /tmp/ws.png >/dev/null 2>&1
+        docker cp "$ORACLE_CONTAINER:/tmp/ws.png" "$cur" >/dev/null 2>&1 || { sleep "$step"; waited=$((waited+step)); continue; }
+        if [ -f "$prev" ]; then
+            local sim nb
+            sim="$(python3 "$HERE/compare_screens.py" "$prev" "$cur" --threshold 0 2>/dev/null | grep -oE 'combined=[0-9.]+' | cut -d= -f2)"
+            nb="$(python3 -c "from PIL import Image;import numpy as np;a=np.asarray(Image.open('$cur').convert('L'));print(1 if float((a>16).mean())>0.25 else 0)" 2>/dev/null)"
+            if python3 -c "exit(0 if ${sim:-0}>0.985 and ${nb:-0}==1 else 1)" 2>/dev/null; then
+                stable=$((stable+step)); [ "$stable" -ge "$idle" ] && { rm -f "$prev" "$cur"; log_info "screen stable (${idle}s)"; return 0; }
+            else stable=0; fi
+        fi
+        cp "$cur" "$prev"; sleep "$step"; waited=$((waited+step))
+    done
+    rm -f "$prev" "$cur"; log_warn "wait_stable timed out"; return 0
+}
+
 # wait until the log stops growing for <idle> secs, or <maxwait> elapses.
 do_wait_idle() {
     local idle="$1"; local maxwait="${2:-60}"; local waited=0 last=-1 stable=0
@@ -105,6 +129,10 @@ run_script() {
                 local idle="${rest%% *}" maxw="${rest##* }"
                 [ "$idle" = "$maxw" ] && maxw=60
                 do_wait_idle "$idle" "$maxw" ;;
+            wait_stable)
+                local sidle="${rest%% *}" smax="${rest##* }"
+                [ "$sidle" = "$smax" ] && smax=120
+                do_wait_stable "$sidle" "$smax" ;;
             sleep) sleep "$rest" ;;
             shot)  do_shot "$rest" ;;
             input) bash "$HERE/input.sh" "$rest" >/dev/null 2>&1 || log_warn "input $rest failed" ;;
