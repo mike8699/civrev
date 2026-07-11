@@ -27,7 +27,9 @@ pinned SDK checkout, (d) upstream issue with reproducer — in that order.
 ## 2. Hard constraints & ground rules
 
 1. **Legal hygiene:** never commit game assets, the ISO, XEX, or generated code derived
-   from the XEX to any public remote. Work in this private repo. Add `.gitignore`
+   from the XEX to any public remote. **The origin remote (github.com/mike8699/civrev)
+   is PUBLIC** — ReXGlue's `generated/` output derives from the XEX and must never be
+   pushed; re-check `git status` before every push. Add `.gitignore`
    entries before the first commit of the port project.
 2. **Pin your toolchain.** Use ReXGlue **v0.8.0** (tag, 2026-05-16) unless blocked by a
    bug that a specific nightly fixes; record every version bump and why in `PROGRESS.md`.
