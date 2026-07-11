@@ -66,7 +66,59 @@ wait_text  Civilization|Accept  40
 sleep 2
 shot 05_civ_select
 
-# --- accept the default civ (Accept can need a second press), load the game ---
+# --- select Russians (Catherine), then Accept ---
+# Per civrev_ps3/rpcs3_automation/launch.py: the carousel starts on a RANDOM civ,
+# so scroll LEFT to the leftmost civ (Romans) to reset the position — left-scroll
+# stops at the first civ, so 16 lefts (>= civ count) always lands on Romans — then
+# scroll RIGHT a fixed 5 to Russians. Xbox civ order matches PS3: Romans(0)
+# Egyptians(1) Greeks(2) Spanish(3) Germans(4) Russians(5).
+input DPAD_LEFT
+sleep 0.35
+input DPAD_LEFT
+sleep 0.35
+input DPAD_LEFT
+sleep 0.35
+input DPAD_LEFT
+sleep 0.35
+input DPAD_LEFT
+sleep 0.35
+input DPAD_LEFT
+sleep 0.35
+input DPAD_LEFT
+sleep 0.35
+input DPAD_LEFT
+sleep 0.35
+input DPAD_LEFT
+sleep 0.35
+input DPAD_LEFT
+sleep 0.35
+input DPAD_LEFT
+sleep 0.35
+input DPAD_LEFT
+sleep 0.35
+input DPAD_LEFT
+sleep 0.35
+input DPAD_LEFT
+sleep 0.35
+input DPAD_LEFT
+sleep 0.35
+input DPAD_LEFT
+sleep 0.5
+shot 05b_at_romans
+# right 5 to Russians
+input DPAD_RIGHT
+sleep 0.4
+input DPAD_RIGHT
+sleep 0.4
+input DPAD_RIGHT
+sleep 0.4
+input DPAD_RIGHT
+sleep 0.4
+input DPAD_RIGHT
+sleep 0.6
+shot 05c_russians
+
+# --- accept Russians (Accept can need a second press), load the game ---
 input A
 sleep 2
 input A
