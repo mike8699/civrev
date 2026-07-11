@@ -90,19 +90,21 @@ def main():
     if not os.path.exists(fifo):
         os.mkfifo(fifo)
 
+    # The game polls controller state at a modest rate, so a too-short press is
+    # missed. Default holds are generous enough to register reliably.
     def tap(btn, secs):
         ui.write(e.EV_KEY, btn, 1); ui.syn()
         time.sleep(secs)
         ui.write(e.EV_KEY, btn, 0); ui.syn()
 
-    def dpad(direction):
+    def dpad(direction, secs=0.2):
         x = {'left': -1, 'right': 1}.get(direction, 0)
         y = {'up': -1, 'down': 1}.get(direction, 0)
         ui.write(e.EV_ABS, e.ABS_HAT0X, x)
         ui.write(e.EV_ABS, e.ABS_HAT0Y, y)
         ui.syn()
         if direction != 'center':
-            time.sleep(0.1)
+            time.sleep(secs)
             ui.write(e.EV_ABS, e.ABS_HAT0X, 0)
             ui.write(e.EV_ABS, e.ABS_HAT0Y, 0)
             ui.syn()
@@ -117,7 +119,7 @@ def main():
                 cmd = parts[0].lower()
                 try:
                     if cmd == 'press':
-                        tap(BTN[parts[1].upper()], float(parts[2]) if len(parts) > 2 else 0.08)
+                        tap(BTN[parts[1].upper()], float(parts[2]) if len(parts) > 2 else 0.2)
                     elif cmd == 'down':
                         ui.write(e.EV_KEY, BTN[parts[1].upper()], 1); ui.syn()
                     elif cmd == 'up':

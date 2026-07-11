@@ -1,27 +1,27 @@
 #!/usr/bin/env bash
-# H4 — inject input into the running oracle container via xdotool.
+# H4 — drive Xenia's game input via the virtual gamepad (virtpad.py).
 #
-# Delivers logical gamepad actions (mapped in input_map.conf) or raw keys/text
-# to Xenia's virtual display. Without a window manager on Xvfb, keys are targeted
-# at the Xenia window by id when it can be found (XSendEvent), falling back to a
-# global send.
+# Xenia's SDL HID reads game controllers, not the keyboard, so input is delivered
+# through a virtual Xbox 360 pad (created by the container supervisor before Xenia
+# starts). This script maps logical actions (input_map.conf) to virtpad commands
+# and writes them to the pad's FIFO inside the running oracle container.
 #
 # Usage:
-#   input.sh <ACTION>                 # e.g. input.sh START   (from input_map.conf)
-#   input.sh --key <keysym>           # raw xdotool keysym, bypassing the map
-#   input.sh --type "<text>"          # type a literal string
-#   input.sh --script <file>          # run a timed action script (see below)
-#   input.sh --list                   # print the current action map
+#   input.sh <ACTION>          # e.g. input.sh START   (from input_map.conf)
+#   input.sh --raw "<cmd>"     # a raw virtpad command, e.g. "dpad down" / "press A 0.3"
+#   input.sh --hold <ACTION> <secs>
+#   input.sh --script <file>   # timed action script (see below)
+#   input.sh --list            # print the action map
 #
-# Script file lines (one per line, '#' comments, blank lines ignored):
+# Script lines ('#' comments, blanks ignored):
 #   ACTION            a mapped action        e.g.  DPAD_DOWN
-#   key KEYSYM        a raw keysym           e.g.  key Return
-#   type TEXT         type literal text      e.g.  type hello
-#   sleep N           wait N seconds (float) e.g.  sleep 1.5
-#   hold ACTION N     hold key for N seconds
+#   raw <cmd>         raw virtpad command    e.g.  raw press A 0.3
+#   sleep <secs>      wait (host-side)       e.g.  sleep 1.5
+#   hold <ACTION> N   hold a button N secs
 #
-# NOTE: whether an ACTION actually navigates the CivRev UI depends on the
-# (currently unverified) mapping in input_map.conf — see INPUT_MAP.md.
+# virtpad commands: press <BTN> [secs] | down <BTN> | up <BTN> | dpad <dir> |
+#   stick <l|r> <x> <y> | trig <l|r> <0..255> | sleep <secs>
+# BTN: A B X Y LB RB START BACK GUIDE LS RS
 set -uo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$HERE/shlib/common.sh"
@@ -35,56 +35,23 @@ load_map() {
     while IFS='=' read -r k v; do
         k="${k%%#*}"; k="${k// /}"
         [ -z "$k" ] && continue
-        v="${v%%#*}"; v="${v// /}"
+        v="${v%%#*}"; v="${v#"${v%%[![:space:]]*}"}"; v="${v%"${v##*[![:space:]]}"}"
         ACTION_MAP["$k"]="$v"
     done < "$MAP_FILE"
 }
 
+# Send one virtpad command line to the pad FIFO in the container.
+pad_send() {
+    local cmd="$1"
+    oracle_exec sh -c "printf '%s\n' \"$cmd\" > /tmp/virtpad.cmd" \
+        || die "failed to send to virtpad (is the pad daemon running? check /output/virtpad.log)"
+}
+
 resolve() {
     local action="$1"
-    local key="${ACTION_MAP[$action]:-}"
-    [ -n "$key" ] || die "unknown action '$action' (see input.sh --list)"
-    echo "$key"
-}
-
-# Find the Xenia window id once; empty if not found (then send globally).
-_XENIA_WID=""
-find_window() {
-    # The emulator's SDL window always carries "Xenia" in its title; --onlyvisible
-    # excludes the non-visible Qt selection-owner window. (This xdotool build has
-    # no -i flag; the title is capital-X "Xenia" so a plain match suffices.)
-    _XENIA_WID="$(oracle_exec sh -c 'xdotool search --onlyvisible --name Xenia 2>/dev/null | head -1' 2>/dev/null | tr -d "\r\n" || true)"
-}
-
-# Delivery strategy: SDL apps (Xenia) generally ignore XSendEvent synthetic
-# events (what `xdotool ... --window` uses), but honor XTEST-injected events
-# (what xdotool uses WITHOUT --window) since those look like real hardware input.
-# So we focus the Xenia window (XSetInputFocus works even without a WM) and then
-# inject globally via XTEST. CIVREV_INPUT_XSENDEVENT=1 forces the --window path
-# if a future setup needs it.
-_focus() { [ -n "$_XENIA_WID" ] && oracle_exec xdotool windowfocus "$_XENIA_WID" 2>/dev/null || true; }
-
-send_key() {
-    local keysym="$1"
-    if [ "${CIVREV_INPUT_XSENDEVENT:-0}" = 1 ] && [ -n "$_XENIA_WID" ]; then
-        oracle_exec xdotool key --window "$_XENIA_WID" --clearmodifiers "$keysym"
-    else
-        _focus; oracle_exec xdotool key --clearmodifiers "$keysym"
-    fi
-}
-
-send_type() {
-    local text="$1"
-    _focus
-    oracle_exec xdotool type --clearmodifiers -- "$text"
-}
-
-hold_key() {
-    local keysym="$1"; local secs="$2"
-    _focus
-    oracle_exec xdotool keydown "$keysym"
-    sleep "$secs"
-    oracle_exec xdotool keyup "$keysym"
+    local cmd="${ACTION_MAP[$action]:-}"
+    [ -n "$cmd" ] || die "unknown action '$action' (see input.sh --list)"
+    echo "$cmd"
 }
 
 run_script() {
@@ -92,15 +59,14 @@ run_script() {
     local n=0
     while IFS= read -r raw || [ -n "$raw" ]; do
         n=$((n + 1))
-        local line="${raw%%#*}"; line="${line#"${line%%[![:space:]]*}"}"
+        local line="${raw%%#*}"; line="${line#"${line%%[![:space:]]*}"}"; line="${line%"${line##*[![:space:]]}"}"
         [ -z "$line" ] && continue
-        local cmd; cmd="$(echo "$line" | awk '{print $1}')"
+        local cmd="${line%% *}"; local rest=""; [ "$line" != "$cmd" ] && rest="${line#"$cmd" }"
         case "$cmd" in
-            sleep) sleep "$(echo "$line" | awk '{print $2}')" ;;
-            key)   send_key "$(echo "$line" | awk '{print $2}')" ;;
-            type)  send_type "${line#type }" ;;
-            hold)  hold_key "$(resolve "$(echo "$line" | awk '{print $2}')")" "$(echo "$line" | awk '{print $3}')" ;;
-            *)     send_key "$(resolve "$cmd")" ;;
+            sleep) sleep "$rest" ;;
+            raw)   pad_send "$rest" ;;
+            hold)  local a="${rest%% *}" s="${rest##* }"; pad_send "down $(resolve "$a" | sed 's/^press //')"; sleep "$s"; pad_send "up $(resolve "$a" | sed 's/^press //')" ;;
+            *)     pad_send "$(resolve "$cmd")" ;;
         esac
         log_info "input[$n]: $line"
     done < "$file"
@@ -108,22 +74,17 @@ run_script() {
 
 main() {
     load_map
-    [ "$#" -ge 1 ] || die "usage: input.sh <ACTION> | --key K | --type T | --script F | --list"
-
+    [ "$#" -ge 1 ] || die "usage: input.sh <ACTION> | --raw <cmd> | --hold <ACTION> N | --script F | --list"
     if [ "$1" = "--list" ]; then
-        for k in "${!ACTION_MAP[@]}"; do printf '%-14s %s\n' "$k" "${ACTION_MAP[$k]}"; done | sort
+        for k in "${!ACTION_MAP[@]}"; do printf '%-12s %s\n' "$k" "${ACTION_MAP[$k]}"; done | sort
         return 0
     fi
-
-    container_running || die "oracle container '$ORACLE_CONTAINER' not running (start it first)"
-    find_window
-    [ -n "$_XENIA_WID" ] && log_info "targeting xenia window id $_XENIA_WID" || log_warn "xenia window not found; sending keys globally"
-
+    container_running || die "oracle container '$ORACLE_CONTAINER' not running"
     case "$1" in
-        --key)    send_key "$2" ;;
-        --type)   send_type "$2" ;;
+        --raw)    pad_send "$2" ;;
+        --hold)   local btn; btn="$(resolve "$2" | sed 's/^press //')"; pad_send "down $btn"; sleep "$3"; pad_send "up $btn" ;;
         --script) run_script "$2" ;;
-        *)        send_key "$(resolve "$1")"; log_info "sent action $1 -> $(resolve "$1")" ;;
+        *)        pad_send "$(resolve "$1")"; log_info "sent $1 -> $(resolve "$1")" ;;
     esac
 }
 
