@@ -61,11 +61,13 @@ export VK_DRIVER_FILES=/usr/share/vulkan/icd.d/lvp_icd.json
 export VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json
 export LIBGL_ALWAYS_SOFTWARE=1
 export SDL_AUDIODRIVER=dummy
+export LD_LIBRARY_PATH=/sdk/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
 Xvfb :99 -screen 0 1280x720x24 &
 sleep 2
 echo "starting port binary"
 cd /output
-/port/'"$BIN_NAME"' --log_level=trace --log_file=/output/run.log --game_data_root=/game_data &
+/port/'"$BIN_NAME"' --log_level=trace --log_file=/output/run.log --game_data_root=/game_data \
+    > /output/game.stdout 2>&1 &
 GAME_PID=$!
 echo "$GAME_PID" > /output/game.pid
 i=0
@@ -80,7 +82,9 @@ if kill -0 "$GAME_PID" 2>/dev/null; then
     sleep 2; kill -9 "$GAME_PID" 2>/dev/null || true
     echo timeout > /output/exit_reason.txt
 else
-    wait "$GAME_PID"; rc=$? || true
+    # wait returns the exit code; a non-zero code must not kill the
+    # supervisor (set -e), it is exactly what we want to record.
+    if wait "$GAME_PID"; then rc=0; else rc=$?; fi
     echo "game exited rc=$rc" | tee /output/exit_reason.txt
 fi
 import -window root /output/final.png 2>/dev/null || true
@@ -94,6 +98,7 @@ run_container() {
         -e CIVREV_KEEP_MOVIES="${CIVREV_KEEP_MOVIES:-0}" \
         -v "$GAME_DIR:/game_data:ro" \
         -v "$BIN_DIR:/port:ro" \
+        -v "$HERE/sdk_install/linux-amd64:/sdk:ro" \
         -v "$OUT_DIR:/output:rw" \
         "$IMAGE" bash -c "$SUPERVISOR"
     local rc=$?

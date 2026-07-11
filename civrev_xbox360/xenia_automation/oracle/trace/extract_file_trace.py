@@ -30,12 +30,14 @@ XENIA_RESOLVE = re.compile(r'(?:[A-Za-z]+Device)?::?ResolvePath\((\\[^)]*)\)')
 # Xenia file opens that carry a path, if present at higher log levels:
 XENIA_OPEN = re.compile(r'(?:NtCreateFile|NtOpenFile|CreateFile)[^\\]*(\\[^\s")]+)')
 
-# ReXGlue: VFS lines are not yet observed from a real run. Match the documented
-# shapes defensively: "VirtualFileSystem::ResolvePath(game:\...)",
-# "ResolvePath(d:\...)", "OpenFile(game:\...)", or any bare game:/d: token.
+# ReXGlue: observed real shape (v0.8.0):
+#   "VFS resolved 'game:\default.xex' via symlink '\Device\...' on device ..."
+# plus the defensive shapes: "ResolvePath(game:\...)", "OpenFile(game:\...)",
+# or any bare game:/d: token. Paths are single-quoted in real logs, so quotes
+# must terminate tokens or the trailing ' rides along.
 REXGLUE_RESOLVE = re.compile(
-    r'(?:ResolvePath|OpenFile|OpenFileEx|NtCreateFile)\(\s*([a-zA-Z]:\\[^)\s]*|\\[^)\s]*)')
-REXGLUE_TOKEN = re.compile(r'\b((?:game|d|update|cache):\\[^\s")]+)')
+    r"(?:ResolvePath|OpenFile|OpenFileEx|NtCreateFile)\(\s*([a-zA-Z]:\\[^)\s']*|\\[^)\s']*)")
+REXGLUE_TOKEN = re.compile(r"\b((?:game|d|update|cache):\\[^\s\"')]+)")
 
 # Device / symlink prefixes to strip so the two implementations line up.
 PREFIX_RE = re.compile(
