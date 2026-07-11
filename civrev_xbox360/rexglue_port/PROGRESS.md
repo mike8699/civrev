@@ -71,9 +71,39 @@ screens render correctly (PRD M0→M4-partial).
   mount, frame grabs, GPU lock). Note: SDK hardcodes Vulkan backend on Linux —
   no --gpu_backend flag exists in v0.8.0.
 
+### Boot reference — CAPTURED ✓
+- `references/boot` re-promoted: 2×completed, file trace identical, legal-page
+  shots pixel-identical across runs (combined=1.0000 for
+  00_copyright/01_esrb/02_loading; title/menu differ = live 3D, use masks).
+- boot scenario now: 00_copyright → 01_esrb → 02_loading → 03_title →
+  04_main_menu. The v2 "stuck at Loading" was a flake/contention artifact; v3
+  and both reference runs completed in ~147 s.
+
+### M2 — runtime bring-up log
+- Launch attempt 1: no run.log — `librexruntime.so` not found (SDK lib dir
+  now mounted at /sdk + LD_LIBRARY_PATH; also fixed supervisor set -e/wait
+  bug that swallowed exit_reason).
+- Launch attempt 2: port initializes fully (logging, VFS mounts game:/d:,
+  Vulkan/llvmpipe device, function table: 40,558 registered, XEX loads,
+  imports patched, kernel threads spawn) then FATAL: "Call to invalid or
+  unregistered function at guest address 0x82E80DA8" (SIGABRT) during
+  KernelState module launch.
+- Root cause class: ReXGlue reachability analysis misses functions referenced
+  only through DATA (vtables/function-pointer tables). XenonRecomp's gap-fill
+  found them. Mined the full set from the corpus:
+  63,266 XR funcs − 20,467 zero-padding stubs − 1,545 present as internal
+  labels in ReXGlue merges − present-as-functions ⇒ 872 truly absent.
+  `tools/gen_missing_functions.py` emits `civrev/functions_xr_gapfill.toml`
+  (address+size only — no game code committed), wired via manifest
+  `includes`. 29 entries whose XR ranges overlap ReXGlue-merged functions
+  produced "b <target> not in any function" (tail into another function's
+  internal label) — dropped, validation-guided; kept 843. Codegen run 4
+  clean, 81 s.
+- Trace tooling proven on real port log; extractor regex fixed to terminate
+  at quotes (`'game:\default.xex'` shape).
+
 ### Next
-- Rebuild port (stubs) → M2 launch check.
-- Green boot run → `capture_reference.sh boot` for the real reference bundle.
-- M3: file-trace diff (extract_file_trace.py already handles ReXGlue shapes).
+- Rebuild after codegen 4 (in flight, ~20 min) → rerun M2 smoke.
+- M3: file-trace diff vs references/boot/file_trace.txt.
 - M4-goal: port renders copyright/ESRB screens; compare vs reference
-  checkpoints 00_copyright/01_esrb.
+  checkpoints 00_copyright/01_esrb (these are pixel-deterministic in Xenia).

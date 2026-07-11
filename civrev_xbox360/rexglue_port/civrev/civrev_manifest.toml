@@ -2,7 +2,7 @@
 
 [project]
 name = "civrev"
-sdk_version = "0.8.0"
+sdk_version = "0.8.0.0"
 game_root = "../../xenon_recomp/work/extracted"
 
 [entrypoint]
@@ -12,7 +12,7 @@ out_directory_path = "generated/default"
 # pointer tables) invisible to reachability analysis; mined from the
 # XenonRecomp corpus by tools/gen_missing_functions.py. First runtime hit
 # without it: FATAL unregistered call at 0x82E80DA8 during module launch.
-includes = ["functions_xr_gapfill.toml"]
+includes = ["functions_xr_gapfill.toml", "functions_branch_targets.toml"]
 
 # Manual function boundaries. ReXGlue's analysis left 3 tail-call targets out of
 # any function (each caller is a 4-byte `b <target>` thunk). Boundaries taken
