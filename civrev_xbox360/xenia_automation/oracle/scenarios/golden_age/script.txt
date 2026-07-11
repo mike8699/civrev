@@ -1,0 +1,79 @@
+# golden_age scenario — boot into gameplay on the "Golden Age" scenario at Deity
+# difficulty (deterministic + tutorial-free). Chosen over Beta Centauri because
+# it does not open with the Modern-Era notification popup.
+#
+# Same navigation as beta_centauri (adapted from civrev_ps3 launch.py: X->A,
+# Down/Left/Right -> D-pad), OCR-gated. Scenario list order (top->down): Attack
+# of the Huns(0), Chariots of the Gods(1), Ace of Imperial(2), Apocalypse!(3),
+# Beta Centauri(4), Blitzkrieg!(5), Golden Age(6).
+
+# --- boot to main menu ---
+wait  Hardware scaler|Shader .* translated successfully  90
+wait_text  Press START  90
+input START
+sleep 3
+input B                       # decline sign-in -> main menu
+sleep 3
+shot 01_main_menu
+
+# --- main menu -> Single Player (1 Down, A) ---
+input DPAD_DOWN
+sleep 1
+input A
+sleep 3
+
+# --- Single Player -> Play Scenario (3 Down, A) ---
+input DPAD_DOWN
+sleep 0.6
+input DPAD_DOWN
+sleep 0.6
+input DPAD_DOWN
+sleep 0.6
+input A
+wait_text  Choose Scenario  30
+shot 02_scenario_list
+
+# --- move cursor onto Golden Age (index 6 from the top), select ---
+input DPAD_DOWN
+sleep 0.4
+input DPAD_DOWN
+sleep 0.4
+input DPAD_DOWN
+sleep 0.4
+input DPAD_DOWN
+sleep 0.4
+input DPAD_DOWN
+sleep 0.4
+input DPAD_DOWN
+sleep 0.8
+shot 03_golden_selected
+input A
+wait_text  DIFFICULTY|Chieftain  25
+shot 04_difficulty
+
+# --- Deity difficulty (4 Down from Chieftain, A) ---
+input DPAD_DOWN
+sleep 0.4
+input DPAD_DOWN
+sleep 0.4
+input DPAD_DOWN
+sleep 0.4
+input DPAD_DOWN
+sleep 0.6
+input A
+wait_text  Civilization|Accept  40
+sleep 2
+shot 05_civ_select
+
+# --- accept the default civ (Accept can need a second press), load the game ---
+input A
+sleep 2
+input A
+wait_text  Loading|Galley|Ranger|Golden  40
+shot 06_loading
+sleep 18
+input B                       # dismiss any start-of-game popup
+sleep 3
+shot 07_gameplay
+
+expect_no_crash
