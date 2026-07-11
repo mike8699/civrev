@@ -184,6 +184,9 @@ one-command launcher (mirroring the PS3 project's convention); Windows build via
 
 ## 7. Verification protocol (per milestone)
 
+Operational manual for the oracle harness (commands, result.json semantics,
+OCR-verified navigation, debugging): `xenia_automation/oracle/AGENT_GUIDE.md`.
+
 1. Ensure the reference bundle for the scenario exists (else generate per
    `ORACLE_IMPROVEMENTS.md` §H5–H6, taking the GPU lock).
 2. Run the port under the same scenario script (same input timeline, same assets).

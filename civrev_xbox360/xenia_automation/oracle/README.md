@@ -7,6 +7,10 @@ porting agent diffs its build against — with no human in the loop. Built to th
 plan in [`../ORACLE_IMPROVEMENTS.md`](../ORACLE_IMPROVEMENTS.md); consumed by the
 port per [`../../REXGLUE_PORT_PRD.md`](../../REXGLUE_PORT_PRD.md) §7.
 
+**Agent operating manual: [`AGENT_GUIDE.md`](AGENT_GUIDE.md)** — how to run
+scenarios, interpret `result.json`, write OCR-verified navigation, and diff the
+port against references. Read that first; this file is the component index.
+
 ## Layout
 
 ```
@@ -16,13 +20,16 @@ oracle/
   shlib/container.sh     detached Xenia container lifecycle
   run_extracted.sh       H1  interactive launch from the extracted tree (VNC :5900)
   screenshot.sh          H3  capture a frame (import + docker cp)
-  input.sh               H4  inject input (xdotool XTEST); input_map.conf, INPUT_MAP.md
+  input.sh               H4  inject input via the virtual Xbox 360 gamepad
+  virtpad.py             H4  uinput gamepad daemon (SDL-visible); input_map.conf, INPUT_MAP.md
+  ocr.py                 OCR (tesseract) + --crop for selected-item verification
   run_scenario.sh        H5  scripted run + watchdog -> result.json
   capture_reference.sh   H6  run x2, self-consistency gate, promote references/<s>/
   compare_screens.py     H10 block-SSIM + RMSE + masks; test_compare_screens.py
   fixtures.sh            H9  profile/save snapshots; SAVES.md
   trace/                 H7  extract_file_trace / kernel_trace / crash, diff_trace, selftest.sh
-  scenarios/             boot (usable), menu / newgame_20turns / save_load (gated)
+  scenarios/             boot + golden_age (verified e2e), beta_centauri,
+                         menu / newgame_20turns / save_load (pre-OCR style)
 ../references/<scenario>/  committed baselines (screenshots, traces, result.json)
 ../fixtures/               persistent Xenia content dir + committed save/profile snapshots
 ```
@@ -30,7 +37,8 @@ oracle/
 ## Prerequisites
 
 - The pinned Docker image: `docker build -t civrev-xbox360 xenia_automation/`
-  (pins xenia-edge `d158580` + sha256; also carries the Ghidra RE rig).
+  (pins xenia-edge `7acf88d` + sha256 — newer `d158580` crashes CivRev on audio
+  init; also carries the Ghidra RE rig, tesseract, PIL, evdev).
 - The extracted game tree at `xenon_recomp/work/extracted/` (default.xex +
   Resource/ + shaders/) — the same bytes the port uses as `game_data_root`.
 - Host: python3 + Pillow + numpy (for the comparator), flock, docker.
@@ -59,27 +67,29 @@ oracle/screenshot.sh myshot        # while a container is up
 oracle/input.sh START
 ```
 
-## Verified vs pending
+## Verified
 
-**Verified** (no game changes needed): GPU lock serialization/timeout (H8);
-trace extraction + diff against the historical log, with a self-test (H7);
-comparator decision boundaries + masks (H10); screenshot capture of live frames
-(H3); input injection mechanism, XTEST path (H4); extracted-tree boot (H1);
-end-to-end scenario run with crash/hang/timeout watchdog + result.json (H5);
-reference self-consistency + promotion (H6); fixture snapshot/restore roundtrip
-(H9). Run `oracle/selftest.sh` for the no-Docker checks.
+All harness components are verified on real game runs (2026-07-11):
 
-**Pending real-frame / game work** (documented, not blocking the tooling):
-- **Xenia needs a user profile** or CivRev crashes at boot (`No Profiles Found`
-  → guest crash). Only the `boot` scenario is clean today; `menu`/`newgame`/
-  `save_load` are gated. Provision a profile once over VNC — see
-  [`SAVES.md`](SAVES.md).
-- **Input delivery to Xenia's GUI is unconfirmed** on the WM-less Xvfb display
-  (SDL ignores synthetic `--window` events; XTEST+focus is wired but unverified
-  on a real frame). Confirm over VNC and correct `input_map.conf` — see
-  [`INPUT_MAP.md`](INPUT_MAP.md). May require the Weston display mode.
-- **Comparator threshold** (default 0.90) needs calibration against two real
-  clean boots once the profile lets the game reach a stable menu.
+- **Full e2e navigation**: `golden_age` boots to the main menu and reaches
+  in-game (Golden Age scenario / Deity / Russians, Settlers at 4000 BC) with
+  every selection OCR-verified. `boot` reaches the main menu.
+- **Boot is fast and deterministic**: intro movies are skipped by bind-mounting
+  an empty file over the `.bik`s inside the container (never by button — that
+  freezes Bink decode), and a fresh profile is seeded from
+  `fixtures/saves/base_profile/` each run (the game crashes at boot without
+  one; ephemeral seed = fully deterministic runs). Host game data is never
+  touched.
+- **Input works** via the virtual Xbox 360 gamepad (`virtpad.py`, uinput —
+  Xenia's `hid="sdl"` never sees keyboard/xdotool events). D-pad presses drop
+  intermittently, so selections must be OCR-verified (`find_text`), not fixed
+  press counts — see [`AGENT_GUIDE.md`](AGENT_GUIDE.md).
+- Plus the no-game-needed pieces: GPU lock (H8), trace extract/diff + self-test
+  (H7), comparator + masks (H10), screenshots (H3), scenario watchdog +
+  result.json (H5), reference promotion (H6), fixture snapshots (H9).
+
+Remaining calibration: the comparator threshold (default 0.90) should be tuned
+against two clean reference runs when the first port milestone needs it.
 
 ## Self-test
 
