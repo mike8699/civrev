@@ -97,7 +97,7 @@ def main():
         time.sleep(secs)
         ui.write(e.EV_KEY, btn, 0); ui.syn()
 
-    def dpad(direction, secs=0.35):
+    def dpad(direction, secs=0.15):
         x = {'left': -1, 'right': 1}.get(direction, 0)
         y = {'up': -1, 'down': 1}.get(direction, 0)
         ui.write(e.EV_ABS, e.ABS_HAT0X, x)
