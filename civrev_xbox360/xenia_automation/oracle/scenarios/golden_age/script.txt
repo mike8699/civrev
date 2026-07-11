@@ -31,11 +31,12 @@ input DPAD_DOWN
 sleep 0.6
 input A
 wait_text  Choose Scenario  30
+sleep 3                       # let the list finish animating in before scrolling
 shot 02_scenario_list
 
 # --- move cursor onto Golden Age (index 6 from the top), select ---
 input DPAD_DOWN
-sleep 0.4
+sleep 0.6
 input DPAD_DOWN
 sleep 0.4
 input DPAD_DOWN
