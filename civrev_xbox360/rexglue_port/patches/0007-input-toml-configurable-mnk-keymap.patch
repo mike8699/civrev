@@ -224,6 +224,35 @@ index 698967d..96c4683 100644
  
  target_link_libraries(rexinput PUBLIC rexcore rexui SDL3::SDL3)
 +target_link_libraries(rexinput PRIVATE tomlplusplus)
+diff --git a/src/input/input_system.cpp b/src/input/input_system.cpp
+index e132acb..ffd16d3 100644
+--- a/src/input/input_system.cpp
++++ b/src/input/input_system.cpp
+@@ -146,15 +146,20 @@ X_RESULT InputSystem::GetKeystroke(uint32_t user_index, uint32_t flags,
+                                    X_INPUT_KEYSTROKE* out_keystroke) {
+   SCOPE_profile_cpu_f("hid");
+ 
++  // Poll every driver and return the first that actually has a keystroke. A
++  // driver that is connected but has nothing queued returns X_ERROR_EMPTY -
++  // that must NOT short-circuit later drivers, or a connected-but-idle gamepad
++  // (SDL driver, added before MnK) would hide keyboard/mouse keystrokes
++  // entirely. This mirrors GetState, which merges across all drivers.
+   bool any_connected = false;
+   for (auto& driver : drivers_) {
+     X_RESULT result = driver->GetKeystroke(user_index, flags, out_keystroke);
+-    if (result != X_ERROR_DEVICE_NOT_CONNECTED) {
+-      any_connected = true;
+-    }
+-    if (result == X_ERROR_SUCCESS || result == X_ERROR_EMPTY) {
++    if (result == X_ERROR_SUCCESS) {
+       return result;
+     }
++    if (result != X_ERROR_DEVICE_NOT_CONNECTED) {
++      any_connected = true;  // connected but empty - keep checking others
++    }
+   }
+   return any_connected ? X_ERROR_EMPTY : X_ERROR_DEVICE_NOT_CONNECTED;
+ }
 diff --git a/src/input/mnk/mnk_input_driver.cpp b/src/input/mnk/mnk_input_driver.cpp
 index d7b8a11..f89c0bb 100644
 --- a/src/input/mnk/mnk_input_driver.cpp

@@ -605,3 +605,28 @@ menu uses the LEFT STICK for navigation; the dpad is inert here by design.
 Harness caveat: llvmpipe renders ~1 fps, so short xdotool taps sometimes miss a
 poll window (intermittent 0-diff frames); hold keys or use discrete taps. On a
 real GPU host (60 fps) input is smooth.
+
+---
+
+## Input fix #2 (2026-07-12): keystroke dispatch short-circuit hid MnK behind a gamepad
+
+Reported: on the host, no keyboard key skips the intro (worked in the headless
+harness). Root cause: `InputSystem::GetKeystroke` returned on the FIRST driver
+that yielded SUCCESS **or EMPTY**. Drivers are ordered SDL(gamepad) → MnK → NOP.
+With a controller connected, the SDL driver is "connected but idle" and returns
+X_ERROR_EMPTY, which short-circuited the loop -> the MnK (keyboard/mouse) driver
+was never polled for keystrokes, so no key could skip the Bink intros. The
+headless harness has NO gamepad (SDL returns DEVICE_NOT_CONNECTED, loop falls
+through to MnK), which is why it passed there but failed on a host with a pad.
+
+Fix: GetKeystroke now polls every driver and returns the first actual SUCCESS;
+an EMPTY no longer short-circuits later drivers (mirrors GetState's merge).
+
+Controlled A/B repro with a virtual Xbox pad (uinput/virtpad, SDL enumerates it
+as controller 0 - matches "controller plugged in"):
+- buggy runtime + pad present + keyboard Return -> NO skip (stuck on movie ~60s)
+- fixed runtime + pad present + keyboard Return -> title in 11s (SKIP WORKS)
+- fixed runtime, no pad -> unchanged (still skips; the fix is a no-op on the
+  DEVICE_NOT_CONNECTED path).
+Both input fixes are in patches/0007. Host binaries need the refreshed
+librexruntime.so (build.sh restages it; the exe loads it from $ORIGIN).
