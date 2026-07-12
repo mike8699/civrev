@@ -103,10 +103,18 @@ All via cheap plugin-log probes (rebuild rexgpu-xenos only, ~1 min/cycle):
   in the gitignored SDK tree — re-add after any SDK re-checkout). Injection
   verified ("RenderDoc API initialized", trigger fired once) but no .rdc
   written before timeout — llvmpipe under the capture layer is extremely slow.
-  NEXT SESSION: run the capture on the HOST GPU (X11 session :1, LD_LIBRARY_PATH
-  to sdk install + rdoc lib, gpu lock) where boot takes seconds, then analyze
-  the .rdc with tools_bin/renderdoc_1.33's python module: inspect the dim
-  draw's pipeline, VS inputs, and RT blend state.
+  Host-GPU capture attempts: injection works (hooks registered, API init,
+  in-app TriggerCapture fires — logged), but no .rdc is written; first attempt
+  with -c template hit "Stream created with invalid file handle", second with
+  default paths produced nothing. Suspect capture/window association with the
+  runtime-dlopen'd librexgpu-xenos Vulkan usage. NEXT SESSION: (a) try
+  StartFrameCapture/EndFrameCapture with explicit device/window handles via
+  the in-app API instead of TriggerCapture, or (b) set RENDERDOC_CAPTUREOPTS /
+  use qrenderdoc UI on the host interactively, or (c) fall back to the SDK's
+  own trace_gpu_stream + a minimal trace parser for the resolve-destination
+  bytes. Then analyze the dim draw (pipeline, VS input values, blend state).
+  Also fix stale-process kill in capture helpers (pkill pattern must match
+  full cmdline; a leftover instance contended the second attempt).
 
 ### Next (M4)
 1. RenderDoc capture of one dim draw (or minimal trace tool from the SDK's
