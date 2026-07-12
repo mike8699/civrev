@@ -49,23 +49,31 @@ gamma_ramp_pwl_upload_entry.delta = gamma_ramp_pwl_entry.base;
 Xenia uploads these unswapped. Affects 2_10_10_10 front-buffer titles.
 (Found by inspection while chasing Issue C; not the cause of C.)
 
-## Issue C (investigation ongoing): all game-rendered output at ~1/255
-brightness (CivRev, Vulkan, llvmpipe AND Intel ANV)
+## Issue C: all game-rendered output quantized to ~1/256 (CivRev, Vulkan,
+llvmpipe AND Intel ANV)
 
-Game renders structurally correct frames (text crisp, correct layout) but
-every pixel is ~1/255 of expected intensity (frame max = 1/255).
+**Symptom:** structurally-correct frames (text crisp, layout right) but the
+swap-source front buffer stores **white as byte 1, not 255** — every value is
+~1/256 of correct. The game's healthy gamma ramp then maps source-index-1 → ~0,
+so present max byte = 1 (near-black).
 
-Eliminated with evidence:
-- gamma LUT machinery + guest-set ramp healthy (ramp[255]=1023, sRGB curve)
-- both present pipelines (plain + FXAA) identical output
-- pixel shader constants healthy at draw time (c2=(1,1,1,1), c3=(0,0,0,0))
-- vertex fetch translator semantically identical to Xenia's
-- vpkd3d128 D3DCOLOR codegen identical to XenonRecomp's translation
-- render target path: same behavior on default and `fbo`
+**Proof the render is otherwise correct:** remapping the gamma table so any
+nonzero source index → full-bright makes the Loading screen render crisp,
+correct WHITE text (screenshot available). Secondary artifact: black
+background carries a green floor (G=1, R=B=0).
 
-Open peculiarity: reading the bound vf0 vertex buffer via
-`memory_->TranslatePhysical(fetch.address << 2)` at draw time shows the whole
-buffer zero, while draws visibly produce (dim) geometry — suggests the probe
-reads a different backing than SharedMemory uploads, or the visible content
-comes from a pipeline other than the probed ones. Next step: RenderDoc
-capture of a single dim draw.
+**Eliminated with evidence:**
+- present/gamma (boost proves it; ramp[1]=1/1023, ramp[255]=1023; plain==fxaa)
+- render `color_exp_bias` = 0 (system constants)
+- resolve `copy_dest_exp_bias` = 0 → resolve uses the fast raw-byte-copy path
+  (fmt0→fmt6 bitwise-equivalent), so byte-1 is already in EDRAM pre-resolve
+- all chain shaders (texture_load_32bpb, resolve_fast_32bpp, gamma) are the
+  stock precompiled SPIR-V
+- host RT format R8G8B8A8_UNORM; cross-GPU identical ⇒ deterministic logic
+
+**Open fork (needs the host-RT texel value right after the text draw):**
+(a) recompiled-guest computes 1/256 vertex colors, or (b) host-RT→EDRAM store
+for format 0 truncates 1.0→1. A RenderDoc capture reproduces it, but the
+replay hangs headless here (both lavapipe and Intel) — attach the .rdc and ask
+whether the maintainers can read RT id/eid post-draw. Repro title: CivRev
+545407E5, boot to Loading screen.

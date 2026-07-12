@@ -2,6 +2,43 @@
 
 Read `../REXGLUE_PORT_PRD.md` first; this file assumes it. Newest session at top.
 
+## M4 BRIGHTNESS — ROOT CAUSE LOCALIZED (not yet fixed)
+
+**Proven:** the render pipeline works end-to-end. With a diagnostic gamma-table
+remap (`--civrev_gamma_boost`, patches/0003: maps any nonzero source index to
+full-bright), the **Loading screen renders crisp, correct WHITE text**
+(`port_output/m4_gboost/frames/f0030.png`). So geometry, text, layout, blending
+and present are all correct.
+
+**Exact defect:** the swap-source front buffer stores **white as byte 1, not
+255** — every rendered value is quantized to ~1/256 of correct. Without the
+boost, the game's own gamma ramp (verified healthy: ramp[1]=1/1023≈0.001,
+ramp[255]=1023) maps source-index-1 → ~0, so the whole frame presents at
+max-byte 1 (looks near-black with barely-visible dim text). Secondary artifact:
+the black background carries a green floor (G=1, R=B=0).
+
+**Bisection (all via in-plugin log/readback probes; RenderDoc replay hangs
+under both lavapipe and Intel in this containerized env):**
+- Present/gamma EXONERATED (boost proves it; ramp healthy; plain==fxaa output).
+- Render exp_bias = 0; resolve `copy_dest_exp_bias` = 0 → resolve takes the
+  FAST raw-byte-copy path (k_8_8_8_8 fmt0 → fmt6, bitwise-equivalent), so the
+  byte-1 value is already in EDRAM before the resolve.
+- All GPU shaders (texture_load_32bpb, resolve_fast_32bpp, gamma apply) are
+  Xenia's precompiled SPIR-V — byte-identical. Host-RT = R8G8B8A8_UNORM.
+- Cross-GPU identical (lavapipe AND Intel ANV) ⇒ deterministic logic.
+
+**Remaining fork (needs a working frame debugger):** either (a) the recompiled
+guest computes 1/256-scaled vertex colors into the GFx composite (a VMX/float
+recompilation bug — PRD §2.6 escalation class), or (b) the host-RT→EDRAM store
+for format 0 truncates UNORM 1.0→1. Definitive next step: RenderDoc capture
+REPLAY (capture WORKS — `port_output/m4_rdoc5/*.rdc` via layer-manifest fix +
+in-app StartFrameCapture; replay hangs here) to read the host-RT texel right
+after the text draw — dim ⇒ (a), bright ⇒ (b).
+
+**Goal status:** copyright/ESRB screens do NOT yet render correctly/visibly.
+NOT ACHIEVED. Upstream issue drafted (UPSTREAM_ISSUE_DRAFT.md §C); needs user
+confirmation to file.
+
 ## Blocker investigation: guest main() returns 0 before first present (M2/M4)
 
 **Symptom:** port boots, loads all assets (file trace PASSES vs Xenia reference:
