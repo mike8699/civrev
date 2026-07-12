@@ -12,7 +12,11 @@ This is how selection is verified: a menu's SELECTED item shows its name in a
 fixed panel (scenario description, civ description), so OCR-ing only that panel
 matches when the item is *selected*, not merely visible elsewhere in a list.
 
-Usage: ocr.py <image> <pattern> [--crop L,T,R,B]
+--thresh N binarizes (L > N -> white) BEFORE upscaling: bright UI text over a
+busy 3D scene (the port's main menu, the in-game HUD) OCRs as garbage with
+plain autocontrast but cleanly once the background is thresholded away.
+
+Usage: ocr.py <image> <pattern> [--crop L,T,R,B] [--thresh N]
 Exit 0 if the pattern (case-insensitive regex) is found (prints matched text),
 1 if not found, 2 on error.
 """
@@ -36,6 +40,15 @@ def main() -> int:
             print("bad --crop L,T,R,B", file=sys.stderr)
             return 2
         del args[i:i + 2]
+    thresh = None
+    if "--thresh" in args:
+        i = args.index("--thresh")
+        try:
+            thresh = int(args[i + 1])
+        except (IndexError, ValueError):
+            print("bad --thresh N", file=sys.stderr)
+            return 2
+        del args[i:i + 2]
     if len(args) < 2:
         print("usage: ocr.py <image> <pattern> [--crop L,T,R,B]", file=sys.stderr)
         return 2
@@ -47,6 +60,8 @@ def main() -> int:
             w, h = im.size
             im = im.crop((int(crop[0] * w), int(crop[1] * h),
                           int(crop[2] * w), int(crop[3] * h)))
+        if thresh is not None:
+            im = im.point(lambda p: 255 if p > thresh else 0)
         im = ImageOps.autocontrast(im.resize((im.width * 2, im.height * 2)))
         fd, tmp = tempfile.mkstemp(suffix=".png")
         os.close(fd)

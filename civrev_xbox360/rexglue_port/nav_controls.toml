@@ -1,0 +1,47 @@
+# Navigation mapping for scripted scenario runs (port_nav_lib.sh drivers).
+# Differs from the interactive controls.toml: every controller control gets a
+# UNIQUE key (interactive maps Return to both A and START; scripts need them
+# separate), and the mouse is detached from the sticks so pointer noise can't
+# move the camera during a run.
+
+[options]
+enabled = true
+user_index = 0
+
+[mouse]
+stick = "none"
+sensitivity = 1.0
+invert_y = false
+
+[buttons]
+a = "Return"
+b = "Backspace"
+x = "R"
+y = "E"
+start = "J"
+back = "Tab"
+left_shoulder = "Q"
+right_shoulder = "F"
+left_thumb = "C"
+right_thumb = "V"
+dpad_up = "Up"
+dpad_down = "Down"
+dpad_left = "Left"
+dpad_right = "Right"
+guide = ""
+
+[triggers]
+left = "PageDown"
+right = "PageUp"
+
+[sticks.left]
+up = "W"
+down = "S"
+left = "A"
+right = "D"
+
+[sticks.right]
+up = ""
+down = ""
+left = ""
+right = ""

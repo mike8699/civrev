@@ -630,3 +630,94 @@ as controller 0 - matches "controller plugged in"):
   DEVICE_NOT_CONNECTED path).
 Both input fixes are in patches/0007. Host binaries need the refreshed
 librexruntime.so (build.sh restages it; the exe loads it from $ORIGIN).
+
+---
+
+## Session — 2026-07-12 (evening) — M5 nav harness + THE M6 LOADING-SCREEN HANG
+
+**Goal:** in-game with terrain rendering (first part of M6), via the shortest
+path: title → main menu ("Play Now" preselected) → A → civ card → Accept → load.
+
+### Port scenario driver (new)
+- `port_nav_lib.sh` — host-side primitives against the `civrev-port` container:
+  `phold` (xdotool keydown/hold/keyup — one MnK keystroke per hold; taps are
+  lost at llvmpipe poll rates), `pshot`, `pocr`/`pwait_text`/`pfind_text`
+  (docker-cp frame + host tesseract via oracle/ocr.py), `pwait_log`,
+  `nav_ocr_dump`. `nav_controls.toml` — scripted-run mapping (A=Return,
+  START=j — SEPARATED, unlike interactive controls.toml; mouse detached).
+- `m6_playnow.sh` — title→in-game driver with an adaptive OCR probe loop.
+- **OCR lesson:** busy 3D scenes behind bright UI text (main menu, in-game HUD)
+  OCR as garbage with plain autocontrast; binarizing at L>200 first fixes it.
+  ocr.py grew `--thresh N`; pocr tries plain then thresh=200.
+  **False-positive lesson:** Loading-screen hints mention Diplomacy/units —
+  the only safe in-game anchor is the date plaque (`4000 BC`).
+- Nav facts: port shows NO sign-in prompt after START (ReXGlue auto sign-in;
+  B at main menu is harmless). Play Now → civ-select carousel with a random
+  civ (Accept = A, sometimes needs a second press), then Loading screen.
+
+### M6 BLOCKER FOUND + FIXED: under-populated switch tables → silent ud2 spin
+- Symptom (also seen by user in manual testing): map load hangs forever on the
+  animated Loading screen. Log goes quiet except [gpu] presents; last non-GPU
+  lines are XGIUserSetContextEx/SetPropertyEx + an APC delivery burst.
+- gdb ground truth: `CivConsole` thread ON-CPU (not blocked) at a single PC
+  inside `sub_82DAD720`; `x/i $pc` = **ud2** — the
+  `default: __builtin_trap()  // Switch case out of range` of a message
+  dispatcher whose generated switch knew **1 of 221 cases**. The runtime
+  exception handler returns without advancing → infinite silent spin.
+  (Stack: sub_821CAB38 → sub_82DAD720, id range 2300..2520.)
+- The jump table lives at bctr+4 (0x82DAD744) and was misdecoded as a
+  "function" (wall of `lwz r22,...` = the table words as instructions).
+  XenonRecomp ALSO failed here (`// ERROR 82DAD720`), and XenonAnalyse's
+  switch_tables.toml has no entry — static analyzers all missed it.
+- Fix at scale: decoded ALL trap-default dispatchers from the generated code
+  (884 sites, lis/addi+lwzx+mtctr+bctr shape), dumped every table from live
+  guest memory (host 0x100000000+guest) in one gdb batch during a short boot,
+  validated (877 unique bctr sites, 0 bad labels), emitted
+  `civrev/switch_tables_manual.toml`, included from the manifest. Procedure:
+  `tools/dump_switch_tables_live.md`. Codegen clean (65 s);
+  sub_82DAD720 now has 221 cases. Rebuild + restage + rerun in flight.
+- The 221-entry table has only TWO distinct targets: id 2300 → 0x82DAE52C
+  (return 1), all other ids → 0x82DAD564 (same handler as out-of-range) —
+  classic sparse middleware dispatcher; the game legitimately sends ids other
+  than 2300 during game-start.
+
+### RESOLVED — M6 first part: TERRAIN MAP RENDERS IN-GAME ✅
+The Loading hang had TWO layered causes, both fixed:
+1. **Under-populated 221-entry dispatchers** (the ud2 spin above) — fixed with
+   `switch_tables_manual.toml`: 12 hand-verified tables (4 template copies x 3
+   chained dispatchers, guard cmplwi rIDX,220, inline table at bctr+4) for the
+   middleware message-dispatcher family. Labels dumped from LIVE guest memory.
+   ⚠ A first attempt bulk-added 877 tables decoded from generated-code comments;
+   that CORRUPTED boot — table data misdecoded as functions yields phantom
+   dispatch shapes at WRONG bctr addresses, and overriding those repartitioned
+   unrelated functions → new fatal `Jump target 0x8250377C unresolved at bctr
+   0x825033AC`. Lesson baked into the manifest comment: only override REAL bctr
+   sites (verify table == bctr+4 for the inline family; dump from live rdata).
+2. **Codegen non-reproducibility** — the earlier switch-tables session left
+   `switch_tables_xr.toml` (54 XR-corpus jump tables from
+   tools/gen_switch_tables.py) and a `functions_jt_targets.toml` UNCOMMITTED and
+   OUT of the manifest includes. Regenerating without them reintroduced 92
+   `unresolved at bctr` REX_FATAL sites (boot died at 0x825033AC). Fixed by
+   (a) regenerating switch_tables_xr.toml, (b) a jump-target fixpoint loop
+   (declare every `Jump target ... unresolved` addr as a sizeless `[functions]`
+   entry → codegen → repeat; converged in 1 pass to 90 targets → 0 unresolved),
+   both now in the manifest `includes`. Generated tree: sub_82DAD720 = 221
+   cases, ZERO unresolved-bctr sites.
+
+**Verified end-to-end (port_output/m6_playnow_v2/, converged build):**
+title → START → main menu → A (Play Now) → random-civ card (Zulu) → Accept →
+Loading → **MAP RENDERS** → tutorial advisor chain → **Impi Warrior selected
+with full action panel** (2 Moves / Defend City / Wait One Turn / Civilopedia),
+**Zimbabwe city pop 2**, City Screen + Diplomacy HUD buttons, full terrain
+(grass/plains/desert/forest/coast, workable-tile outlines). Loader thread stayed
+live through the load (no ud2 spin). The probe loop's own in-game anchor
+("Wait One Turn") fired independently → `IN-GAME detected`.
+Artifacts: `M6_terrain_with_city.png`, `M6_terrain_map.png`, `M6_ingame_hud.png`.
+- Play Now enables the TUTORIAL (advisor dialogs + unit-move prompt); the
+  deterministic golden_age path is tutorial-free but needs the full carousel
+  navigation. m6_playnow.sh's probe loop now auto-walks the tutorial chain
+  (A on advisor dialogs; stick+A on "awaiting orders") for unattended reruns.
+- Pixel compare vs golden_v6/10_live.png = 0.51 (NOT meaningful — different
+  scenario/civ/map/advisor). Structural match is the real check and passes:
+  terrain + selected unit + action panel + city + HUD chrome all present, at
+  Xenia's own render quality (the stated bar).
