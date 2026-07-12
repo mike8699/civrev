@@ -1,0 +1,24 @@
+diff --git a/src/ui/rex_app.cpp b/src/ui/rex_app.cpp
+index 25976b4..ec12efe 100644
+--- a/src/ui/rex_app.cpp
++++ b/src/ui/rex_app.cpp
+@@ -385,6 +385,11 @@ void ReXApp::SetupOverlays(rex::ui::Presenter* presenter, rex::ui::ImmediateDraw
+   // gated eager font upload in SetImmediateDrawer is skipped (font uploads
+   // lazily on the first Draw instead).
+   imgui_drawer_->SetPresenterAndImmediateDrawer(presenter, drawer);
++  rex::ui::RegisterBind("bind_fullscreen", "F11", "Toggle fullscreen", [this] {
++    if (window_) {
++      window_->SetFullscreen(!window_->IsFullscreen());
++    }
++  });
+   rex::ui::RegisterBind("bind_debug_overlay", "F3", "Toggle debug overlay", [this] {
+     if (debug_overlay_) {
+       debug_overlay_.reset();
+@@ -549,6 +554,7 @@ void ReXApp::OnDestroy() {
+   OnShutdown();
+ 
+   // Unregister overlay keybinds before destroying dialogs
++  rex::ui::UnregisterBind("bind_fullscreen");
+   rex::ui::UnregisterBind("bind_debug_overlay");
+   rex::ui::UnregisterBind("bind_console");
+   rex::ui::UnregisterBind("bind_settings");

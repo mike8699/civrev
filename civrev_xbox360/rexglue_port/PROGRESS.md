@@ -536,3 +536,42 @@ the game advances):
 Notes: xdotool `key` taps are too short for the slow llvmpipe poll loop — hold
 via `keydown`/`keyup` with `sleep 3` between. One boot hang observed once after
 a rebuild (log stops during .fxobj load, pre-render) — not reproducible; watch.
+
+---
+
+## Host builds, windowed mode + the stale-plugin incident (2026-07-12 pm)
+
+**build.sh** — one script for both environments (separate build dirs; CMake
+caches bake absolute paths): native host `civrev/out/build/host-release`
+(any C++23 clang/gcc; picks clang++-20 > clang++ > g++), `--docker` / in-container
+`civrev/out/build/linux-amd64-release` (what run_port.sh consumes). Stages
+librexruntime/librexgpu-xenos/libTracyClient next to the binary (RUNPATH=$ORIGIN),
+reclaims root-owned dirs, `--clean` wipes.
+
+**Windowed mode** — `--fullscreen=false` (SDK cvar, default true). SDK-level
+`--window_width/--window_height` size the window AND (by the SDK's design,
+GetConfiguredVideoModeWidth fallback) become the guest render resolution — the
+game handles non-720p fine (verified 960x540: full title screen renders; first
+boot at a new resolution retranslates all shaders, slow on llvmpipe, fast on a
+real GPU). Note: passing --video_mode_width equal to its default does NOT pin
+the mode (HasNonDefaultValue is value-based). F11 toggles fullscreen at runtime
+(patches/0008; needs a real WM — inert under bare Xvfb).
+
+**⚠ Stale-plugin incident (root cause of the "UI stopped rendering" regression):**
+the exe loads librexgpu-xenos.so from NEXT TO ITSELF. build.sh originally staged
+it from the SDK *install tree*, which still held a Jul-11 pre-M4-fix plugin (all
+M4-era runs had staged the fresh plugin via direct docker cp from
+out/linux-amd64/Release/, never refreshing the install tree). Result: every
+binary "rebuilt" by build.sh silently ran yesterday's GPU plugin -> deterministic
+boot failure (`ExecutePacketType0 overflow (count 2EB8)` / `PRIMARY RINGBUFFER:
+Failed to execute packet`, no presents). Fixed by refreshing the install tree
+and staging with plain `cp` (no `-u`). RULE: after rebuilding any SDK lib,
+refresh out/install/linux-amd64/lib AND restage the civrev build dirs — or just
+rerun build.sh, which now always copies.
+- Also ruled out along the way: clang-18 host builds are FINE (the "miscompile"
+  was the stale plugin); duplicate cvar definitions in the exe DO break flag
+  routing via symbol interposition (window_width/height dup killed sizing) —
+  never REXCVAR_DEFINE a name the SDK already defines; use the SDK's.
+
+Verified after fix: baseline title at t=17s ring_errors=0; windowed 960x540
+title at t=19s ring_errors=0 (port_output/baseline4, win_f11).
