@@ -69,12 +69,38 @@ bump; patches/0001 (CallTarget fallback) re-evaluated against the nightly.
   landmarks ordered, 2 benign misses <10% tolerance) — **PASS** (recorded
   from the pre-bump run; re-verify on the nightly build during M4 work).
 
+### M4 brightness investigation — full elimination trail (this session)
+All via cheap plugin-log probes (rebuild rexgpu-xenos only, ~1 min/cycle):
+- Present side EXONERATED: plain and FXAA pipelines produce byte-identical
+  dim output; gamma LUT machinery byte-identical to Xenia; guest-set 256-entry
+  ramp verified healthy at swap time (ramp[1]=1, ramp[128]=462,
+  ramp[255]=1023 — correct sRGB curve, so guest FLOAT math is fine too).
+- Draw-side probes: for both boot pixel-shader pipelines (C3BE tfetch-alpha
+  text shader; 3A92 `mad oC0, r0, c2, c3`), shader float constants at draw
+  time are healthy (c2=(1,1,1,1) c3=(0,0,0,0)).
+- Peculiarity: scanning the bound vf0 vertex heap (15 MB at phys 0x08000000)
+  via TranslatePhysical at draw time shows ALL ZEROS across every record,
+  while draws visibly emit (dim) geometry — either the probe reads a
+  different backing than SharedMemory's upload path, or the visible content
+  is drawn by an unprobed pipeline. RenderDoc single-draw capture is the
+  right next instrument.
+- Fade-stuck and vblank-starvation theories eliminated (game presents
+  1110+ swaps at ~12 fps; loop runs).
+- Xenia stubs VdRegisterGraphicsNotification identically — not the tick source.
+- Host-GPU (Intel ANV) run also dark ⇒ not llvmpipe-specific.
+- Audio never registers (XAudioRegisterRenderDriverClient never called) —
+  in Xenia it fires ~1 s after first present. Likely downstream of whatever
+  gates the game's boot progression; revisit after brightness.
+
 ### Next (M4)
-1. Root-cause the /255 brightness (EDRAM RT write or resolve path;
-   RenderDoc/trace capture; upstream issue with reduced repro).
-2. Verify the legal screens render (slow the boot or capture during warm-up;
-   consider host-GPU run via /dev/dri + weston like the oracle's weston mode).
-3. Then: screenshot-compare 00_copyright/01_esrb vs references/boot.
+1. RenderDoc capture of one dim draw (or minimal trace tool from the SDK's
+   trace_writer output) → upstream Issue C with capture attached.
+2. File UPSTREAM_ISSUE_DRAFT.md issues A (CP race, patch ready) and B (PWL
+   swap) — CONFIRM WITH USER before filing (public, outward-facing).
+3. Once brightness is fixed: host-GPU or weston-mode container run (fast
+   pipeline warm-up) so the copyright/ESRB screens are visible during their
+   ~4 s window; then compare vs references/boot 00_copyright/01_esrb.
+4. Re-verify M3 file trace on the nightly build (was recorded pre-bump).
 
 ## Session 1 — 2026-07-11 — M0 (toolchain) → M1 (codegen)
 
