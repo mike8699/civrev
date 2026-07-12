@@ -79,9 +79,22 @@ but the presented display front buffer is near-zero RGB across the whole frame
 change), not swap-texture staleness (forcing reload: no change), not resolve
 exp_bias (=0, fast raw copy).
 
-**Open fork:** the composite draw either (a) is issued by guest code with a
-wrong ~1/256 color scale (recompilation), or (b) samples its source UI texture
-and the sample returns 1/256 (resolve-target-sampled-as-texture). A RenderDoc
-capture reproduces it (attach .rdc), but the replay hangs headless here (both
-lavapipe and Intel). Ask whether maintainers can inspect that draw's shader +
-sampled-texture values. Repro title: CivRev 545407E5, boot to Loading screen.
+**CONFIRMED an SDK render bug (not recompilation), via a host-visible staging
+readback of the device-local shared-memory buffer:** every draw's bound
+vertex-color data in GPU memory is BRIGHT (max byte 255 / 0xFFFFFFFF) for all
+three UI pixel shaders (2E37/C3BE/3A92). The FMT_8_8_8_8 fetch normalization is
+correct (0xFF → 1.0, packed width 8, matches Xenia), and the composite VS/PS
+are identity (VS `max o0,r0,r0`; PS `mad oC0,r0,c2,c3`, c2=1, c3=0). So bright
+input → ~1/256 output: the SDK's render pipeline dims it.
+
+Narrowed to the 2x-MSAA display-composite draws: two color resolves with
+IDENTICAL params (bright 1D818000 vs dim 1F6F8000; both src_fmt=0 dst_fmt=6
+exp_bias=0 msaa=2x sample_sel=k01 edram_base=0) produce different brightness,
+so the resolve is exonerated — the EDRAM content already differs. Not the color
+write mask (forcing RGBA: no change). The dimming is in the host-RT→EDRAM store
+or blend for those specific 2x-MSAA draws.
+
+A RenderDoc capture reproduces it (attach .rdc), but replay hangs headless here
+(both lavapipe and Intel). Ask maintainers to inspect that draw's blend state
+and the host-RT→EDRAM 2x-MSAA store for k_8_8_8_8. Repro: CivRev 545407E5,
+boot to Loading screen.

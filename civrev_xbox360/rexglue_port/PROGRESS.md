@@ -2,7 +2,34 @@
 
 Read `../REXGLUE_PORT_PRD.md` first; this file assumes it. Newest session at top.
 
-## M4 BRIGHTNESS — ROOT CAUSE LOCALIZED (not yet fixed)
+## M4 BRIGHTNESS — CONFIRMED an SDK GPU-render bug (fixable), not recompilation
+
+**Definitive (staging readback of the device-local shared-memory buffer via a
+host-visible copy — the measurement that finally cracked the confusion):**
+- Every draw's bound **vertex-color data in GPU memory is BRIGHT (max byte 255,
+  0xFFFFFFFF)** — pixel shaders 2E37/C3BE/3A92 all carry 0xFF colors. The guest
+  is NOT writing dim colors, so this is NOT a recompilation bug.
+- The FMT_8_8_8_8 vertex fetch normalization is correct (packed width 8 →
+  1/255 scale, 0xFF → 1.0; matches Xenia). The 3A92/11213E38 composite VS/PS
+  are identity (VS `max o0,r0,r0`; PS `mad oC0,r0,c2,c3` with c2=1,c3=0).
+- Yet the presented **display front buffer is ~1/256** (`chmax=[1,2,1,255]`
+  whole-frame), while other intermediate render targets resolve BRIGHT (255).
+  Two resolves with IDENTICAL params (1D818000 bright vs 1F6F8000 dim; both
+  src_fmt=0 dst_fmt=6 exp_bias=0 2xMSAA sample_sel=k01 edram_base=0) prove the
+  resolve isn't the cause — the EDRAM content already differs.
+
+**Conclusion:** bright vertex input → ~1/256 output. The SDK's render pipeline
+(interpolation or, more likely, the host-RT→EDRAM store for the specific
+2x-MSAA display-composite draws) dims it. This is a **fixable SDK GPU bug**.
+The exact render state that triggers it (vs the identical-param bright draws)
+needs frame-debugger draw inspection — RenderDoc capture works but replay
+hangs headless here. Xenia's scaler is a NOP (matches ReXGlue), so the
+composite is done by guest draws, not the scaler.
+
+Diagnostics for continuation live in patches/0003 (default-off cvars:
+--civrev_gamma_boost, --civrev_swap_reload, --civrev_force_color_mask).
+
+## M4 BRIGHTNESS — earlier localization trail (superseded by the above)
 
 **Proven:** the render pipeline works end-to-end. With a diagnostic gamma-table
 remap (`--civrev_gamma_boost`, patches/0003: maps any nonzero source index to
