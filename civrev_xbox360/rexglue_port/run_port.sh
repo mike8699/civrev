@@ -40,6 +40,8 @@ done
 [ -f "$BIN" ] || { echo "port binary not found: $BIN (build first)" >&2; exit 1; }
 [ -d "$GAME_DIR" ] || { echo "game dir not found: $GAME_DIR" >&2; exit 1; }
 mkdir -p "$OUT_DIR/frames"
+CACHE_DIR="${CIVREV_PORT_CACHE:-$HERE/port_output/pipeline_cache}"
+mkdir -p "$CACHE_DIR"
 BIN_DIR="$(dirname "$BIN")"
 BIN_NAME="$(basename "$BIN")"
 
@@ -74,7 +76,7 @@ i=0
 while kill -0 "$GAME_PID" 2>/dev/null && [ "$i" -lt '"$TIMEOUT_SECS"' ]; do
     n=$(printf "%04d" "$i")
     import -window root "/output/frames/f$n.png" 2>/dev/null || true
-    sleep 2; i=$((i+2))
+    sleep 1; i=$((i+1))
 done
 if kill -0 "$GAME_PID" 2>/dev/null; then
     echo "watchdog: timeout after '"$TIMEOUT_SECS"'s, stopping game" | tee /output/watchdog.txt
@@ -100,6 +102,7 @@ run_container() {
         -v "$BIN_DIR:/port:ro" \
         -v "$HERE/rexglue-sdk/out/install/linux-amd64:/sdk:ro" \
         -v "$OUT_DIR:/output:rw" \
+        -v "$CACHE_DIR:/root/.local/share/civrev:rw" \
         "$IMAGE" bash -c "$SUPERVISOR"
     local rc=$?
     [ "$KEEP" = 1 ] || docker rm -f "$CONTAINER" >/dev/null 2>&1 || true
