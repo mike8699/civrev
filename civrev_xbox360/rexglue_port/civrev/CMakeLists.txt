@@ -22,4 +22,14 @@ else()
     add_executable(civrev ${CIVREV_SOURCES})
 endif()
 
-rexglue_setup_target(civrev)
+# rexglue_setup_target(civrev) inlined: the macro doesn't forward GPU_PLUGINS,
+# and the nightly SDK runtime-loads GPU emulation from a plugin staged next to
+# the executable (librexgpu-xenos.so) — without it the game runs headless.
+target_sources(civrev PRIVATE ${REXGLUE_ENTRYPOINT_GENERATED_SOURCES})
+target_include_directories(civrev PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${REXGLUE_ENTRYPOINT_INCLUDE_DIR}
+)
+target_link_libraries(civrev PRIVATE rex::runtime)
+rexglue_configure_target(civrev GPU_PLUGINS xenos)

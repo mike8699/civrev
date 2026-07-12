@@ -25,7 +25,8 @@ RUN wget -qO- https://packages.lunarg.com/lunarg-signing-key-pub.asc \
     apt-get update && \
     apt-get install -y cmake ninja-build build-essential git curl unzip autoconf \
         python3.12-venv libgtk-3-dev libx11-xcb-dev vulkan-sdk \
-        libasound2-dev libpulse-dev libpipewire-0.3-dev
+        libasound2-dev libpulse-dev libpipewire-0.3-dev \
+        libxss-dev
 
 # Runtime bits for headless runs of the built port inside this image:
 # Xvfb display + software vulkan (lavapipe) + screenshot/OCR tooling mirror the

@@ -1,0 +1,99 @@
+diff --git a/include/rex/graphics/command_processor.h b/include/rex/graphics/command_processor.h
+index 6998a45..96ff0a0 100644
+--- a/include/rex/graphics/command_processor.h
++++ b/include/rex/graphics/command_processor.h
+@@ -280,6 +280,12 @@ class CommandProcessor {
+ 
+   std::unique_ptr<rex::thread::Event> write_ptr_index_event_;
+   std::atomic<uint32_t> write_ptr_index_;
++  // Ring (re-)initialization handshake: bumped by InitializeRingBuffer on the
++  // guest thread, consumed by the worker at loop top (which owns
++  // read_ptr_index_). A direct cross-thread read_ptr_index_ reset races the
++  // worker's own `read_ptr_index_ = ExecutePrimaryBuffer(...)` store.
++  std::atomic<uint32_t> ring_init_epoch_{0};
++  uint32_t ring_init_epoch_seen_ = 0;
+ 
+   // Some titles submit writes beyond the emulated register file range in PM4
+   // packets. Preserve these values so dependent packet logic can still observe
+diff --git a/src/graphics/command_processor.cpp b/src/graphics/command_processor.cpp
+index 60efcd3..382d1c3 100644
+--- a/src/graphics/command_processor.cpp
++++ b/src/graphics/command_processor.cpp
+@@ -285,6 +285,15 @@ void CommandProcessor::WorkerThreadMain() {
+     }
+ 
+     uint32_t write_ptr_index = write_ptr_index_.load();
++    // Apply a pending ring re-initialization (see InitializeRingBuffer).
++    // Loaded AFTER the write pointer: guest store order is epoch then WPTR,
++    // so observing the new WPTR guarantees observing the epoch bump.
++    uint32_t ring_init_epoch = ring_init_epoch_.load(std::memory_order_acquire);
++    if (ring_init_epoch != ring_init_epoch_seen_) {
++      ring_init_epoch_seen_ = ring_init_epoch;
++      read_ptr_index_ = 0;
++      continue;  // re-evaluate with a fresh write pointer under the new ring
++    }
+     if (write_ptr_index == 0xBAADF00D || read_ptr_index_ == write_ptr_index) {
+       SCOPE_profile_cpu_i("gpu", "rex::graphics::CommandProcessor::Stall");
+       // We've run out of commands to execute.
+@@ -306,9 +315,10 @@ void CommandProcessor::WorkerThreadMain() {
+       } while (worker_running_ && pending_fns_.empty() &&
+                (write_ptr_index == 0xBAADF00D || read_ptr_index_ == write_ptr_index));
+       ReturnFromWait();
+-      if (!worker_running_ || !pending_fns_.empty()) {
+-        continue;
+-      }
++      // Always restart the loop after a stall: the wake-up may be a ring
++      // re-initialization (epoch bump), which must be applied before
++      // executing with the freshly loaded write pointer.
++      continue;
+     }
+     assert_true(read_ptr_index_ != write_ptr_index);
+ 
+@@ -386,9 +396,19 @@ bool CommandProcessor::SetupContext() {
+ void CommandProcessor::ShutdownContext() {}
+ 
+ void CommandProcessor::InitializeRingBuffer(uint32_t ptr, uint32_t size_log2) {
+-  read_ptr_index_ = 0;
+   primary_buffer_ptr_ = ptr;
+   primary_buffer_size_ = uint32_t(1) << (size_log2 + 3);
++  // Local patch (civrev): don't write read_ptr_index_ from the guest thread —
++  // if the worker is inside ExecutePrimaryBuffer, its returned index lands
++  // AFTER this reset and the stale value survives. Observed with CivRev's
++  // D3D device init, which re-initializes the ring and restarts its command
++  // stream at offset 0: the CP kept reading at the old index, hit mid-stream
++  // garbage, and died with "ExecutePacketType0 overflow". Signal the worker
++  // instead; it applies the reset at loop top (it owns read_ptr_index_).
++  // Store order matters: guest bumps the epoch BEFORE writing the new WPTR
++  // register, and the worker loads WPTR before the epoch, so a visible new
++  // WPTR implies a visible epoch bump.
++  ring_init_epoch_.fetch_add(1, std::memory_order_release);
+ }
+ 
+ void CommandProcessor::EnableReadPointerWriteBack(uint32_t ptr, uint32_t block_size_log2) {
+@@ -718,6 +738,26 @@ uint32_t CommandProcessor::ExecutePrimaryBuffer(uint32_t read_index, uint32_t wr
+     if (!ExecutePacket(&reader)) {
+       // This probably should be fatal - but we're going to continue anyways.
+       REXGPU_ERROR("**** PRIMARY RINGBUFFER: Failed to execute packet.");
++      // civrev debug aid: dump ring geometry and the dwords around the read
++      // pointer so the desync point can be attributed (guest-written garbage
++      // vs CP mis-tracking).
++      {
++        auto* base = memory_->TranslatePhysical(primary_buffer_ptr_);
++        uint32_t ro = static_cast<uint32_t>(reader.read_count());
++        REXGPU_ERROR("ring: ptr={:08X} size={:08X} read_index={:08X} write_index={:08X} "
++                     "remaining={:08X}",
++                     primary_buffer_ptr_, primary_buffer_size_, read_index, write_index, ro);
++        uint32_t cur = static_cast<uint32_t>(reader.read_ptr() - uintptr_t(base));
++        uint32_t dump_start = cur >= 0x40 ? cur - 0x40 : 0;
++        for (uint32_t off = dump_start; off < cur + 0x40 && off < primary_buffer_size_;
++             off += 16) {
++          const uint32_t* p = reinterpret_cast<const uint32_t*>(base + off);
++          REXGPU_ERROR("  ring[{:06X}]{} {:08X} {:08X} {:08X} {:08X}", off,
++                       (off <= cur && cur < off + 16) ? '>' : ' ',
++                       __builtin_bswap32(p[0]), __builtin_bswap32(p[1]),
++                       __builtin_bswap32(p[2]), __builtin_bswap32(p[3]));
++        }
++      }
+       assert_always();
+       break;
+     }

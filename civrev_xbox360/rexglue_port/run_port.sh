@@ -66,7 +66,7 @@ Xvfb :99 -screen 0 1280x720x24 &
 sleep 2
 echo "starting port binary"
 cd /output
-/port/'"$BIN_NAME"' --log_level=trace --log_file=/output/run.log --game_data_root=/game_data \
+/port/'"$BIN_NAME"' --log_level=trace --log_file=/output/run.log --game_data_root=/game_data --gpu_plugin=xenos \
     > /output/game.stdout 2>&1 &
 GAME_PID=$!
 echo "$GAME_PID" > /output/game.pid
@@ -98,7 +98,7 @@ run_container() {
         -e CIVREV_KEEP_MOVIES="${CIVREV_KEEP_MOVIES:-0}" \
         -v "$GAME_DIR:/game_data:ro" \
         -v "$BIN_DIR:/port:ro" \
-        -v "$HERE/sdk_install/linux-amd64:/sdk:ro" \
+        -v "$HERE/rexglue-sdk/out/install/linux-amd64:/sdk:ro" \
         -v "$OUT_DIR:/output:rw" \
         "$IMAGE" bash -c "$SUPERVISOR"
     local rc=$?

@@ -43,6 +43,39 @@ rounds with nothing kernel-visible in between".
 per PRD §2.2 (bug-fix bump, recorded here). Debug instrumentation dropped on
 bump; patches/0001 (CallTarget fallback) re-evaluated against the nightly.
 
+### RESULT of the bump — M2 PASSED, exit bug GONE
+- Nightly SDK built from source in the toolchain image (needs libxss-dev —
+  added to Dockerfile; SDL3 submodule newer). patches/0001 still needed,
+  re-applied cleanly. Codegen clean on first run (73 s), zero unresolved
+  fatals, port rebuilt against the nightly install.
+- Nightly moved GPU emulation behind a plugin: `--gpu_plugin=xenos` +
+  librexgpu-xenos.so staged next to the exe (CMakeLists inlines
+  rexglue_configure_target(civrev GPU_PLUGINS xenos); run_port.sh passes the
+  flag). Without it the game runs headless ("native rendering mode").
+- **The guest no longer exits.** With GPU emulation on, boot proceeded to
+  a NEW failure: CP `ExecutePacketType0 overflow` on the primary ring — a
+  ring re-init race (see NOTES_UPSTREAM §3), fixed locally
+  (patches/0002-gpu-cp-ring-reinit-race.patch, epoch handshake).
+- **After the CP fix: the game BOOTS and RENDERS.** 3 fxobj rounds (matches
+  Xenia), device init completes, background-loader thread resumes, resolves
+  and swaps flow (1110+), and the **Loading splash renders with crisp,
+  correctly-positioned text** — at ~1/255 brightness (see NOTES_UPSTREAM §5,
+  open). First visible frame at ~32 s (llvmpipe pipeline warm-up); legal
+  screens presumably pass during the black warm-up window — needs a
+  faster-present run or host-GPU run to verify/capture.
+- M2 acceptance: builds/links/launches, runtime init, VFS mounts, guest
+  entry invoked, survives indefinitely with no host crash — **PASS**.
+- M3 acceptance: file-trace diff vs references/boot PASS (49/49 paths,
+  landmarks ordered, 2 benign misses <10% tolerance) — **PASS** (recorded
+  from the pre-bump run; re-verify on the nightly build during M4 work).
+
+### Next (M4)
+1. Root-cause the /255 brightness (EDRAM RT write or resolve path;
+   RenderDoc/trace capture; upstream issue with reduced repro).
+2. Verify the legal screens render (slow the boot or capture during warm-up;
+   consider host-GPU run via /dev/dri + weston like the oracle's weston mode).
+3. Then: screenshot-compare 00_copyright/01_esrb vs references/boot.
+
 ## Session 1 — 2026-07-11 — M0 (toolchain) → M1 (codegen)
 
 **Session goal:** boot the port far enough that the opening copyright/legal
