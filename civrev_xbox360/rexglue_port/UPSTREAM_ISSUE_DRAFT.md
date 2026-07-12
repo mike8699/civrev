@@ -71,9 +71,17 @@ background carries a green floor (G=1, R=B=0).
   stock precompiled SPIR-V
 - host RT format R8G8B8A8_UNORM; cross-GPU identical ⇒ deterministic logic
 
-**Open fork (needs the host-RT texel value right after the text draw):**
-(a) recompiled-guest computes 1/256 vertex colors, or (b) host-RT→EDRAM store
-for format 0 truncates 1.0→1. A RenderDoc capture reproduces it, but the
-replay hangs headless here (both lavapipe and Intel) — attach the .rdc and ask
-whether the maintainers can read RT id/eid post-draw. Repro title: CivRev
-545407E5, boot to Loading screen.
+**Localized (per-channel readback of resolve outputs in guest RAM):** the
+game's intermediate UI render targets are FULLY BRIGHT (chmax=[255,255,255,x]),
+but the presented display front buffer is near-zero RGB across the whole frame
+(chmax=[1,2,1,255]). So the final composite into the display buffer produces
+~1/128–1/256 RGB with full alpha. Not the color write mask (forcing RGBA: no
+change), not swap-texture staleness (forcing reload: no change), not resolve
+exp_bias (=0, fast raw copy).
+
+**Open fork:** the composite draw either (a) is issued by guest code with a
+wrong ~1/256 color scale (recompilation), or (b) samples its source UI texture
+and the sample returns 1/256 (resolve-target-sampled-as-texture). A RenderDoc
+capture reproduces it (attach .rdc), but the replay hangs headless here (both
+lavapipe and Intel). Ask whether maintainers can inspect that draw's shader +
+sampled-texture values. Repro title: CivRev 545407E5, boot to Loading screen.

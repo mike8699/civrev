@@ -1,0 +1,117 @@
+diff --git a/include/rex/graphics/pipeline/texture/cache.h b/include/rex/graphics/pipeline/texture/cache.h
+index d1580fc..c21cabc 100644
+--- a/include/rex/graphics/pipeline/texture/cache.h
++++ b/include/rex/graphics/pipeline/texture/cache.h
+@@ -228,6 +228,16 @@ class TextureCache {
+     }
+     void MakeUpToDateAndWatch(const std::unique_lock<std::recursive_mutex>& global_lock);
+ 
++    // civrev: force the base level to be reloaded from guest memory next load.
++    // Used to work around resolve→swap-source staleness (a GPU-side resolve
++    // write may not fire the CPU memory watch that marks the texture outdated).
++    void ForceBaseOutdated() {
++      if (GetGuestBaseSize() != 0) {
++        base_outdated_ = true;
++        outdated_mask_.fetch_or(kOutdatedBitBase, std::memory_order_release);
++      }
++    }
++
+     void WatchCallback(const std::unique_lock<std::recursive_mutex>& global_lock, bool is_mip);
+ 
+     // For LRU caching - updates the last usage frame and moves the texture to
+diff --git a/src/graphics/vulkan/command_processor.cpp b/src/graphics/vulkan/command_processor.cpp
+index a40436e..d8889d3 100644
+--- a/src/graphics/vulkan/command_processor.cpp
++++ b/src/graphics/vulkan/command_processor.cpp
+@@ -51,6 +51,10 @@ REXCVAR_DEFINE_BOOL(vulkan_readback_resolve, false, "GPU/Vulkan",
+                     "Read render-to-texture results on the CPU")
+     .lifecycle(rex::cvar::Lifecycle::kHotReload);
+ 
++// civrev DIAGNOSTIC: remap the gamma table so any nonzero source maps bright.
++REXCVAR_DEFINE_BOOL(civrev_gamma_boost, false, "GPU/Vulkan",
++                    "civrev: force gamma table so nonzero source maps to full bright");
++
+ REXCVAR_DEFINE_BOOL(vulkan_readback_memexport, false, "GPU/Vulkan",
+                     "Read data written by memory export in shaders on the CPU")
+     .lifecycle(rex::cvar::Lifecycle::kHotReload);
+@@ -2565,6 +2569,19 @@ void VulkanCommandProcessor::IssueSwap(uint32_t frontbuffer_ptr, uint32_t frontb
+                                            : static_cast<const void*>(gamma_ramp_256_entry_table()),
+                         gamma_ramp_size);
+           }
++          // civrev DIAGNOSTIC/TEST: remap the 256-entry gamma table so any
++          // nonzero source index maps to full-bright. If the UI (copyright/
++          // Loading text) becomes visible, it confirms the swap source carries
++          // the content at source value ~1/255 (index 1) and the dimming is
++          // upstream of present. Opt-in via --civrev_gamma_boost.
++          if (!use_pwl_gamma_ramp && REXCVAR_GET(civrev_gamma_boost)) {
++            auto* tbl = reinterpret_cast<reg::DC_LUT_30_COLOR*>(gamma_ramp_frame_upload);
++            for (uint32_t gi = 1; gi < 256; ++gi) {
++              tbl[gi].color_10_red = 1023;
++              tbl[gi].color_10_green = 1023;
++              tbl[gi].color_10_blue = 1023;
++            }
++          }
+           bool gamma_ramp_has_upload_buffer = gamma_ramp_upload_buffer_memory_ != VK_NULL_HANDLE;
+           VkPipelineStageFlags gamma_ramp_read_stage_mask =
+               VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+diff --git a/src/graphics/vulkan/pipeline_cache.cpp b/src/graphics/vulkan/pipeline_cache.cpp
+index 91ac08f..9ba56af 100644
+--- a/src/graphics/vulkan/pipeline_cache.cpp
++++ b/src/graphics/vulkan/pipeline_cache.cpp
+@@ -54,6 +54,9 @@ REXCVAR_DEFINE_INT32(
+     "Number of pipeline creation threads for Vulkan async pipeline creation (-1 for auto)")
+     .range(-1, 32)
+     .lifecycle(rex::cvar::Lifecycle::kRequiresRestart);
++// civrev: force full RGBA color write mask on all draws (diagnostic).
++REXCVAR_DEFINE_BOOL(civrev_force_color_mask, false, "GPU/Vulkan",
++                    "civrev: force RGBA color write mask on all draws");
+ 
+ REXCVAR_DEFINE_BOOL(vulkan_tessellation_wireframe, false, "GPU/Vulkan",
+                     "Render tessellation as wireframe")
+@@ -1558,10 +1561,15 @@ bool VulkanPipelineCache::GetCurrentStateDescription(
+     uint32_t color_rt_index;
+     while (rex::bit_scan_forward(render_pass_color_rts_remaining, &color_rt_index)) {
+       render_pass_color_rts_remaining &= ~(uint32_t(1) << color_rt_index);
++      // civrev TEST: force full RGBA write mask. If the presented front buffer
++      // gains RGB, the composite draw was masking RGB off. Gated on cvar.
++      uint32_t dbg_mask = (normalized_color_mask >> (color_rt_index * 4)) & 0b1111;
++      if (REXCVAR_GET(civrev_force_color_mask)) {
++        dbg_mask = 0b1111;
++      }
+       WritePipelineRenderTargetDescription(
+           regs.Get<reg::RB_BLENDCONTROL>(reg::RB_BLENDCONTROL::rt_register_indices[color_rt_index]),
+-          (normalized_color_mask >> (color_rt_index * 4)) & 0b1111,
+-          description_out.render_targets[color_rt_index]);
++          dbg_mask, description_out.render_targets[color_rt_index]);
+     }
+   }
+ 
+diff --git a/src/graphics/vulkan/texture_cache.cpp b/src/graphics/vulkan/texture_cache.cpp
+index fc46bf8..bf6d60f 100644
+--- a/src/graphics/vulkan/texture_cache.cpp
++++ b/src/graphics/vulkan/texture_cache.cpp
+@@ -34,6 +34,9 @@
+ #include <rex/ui/vulkan/util.h>
+ 
+ REXCVAR_DEFINE_BOOL(non_seamless_cube_map, false, "GPU", "Use non-seamless cube map sampling");
++// civrev: force the swap source texture to reload from guest memory each frame.
++REXCVAR_DEFINE_BOOL(civrev_swap_reload, false, "GPU/Vulkan",
++                    "civrev: reload the swap source texture from guest memory every frame");
+ 
+ namespace rex::graphics::vulkan {
+ 
+@@ -993,6 +996,14 @@ VkImageView VulkanTextureCache::RequestSwapTexture(uint32_t& width_scaled_out,
+   if (!texture) {
+     return VK_NULL_HANDLE;
+   }
++  // civrev TEST: force the swap source to reload from guest memory every frame.
++  // The game resolves the composited frame into this front buffer via a GPU
++  // write; if that write doesn't fire the CPU memory watch, the cached swap
++  // texture stays stale (dim/empty from an early frame) while guest memory is
++  // bright — the observed ~1/256 present. Gated on --civrev_swap_reload.
++  if (REXCVAR_GET(civrev_swap_reload)) {
++    texture->ForceBaseOutdated();
++  }
+   uint32_t host_swizzle = GuestToHostSwizzle(fetch.swizzle, GetHostFormatSwizzle(key));
+   if (swap_source_needs_rb_swap_out) {
+     auto swizzle_component = [](uint32_t swizzle,

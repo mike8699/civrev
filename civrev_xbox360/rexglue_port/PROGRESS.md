@@ -27,17 +27,38 @@ under both lavapipe and Intel in this containerized env):**
   Xenia's precompiled SPIR-V — byte-identical. Host-RT = R8G8B8A8_UNORM.
 - Cross-GPU identical (lavapipe AND Intel ANV) ⇒ deterministic logic.
 
-**Remaining fork (needs a working frame debugger):** either (a) the recompiled
-guest computes 1/256-scaled vertex colors into the GFx composite (a VMX/float
-recompilation bug — PRD §2.6 escalation class), or (b) the host-RT→EDRAM store
-for format 0 truncates UNORM 1.0→1. Definitive next step: RenderDoc capture
-REPLAY (capture WORKS — `port_output/m4_rdoc5/*.rdc` via layer-manifest fix +
-in-app StartFrameCapture; replay hangs here) to read the host-RT texel right
-after the text draw — dim ⇒ (a), bright ⇒ (b).
+**FURTHER LOCALIZED via per-channel readback of resolve outputs (guest RAM,
+`--vulkan_readback_resolve`):**
+- The **scene/UI render targets are FULLY BRIGHT** in guest RAM: e.g. 1D0F0000
+  chmax=[255,255,255,254] with varied real content; a clear buffer 1E3B0000 =
+  all 0xFFFFFFFF.
+- The **presented display front buffer is near-zero RGB** across the WHOLE
+  1280×720 frame: 1F6F8000/1F360000/1F70C000/1F374000 all chmax=[1,2,1,255]
+  (R≤1, G≤2, B≤1, A=255) — no RGB byte anywhere exceeds 8, including where the
+  bright UI/text should be.
+- So the game renders the UI correctly to intermediate targets, but the **final
+  composite into the display front buffer produces ~1/128–1/256 RGB** (white →
+  byte 1–2) with full alpha. That composite draw is the culprit.
 
-**Goal status:** copyright/ESRB screens do NOT yet render correctly/visibly.
-NOT ACHIEVED. Upstream issue drafted (UPSTREAM_ISSUE_DRAFT.md §C); needs user
-confirmation to file.
+**Eliminated at the composite:** color write mask (`--civrev_force_color_mask`
+= RGBA → no change), swap-texture staleness (`--civrev_swap_reload` → no
+change), resolve `copy_dest_exp_bias` (=0, fast raw copy). So not masked, not
+stale, not resolve-scaled.
+
+**Remaining fork (needs a working frame debugger):** the composite draw either
+(a) is issued by the recompiled guest with a wrong ~1/256 color constant/scale
+(VMX/float recompilation bug — PRD §2.6 escalation class), or (b) samples its
+source UI texture and the sample returns 1/256 (a resolve-target-sampled-as-
+texture GPU bug). Definitive next step: RenderDoc REPLAY of the saved capture
+(`port_output/m4_rdoc5/*.rdc`; replay hangs headless here on both lavapipe and
+Intel) to inspect that draw's shader, constants, and sampled-texture values.
+
+**Goal status:** copyright/ESRB screens do NOT render correctly/visibly.
+NOT ACHIEVED. The diagnostic `--civrev_gamma_boost` recovers visibility (white
+text) but with a wrong green background (the bg's G=2 floor amplified), so it
+is not a correct fix. Escalated per PRD §2.6: upstream issue drafted
+(UPSTREAM_ISSUE_DRAFT.md §C, updated with the composite localization); needs
+user confirmation to file, and a machine where the RenderDoc replay runs.
 
 ## Blocker investigation: guest main() returns 0 before first present (M2/M4)
 
