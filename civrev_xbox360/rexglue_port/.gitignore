@@ -24,3 +24,4 @@ build/
 *.log
 run_output/
 port_output/
+tools_bin/

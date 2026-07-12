@@ -92,6 +92,22 @@ All via cheap plugin-log probes (rebuild rexgpu-xenos only, ~1 min/cycle):
   in Xenia it fires ~1 s after first present. Likely downstream of whatever
   gates the game's boot progression; revisit after brightness.
 
+### M4 continued (same session, later)
+- Eliminated additionally: async-shader-compilation placeholder pipelines
+  (--no-async_shader_compilation → identical 1/255 output); pipeline-cache
+  warm-up (persisted cache; presents still gated by game pace under llvmpipe,
+  legal text at 1/255 quantizes to 0 in 8-bit capture, so copyright screens
+  cannot be verified until brightness is fixed).
+- RenderDoc 1.33 binary tarball staged at tools_bin/renderdoc_1.33 (gitignored);
+  auto-TriggerCapture at swap 10 wired into the plugin's IssueSwap (debug-only,
+  in the gitignored SDK tree — re-add after any SDK re-checkout). Injection
+  verified ("RenderDoc API initialized", trigger fired once) but no .rdc
+  written before timeout — llvmpipe under the capture layer is extremely slow.
+  NEXT SESSION: run the capture on the HOST GPU (X11 session :1, LD_LIBRARY_PATH
+  to sdk install + rdoc lib, gpu lock) where boot takes seconds, then analyze
+  the .rdc with tools_bin/renderdoc_1.33's python module: inspect the dim
+  draw's pipeline, VS inputs, and RT blend state.
+
 ### Next (M4)
 1. RenderDoc capture of one dim draw (or minimal trace tool from the SDK's
    trace_writer output) → upstream Issue C with capture attached.
