@@ -316,3 +316,183 @@ screens render correctly (PRD M0→M4-partial).
 - M3: file-trace diff vs references/boot/file_trace.txt.
 - M4-goal: port renders copyright/ESRB screens; compare vs reference
   checkpoints 00_copyright/01_esrb (these are pixel-deterministic in Xenia).
+
+---
+
+## M4 — opening screens render (in progress; blocked on a GPU-side vertex-color defect)
+
+**Status:** The port boots and reaches the copyright → ESRB → "Loading…" screens.
+Every screen is **structurally perfect** — correct geometry, glyph shapes,
+anti-aliasing, layout, and position all match the Xenia reference — but renders
+at **~1/256 brightness (near-black)**. Under the lavapipe (Mesa software Vulkan)
+rasterizer used by the headless harness, the "Loading…" text amplifies to a
+crisp but **near-zero green** string, and the logo region is a correctly-placed
+but near-black block.
+
+### Root cause, localized with high confidence
+The near-black output is caused entirely by **UI vertex COLORS decoding to a
+near-zero constant** (`0x00000100`, i.e. green byte = 1) while the geometry
+(position/UV) decodes correctly. Everything that consumes those colors —
+Scaleform text (pixel shader `C3BE`) and the logo (`2E37`/`3A92`) — reads the
+color from the packed `FMT_8_8_8_8` vertex attribute, so all UI is affected.
+
+The vertex layout (VS `2BA2`) is stride-7 dwords:
+`[0..3]=position k_32_32_32_32_FLOAT`, `[4..5]=UV k_32_32_FLOAT`,
+`[6]=color k_8_8_8_8` (a `vfetch_mini`).
+
+### What is PROVEN correct (so the bug is NOT here)
+1. **Render pipeline** — forcing the `k_8_8_8_8` fetch result to white in the
+   translator makes the whole screen render bright white (264k px, max=255). So
+   rasterization, atlas sampling, blend, resolve, present, and gamma are correct.
+2. **Guest data** — the CPU mirror (`memory().TranslatePhysical`) holds the
+   correct bright cream color `0xD5EFEFFF` at the color dword for every drawn
+   vertex (fetch constant 95 @ e.g. 0x1EC97920, offset 6).
+3. **GPU upload** — `VulkanSharedMemory::UploadRanges` copies from the same
+   `TranslatePhysical` source; instrumenting it showed `colorSrc=D5EFEFFF
+   colorDst=D5EFEFFF` — the correct cream reaches the device staging buffer.
+4. **Generated SPIR-V** — disassembled the translated VS. The color mini-fetch
+   computes `address = (base_fc95 + floor(r0.x)*7) + 6`, splits it into the
+   multi-binding shared-memory descriptor (`>>25` binding, `&0x1FFFFFF` offset),
+   loads via the same binding `OpSwitch` structure as the (working) position
+   fetch, endian-swaps, and byte-extracts. Byte-for-byte correct; identical
+   structure to the position/UV fetches that work.
+5. **The pixel shader constants** — `c2=(1,1,1,1)`, `c3=(0,0,0,0)` (identity).
+
+### What was ruled out (with the test that ruled it out)
+- Alpha blending / gamma / present / exp_bias / resolve — earlier M4 work.
+- The font-atlas sample — atlas raw bytes are bright (bmax=255); the atlas-only
+  shader test still rendered near-zero-colored (green) glyphs.
+- The mini-fetch **address** — forcing the mini to recompute its address fresh
+  (bypassing `xe_var_vfetch_address`) gave the identical wrong result.
+- **Out-of-bounds** address — a shader marker confirmed the computed address is
+  in `[0x1000000, 0x8000000)` (in the vertex buffer's binding).
+- The **byte-extract decode** — replacing `OpBitFieldUExtract` with manual
+  shift+mask gave the identical wrong result.
+- **`r0` (index register) clobbering** — SPIR-V shows `registers[0]` is written
+  once (index setup) and only read by the fetches until after the color result.
+- **Primitive conversion** — `host_vertex_shader_type = kVertex`, `guest/host
+  prim = TriangleList`; no repack, vertices come straight from shared memory.
+- **Cross-GPU env** — tried the real Intel Iris Xe GPU (`--device /dev/dri`,
+  intel_icd). It renders (3535 present/resolve ops) but the headless Xvfb has
+  **no DRI3**, so nothing can be captured; frontbuffer/vertex readbacks return 0
+  on both GPUs (GPU-produced data is not CPU-mirror-visible — a consistent
+  measurement limitation of this environment).
+
+### The remaining suspect
+With the shader, guest data, upload, and address all verified correct, the color
+`vfetch_mini` load returns a **constant** `0x00000100` for all vertices while the
+`vfetch_full` position load at the same base address returns correct per-vertex
+data. The constant-ness points to a **lavapipe (software rasterizer)
+miscompilation** of the packed-color fetch path (or a device-buffer-content issue
+that cannot be measured here — every GPU-buffer / frontbuffer readback in this
+Docker+Xvfb environment reads zero for GPU-produced data).
+
+### Decisive next step (needs a real display, which the headless harness lacks)
+Run the port on **real hardware with a working DRI3 display** (e.g. the host's
+Intel Iris Xe on the actual Wayland/X session, not headless Xvfb). If the
+colors are correct there, the port is functionally correct and the near-black
+output is purely a lavapipe test-environment artifact. If still near-black, it is
+a genuine SDK/GPU bug to escalate upstream (the shader translation itself is
+verified correct, so the escalation target would be the shared-memory SSBO load
+path or Mesa/lavapipe).
+
+**All diagnostics used during this investigation have been reverted; the SDK
+working tree is back to the M0–M3 patches + inert cvar-gated blend diagnostics.**
+
+### M4 update — DECISIVE evidence the defect is lavapipe-specific (multi-binding SSBO load)
+
+`maxStorageBufferRange`: **lavapipe = 128 MB**, **Intel Iris Xe = 4 GB**. The
+shared-memory SSBO is split into `512MB / maxStorageBufferRange` bindings:
+- lavapipe → **4 bindings**, loads go through `LoadUint32FromSharedMemory`'s
+  multi-binding path (`address>>25` binding index + `OpSwitch`/`OpPhi`).
+- Intel → **1 binding**, a **direct** `shared_memory[0][address]` load with no
+  multi-binding path at all.
+
+The UI vertex-color load fails **only** on the multi-binding path: position/UV
+(also binding 3, same buffer, adjacent dwords) read correctly, but the color
+dword returns a constant `0x00000100`. Since Intel never takes the multi-binding
+path, the port almost certainly renders correctly on Intel/real hardware.
+
+Additional eliminations this round:
+- Replaced the `OpSwitch`/`OpPhi` binding load with a branch-free
+  unconditional-load + `OpSelect` chain (constant descriptor indices) → **no
+  change** (rules out the switch/phi form AND dynamic descriptor indexing).
+- Forced single-binding (`GetSharedMemoryStorageBufferCountLog2 → 0`) on lavapipe
+  → the whole frame goes black: lavapipe **clamps** the 512 MB SSBO binding to
+  128 MB, so the vertex buffer at ~483 MB becomes unreadable (position breaks
+  too). Confirms multi-binding is *required* on lavapipe and mostly works.
+- `GALLIVM_PERF=nopt` (disable LLVMpipe optimizer) → no change.
+- No memexport draws target the vertex buffer (it is CPU-written; mirror = cream).
+
+**Bottom line:** the bug lives in the lavapipe execution of the 4-binding SSBO
+load for this specific fetch; it is not reproducible on a single-binding device.
+This cannot be fixed in the port/shader (both verified correct) or worked around
+on lavapipe without breaking the >128 MB addressing it needs. **The remaining
+action is a real-hardware visual (Intel, with a DRI3 display) — expected to be
+correct.** run_port.sh now passes `GALLIVM_PERF`/`LP_NUM_THREADS` env through and
+supports `CIVREV_ICD/CIVREV_DRI/CIVREV_SOFTGL` for a real-GPU run.
+
+---
+
+## M4 — ✅ PASS (2026-07-12): copyright/ESRB screens render correctly; boot reaches the title screen
+
+**Formal verification (compare_screens.py vs pixel-deterministic Xenia references,
+threshold 0.90):**
+- `00_copyright` (Take-Two legal text): **combined = 0.9942 → PASS**
+- `01_esrb` ("ESRB Notice: Online Interactions Not Rated by the ESRB"): **combined = 0.9983 → PASS**
+- `02_loading` ("Loading..." text): renders at full brightness, correct position/color
+- Title screen: full 3D world panorama + "Press START to begin", animating at 4-frame
+  cycle (vs 03_title: 0.69 — expected; the reference titled scene is live/never settles
+  per the oracle's own notes). Artifacts: run `port_output/m4_final` (fb dumps +
+  extracted `screens/*.png`).
+
+### Root causes found and FIXED (both were ReXGlue SDK bugs, not recompilation)
+
+**Fix 1 — texture fetch exponent bias read from the wrong fetch-constant word
+(`patches/0004-gpu-texture-fetch-exp-adjust-word3.patch`).**
+`SpirvShaderTranslator::ProcessTextureFetchInstruction` applied the result exponent
+bias from bits 13:18 of fetch constant **word 4** — which is inside the `lod_bias`
+field. Per `xe_gpu_texture_fetch_t` (the SDK's own xenos.h), `exp_adjust` is bits
+13:18 of **word 3**. CivRev's UI texture fetch constants have lod_bias bits that
+decode as −8 → every texture sample was multiplied by 2⁻⁸ = **1/256** — the
+session-long "~1/256 quantization" bug. All UI is texture-alpha modulated
+(Scaleform font atlas), so every screen rendered near-black. Proof chain: guest
+vertex colors verified bright end-to-end (CPU mirror → UploadRanges staging →
+device SSBO via draw-time readback → shader-loaded word via SSBO debug store →
+decoded value → PS r1 interpolator = cream 0xFFEFEFD5), PS constants c2/c3 verified
+identity in the bound uniform, final oC0 alpha measured ≤ 1/255 via atomic-max
+debug store → the tfetch sample was the only dim factor; ×255 experiment confirmed;
+word-3 fix renders identically to the experiment. (The lavapipe-vs-Intel
+`maxStorageBufferRange` theory from earlier today was a red herring — the readbacks
+that "proved" it were unreliable; the working memexport-style readback disproved it.)
+
+**Fix 2 — `execute_unclipped_draw_vs_on_cpu` default restored to Xenia's `true`
+(`patches/0005-gpu-execute-unclipped-draw-vs-on-cpu-default-true.patch`).**
+ReXGlue changed this Xenia cvar default to `false`. With it off, clip-disabled
+draws (Scaleform stencil-mask rectangles in GFX_LegalScreen.gfx) get their EDRAM
+extent estimated from the scissor alone (8192 high), so a depth/stencil-only draw
+claimed `len=2048` tiles from base 1328 — **wrapping around EDRAM and stealing tile
+ownership of the display color buffer (tiles 0-720)**. The next display resolve
+then dumped from the depth render target → black frames for the whole legal-screen
+phase (`ChangeOwnership` timeline: claim [2x color 0..720] → claim [4x depth
+1328 +2048 wraps] → resolve dump owner = 4x depth). The loading screen survived
+because its frames have no mask draws. With the Xenia default restored, the CPU
+vertex-shader extent estimation bounds the mask draw and ownership stays correct.
+
+### Also fixed in the runner
+- **Audio**: the runtime SDL3 build has no "dummy" audio target (alsa/pipewire/pulse
+  only) — `SDL_AUDIODRIVER=dummy` made `XAudioRegisterRenderDriverClient` fail and
+  the render-driver callback never fired. run_port.sh now writes an ALSA null-device
+  `/etc/asound.conf` and sets `SDL_AUDIODRIVER=alsa` (callbacks verified firing).
+- run_port.sh: `CIVREV_ICD`/`CIVREV_DRI`/`CIVREV_SOFTGL` (real-GPU runs),
+  `EXTRA_ARGS` passthrough, `CIVREV_FB_DUMP[_START|_STEP]` — an SDK-side guest
+  front-buffer PPM dump (`patches/0006-diag-civrev-frontbuffer-ppm-dump.patch`,
+  env-gated) that captures presented frames below the X11 layer (needed because
+  llvmpipe present warm-up hides the short legal screens from X11 grabs; frames are
+  Xenos-tiled — untile with XGAddress2DTiledOffset, see port_output/m4_final).
+
+### Upstream
+- Issue A (CP ring re-init race) and B (PWL gamma swap) unchanged.
+- Old draft "Issue C" (brightness) superseded: the real cause is the exp_adjust
+  word-3/word-4 bug (Fix 1) — rewrite before filing. Fix 2 is Xenia-default
+  restoration and should also go upstream. NOT filed — needs user confirmation.

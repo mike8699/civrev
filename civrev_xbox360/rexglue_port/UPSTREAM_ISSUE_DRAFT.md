@@ -49,52 +49,41 @@ gamma_ramp_pwl_upload_entry.delta = gamma_ramp_pwl_entry.base;
 Xenia uploads these unswapped. Affects 2_10_10_10 front-buffer titles.
 (Found by inspection while chasing Issue C; not the cause of C.)
 
-## Issue C: all game-rendered output quantized to ~1/256 (CivRev, Vulkan,
-llvmpipe AND Intel ANV)
+## Issue C: texture fetch result exponent bias read from fetch constant word 4 (lod_bias) instead of word 3 (exp_adjust)
 
-**Symptom:** structurally-correct frames (text crisp, layout right) but the
-swap-source front buffer stores **white as byte 1, not 255** — every value is
-~1/256 of correct. The game's healthy gamma ramp then maps source-index-1 → ~0,
-so present max byte = 1 (near-black).
+**Title:** SPIR-V translator: texture fetch exp_adjust taken from bits 13:18 of
+fetch constant word **4** — that's inside `lod_bias`; it lives in word **3**
 
-**Proof the render is otherwise correct:** remapping the gamma table so any
-nonzero source index → full-bright makes the Loading screen render crisp,
-correct WHITE text (screenshot available). Secondary artifact: black
-background carries a green floor (G=1, R=B=0).
+**Version:** nightly-20260628-8dadea63
 
-**Eliminated with evidence:**
-- present/gamma (boost proves it; ramp[1]=1/1023, ramp[255]=1023; plain==fxaa)
-- render `color_exp_bias` = 0 (system constants)
-- resolve `copy_dest_exp_bias` = 0 → resolve uses the fast raw-byte-copy path
-  (fmt0→fmt6 bitwise-equivalent), so byte-1 is already in EDRAM pre-resolve
-- all chain shaders (texture_load_32bpb, resolve_fast_32bpp, gamma) are the
-  stock precompiled SPIR-V
-- host RT format R8G8B8A8_UNORM; cross-GPU identical ⇒ deterministic logic
+`SpirvShaderTranslator::ProcessTextureFetchInstruction` (spirv_translator_fetch.cpp,
+"Apply the exponent bias from the bits 13:18 of the fetch constant word 4"):
+the bias is extracted from `fetch_constant_word_4_signed`. Per
+`xe_gpu_texture_fetch_t` in the SDK's own xenos.h, `exp_adjust : 6` is at bit 13 of
+**dword_3**; dword_4 bits 12:21 are `lod_bias : 10`.
 
-**Localized (per-channel readback of resolve outputs in guest RAM):** the
-game's intermediate UI render targets are FULLY BRIGHT (chmax=[255,255,255,x]),
-but the presented display front buffer is near-zero RGB across the whole frame
-(chmax=[1,2,1,255]). So the final composite into the display buffer produces
-~1/128–1/256 RGB with full alpha. Not the color write mask (forcing RGBA: no
-change), not swap-texture staleness (forcing reload: no change), not resolve
-exp_bias (=0, fast raw copy).
+Repro: Civilization Revolution (545407E5). Its UI texture fetch constants carry a
+lod_bias whose bits 13:18 decode as −8, so every texture sample is scaled by 2^-8 =
+1/256. All Scaleform UI (font-atlas-alpha modulated) renders at ~1/256 brightness —
+near-black boot screens. Fix: read word 3 (patch attached). Verified: legal screens
+match the Xenia reference at SSIM-combined 0.994+ after the fix.
 
-**CONFIRMED an SDK render bug (not recompilation), via a host-visible staging
-readback of the device-local shared-memory buffer:** every draw's bound
-vertex-color data in GPU memory is BRIGHT (max byte 255 / 0xFFFFFFFF) for all
-three UI pixel shaders (2E37/C3BE/3A92). The FMT_8_8_8_8 fetch normalization is
-correct (0xFF → 1.0, packed width 8, matches Xenia), and the composite VS/PS
-are identity (VS `max o0,r0,r0`; PS `mad oC0,r0,c2,c3`, c2=1, c3=0). So bright
-input → ~1/256 output: the SDK's render pipeline dims it.
+## Issue D: `execute_unclipped_draw_vs_on_cpu` default diverges from Xenia (false vs true) — EDRAM ownership stolen via wrapped whole-EDRAM claims
 
-Narrowed to the 2x-MSAA display-composite draws: two color resolves with
-IDENTICAL params (bright 1D818000 vs dim 1F6F8000; both src_fmt=0 dst_fmt=6
-exp_bias=0 msaa=2x sample_sel=k01 edram_base=0) produce different brightness,
-so the resolve is exonerated — the EDRAM content already differs. Not the color
-write mask (forcing RGBA: no change). The dimming is in the host-RT→EDRAM store
-or blend for those specific 2x-MSAA draws.
+**Title:** draw_extent_estimator: default `execute_unclipped_draw_vs_on_cpu=false`
+lets clip-disabled stencil-mask draws claim the entire EDRAM (wrapped), breaking
+render target ownership
 
-A RenderDoc capture reproduces it (attach .rdc), but replay hangs headless here
-(both lavapipe and Intel). Ask maintainers to inspect that draw's blend state
-and the host-RT→EDRAM 2x-MSAA store for k_8_8_8_8. Repro: CivRev 545407E5,
-boot to Loading screen.
+**Version:** nightly-20260628-8dadea63
+
+Xenia defaults this cvar to `true`. With the ReXGlue default of `false`,
+`DrawExtentEstimator::EstimateMaxY` falls back to the scissor for clip-disabled
+draws. Scaleform stencil-mask rectangles (clip disabled, 8192 scissor) in CivRev's
+legal screens then get `length_used_tiles` = full EDRAM: a depth/stencil-only draw
+at base 1328 claims 2048 tiles, wrapping around and taking ownership of the display
+color buffer's tiles 0-720. The next display resolve dumps from the depth render
+target and presents black. Ownership timeline captured with instrumentation:
+claim [2x color @0 len 720] → claim [4x depth @1328 len 2048, wraps] → resolve dump
+owner = 4x depth. Restoring the Xenia default fixes it (patch attached);
+recommending either the default flip or clamping single-RT claims to avoid wrapping
+through other RTs' bases.

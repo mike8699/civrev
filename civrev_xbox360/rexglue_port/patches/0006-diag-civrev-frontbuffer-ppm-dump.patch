@@ -1,0 +1,101 @@
+diff --git a/src/graphics/vulkan/command_processor.cpp b/src/graphics/vulkan/command_processor.cpp
+index a40436e..55ea46d 100644
+--- a/src/graphics/vulkan/command_processor.cpp
++++ b/src/graphics/vulkan/command_processor.cpp
+@@ -12,6 +12,8 @@
+ #include <algorithm>
+ #include <array>
+ #include <cstdint>
++#include <cstdio>
++#include <cstdlib>
+ #include <cstring>
+ #include <iterator>
+ #include <mutex>
+@@ -2332,6 +2334,79 @@ void VulkanCommandProcessor::IssueSwap(uint32_t frontbuffer_ptr, uint32_t frontb
+     REXGPU_ERROR("XELOG_GPU PRESENT: swap_texture_view=NULL");
+     return;
+   }
++  // civrev debug: dump the guest front buffer (the swap source in shared
++  // memory) to PPM via a synchronous GPU readback — same submit-and-await
++  // pattern as the memexport readback (safe at the swap boundary). Set
++  // CIVREV_FB_DUMP=<dir> to enable. Note: contents are in Xenos tiled layout;
++  // brightness is unaffected by tiling.
++  {
++    static const char* dump_dir = std::getenv("CIVREV_FB_DUMP");
++    if (dump_dir && frontbuffer_ptr) {
++      static uint32_t swap_count = 0, dump_count = 0;
++      static uint32_t dump_start = []() {
++        const char* s = std::getenv("CIVREV_FB_DUMP_START");
++        return s ? uint32_t(std::atoi(s)) : 0u;
++      }();
++      static uint32_t dump_step = []() {
++        const char* s = std::getenv("CIVREV_FB_DUMP_STEP");
++        return s ? std::max(1u, uint32_t(std::atoi(s))) : 2u;
++      }();
++      ++swap_count;
++      if (swap_count >= dump_start && swap_count % dump_step == 0 && dump_count < 200)
++      for (uint32_t fb_alt = 0; fb_alt < 2; ++fb_alt) {
++        uint32_t alt_ptr = fb_alt == 0 ? frontbuffer_ptr
++                                       : (frontbuffer_ptr == 0x1F360000u ? 0x1F6F8000u : 0x1F360000u);
++        uint32_t fb_w = frontbuffer_width ? std::min(frontbuffer_width, 1280u) : 1280u;
++        uint32_t fb_h = frontbuffer_height ? std::min(frontbuffer_height, 720u) : 720u;
++        uint32_t size = fb_w * fb_h * 4;
++        const ui::vulkan::VulkanDevice* vd = GetVulkanDevice();
++        const auto& dfn = vd->functions();
++        VkDevice device = vd->device();
++        VkBuffer rb = VK_NULL_HANDLE; VkDeviceMemory rbm = VK_NULL_HANDLE;
++        uint32_t mt = 0; VkDeviceSize ms = 0;
++        if (ui::vulkan::util::CreateDedicatedAllocationBuffer(
++                vd, size, VK_BUFFER_USAGE_TRANSFER_DST_BIT,
++                ui::vulkan::util::MemoryPurpose::kReadback, rb, rbm, &mt, &ms)) {
++          shared_memory_->RequestRange(alt_ptr, size);
++          shared_memory_->Use(VulkanSharedMemory::Usage::kRead);
++          SubmitBarriers(true);
++          VkBufferCopy cr = {}; cr.srcOffset = alt_ptr; cr.size = size;
++          deferred_command_buffer_.CmdVkCopyBuffer(shared_memory_->buffer(), rb, 1, &cr);
++          PushBufferMemoryBarrier(rb, 0, size, VK_PIPELINE_STAGE_TRANSFER_BIT,
++                                  VK_PIPELINE_STAGE_HOST_BIT, VK_ACCESS_TRANSFER_WRITE_BIT,
++                                  VK_ACCESS_HOST_READ_BIT);
++          if (AwaitAllQueueOperationsCompletion()) {
++            void* map = nullptr;
++            if (dfn.vkMapMemory(device, rbm, 0, VK_WHOLE_SIZE, 0, &map) == VK_SUCCESS) {
++              VkMappedMemoryRange mr = {VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE};
++              mr.memory = rbm; mr.size = VK_WHOLE_SIZE;
++              dfn.vkInvalidateMappedMemoryRanges(device, 1, &mr);
++              const uint8_t* px = reinterpret_cast<const uint8_t*>(map);
++              std::string path = fmt::format("{}/fb_{:03d}_{:08X}{}.ppm", dump_dir, dump_count,
++                                             alt_ptr, fb_alt ? "_alt" : "");
++              FILE* fp = std::fopen(path.c_str(), "wb");
++              if (fp) {
++                std::fprintf(fp, "P6\n%u %u\n255\n", fb_w, fb_h);
++                uint8_t cmax[4] = {0, 0, 0, 0};
++                for (uint32_t i = 0; i < fb_w * fb_h; ++i) {
++                  const uint8_t* p = px + i * 4;
++                  for (int c = 0; c < 4; ++c) if (p[c] > cmax[c]) cmax[c] = p[c];
++                  std::fputc(p[0], fp); std::fputc(p[1], fp); std::fputc(p[2], fp);
++                }
++                std::fclose(fp);
++                REXGPU_INFO("C3DUMP wrote {} chan_max=({},{},{},{})", path, cmax[0], cmax[1],
++                            cmax[2], cmax[3]);
++              }
++              dfn.vkUnmapMemory(device, rbm);
++            }
++          }
++          dfn.vkDestroyBuffer(device, rb, nullptr);
++          dfn.vkFreeMemory(device, rbm, nullptr);
++        }
++        if (fb_alt == 1) ++dump_count;
++      }
++    }
++  }
+   // The swap gamma / FXAA pass samples source texels by pixel index, but swap
+   // textures may be allocation-padded. Prefer the active frontbuffer region
+   // from the swap packet, scaled proportionally to the actual source texture.
+@@ -4194,6 +4269,7 @@ bool VulkanCommandProcessor::IssueDraw(xenos::PrimitiveType prim_type, uint32_t
+     }
+   }
+ 
++
+   return true;
+ }
+ 

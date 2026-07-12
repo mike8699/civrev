@@ -59,16 +59,20 @@ if [ "${CIVREV_KEEP_MOVIES:-0}" != 1 ]; then
     done
 fi
 export DISPLAY=:99
-export VK_DRIVER_FILES=/usr/share/vulkan/icd.d/lvp_icd.json
-export VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json
-export LIBGL_ALWAYS_SOFTWARE=1
-export SDL_AUDIODRIVER=dummy
+export VK_DRIVER_FILES=/usr/share/vulkan/icd.d/'"${CIVREV_ICD:-lvp_icd.json}"'
+export VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/'"${CIVREV_ICD:-lvp_icd.json}"'
+export LIBGL_ALWAYS_SOFTWARE='"${CIVREV_SOFTGL:-1}"'
+# The runtime SDL3 build has no "dummy" audio target (alsa/pipewire/pulse only);
+# give it a working ALSA *null* device so the XAudio render-driver callback
+# fires (games pace parts of their frame/UI loop on audio submission).
+printf "pcm.!default { type null }\nctl.!default { type null }\n" > /etc/asound.conf
+export SDL_AUDIODRIVER=alsa
 export LD_LIBRARY_PATH=/sdk/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
 Xvfb :99 -screen 0 1280x720x24 &
 sleep 2
 echo "starting port binary"
 cd /output
-/port/'"$BIN_NAME"' --log_level=trace --log_file=/output/run.log --game_data_root=/game_data --gpu_plugin=xenos \
+/port/'"$BIN_NAME"' --log_level=trace --log_file=/output/run.log --game_data_root=/game_data --gpu_plugin=xenos '"${EXTRA_ARGS:-}"' \
     > /output/game.stdout 2>&1 &
 GAME_PID=$!
 echo "$GAME_PID" > /output/game.pid
@@ -95,6 +99,12 @@ import -window root /output/final.png 2>/dev/null || true
 run_container() {
     docker run --name "$CONTAINER" \
         --privileged \
+        ${CIVREV_DRI:+--device /dev/dri:/dev/dri} \
+        -e GALLIVM_PERF -e LP_NUM_THREADS -e MESA_GLSL_CACHE_DISABLE \
+        -e VK_INSTANCE_LAYERS -e VK_LOADER_LAYERS_ENABLE -e VK_SCREENSHOT_DIR \
+        -e VK_SCREENSHOT_FRAMES -e VK_SCREENSHOT_FORMAT -e SDL_VIDEODRIVER \
+        -e GFXRECON_CAPTURE_FILE -e GFXRECON_CAPTURE_FRAMES -e GFXRECON_CAPTURE_TRIGGER \
+        -e CIVREV_FB_DUMP -e CIVREV_FB_DUMP_START -e CIVREV_FB_DUMP_STEP \
         --tmpfs /dev/shm:rw,nosuid,nodev,exec,size=1g \
         --security-opt seccomp=unconfined \
         -e CIVREV_KEEP_MOVIES="${CIVREV_KEEP_MOVIES:-0}" \
