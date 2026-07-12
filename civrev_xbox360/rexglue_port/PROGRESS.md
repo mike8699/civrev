@@ -575,3 +575,33 @@ rerun build.sh, which now always copies.
 
 Verified after fix: baseline title at t=17s ring_errors=0; windowed 960x540
 title at t=19s ring_errors=0 (port_output/baseline4, win_f11).
+
+---
+
+## Input follow-up (2026-07-12): keystroke synthesis — intro skip + menu verified
+
+Symptom: MnK controls didn't skip the intro movies. Root cause: the game skips
+Bink intros via **XamInputGetKeystroke** (event-style VK_PAD_* input), not by
+polling XamInputGetState. The MnK driver had a keystroke queue but never fed it
+(EnqueueKeystroke was unused), so the SDL gamepad driver was the only source of
+keystrokes — absent for keyboard/mouse.
+
+Fix (folded into patches/0007): MnkInputDriver::GetKeystroke now synthesizes
+KEYDOWN/KEYUP VK_PAD_* keystrokes from mapped-button state transitions (A/B/X/Y,
+Start/Back, shoulders, thumb-presses, dpad, triggers — same 16-control table the
+SDL driver uses), tracked via last_keystroke_buttons_.
+
+Verified end-to-end (scratchpad final_input.sh / menu_nav.sh, movies KEPT):
+- INTRO SKIP: with the full ~2-minute IntroMovie playing, a Return (START/A)
+  press brings up the title screen ~18s later -> the movie was skipped, not
+  waited out. Reproduced 3×.
+- MENU NAVIGATE: left-stick down (mapped to S) moves the highlight
+  (Play Now -> Extras, screenshot-confirmed).
+- MENU SELECT: Return (A) on "Single Player" enters its submenu (New Game /
+  Load Game / Game of the Week / Play Scenario, 278k-px screen change,
+  OCR-confirmed).
+Note: dpad does NOT drive this menu (game uses the left stick) — expected. The
+menu uses the LEFT STICK for navigation; the dpad is inert here by design.
+Harness caveat: llvmpipe renders ~1 fps, so short xdotool taps sometimes miss a
+poll window (intermittent 0-diff frames); hold keys or use discrete taps. On a
+real GPU host (60 fps) input is smooth.

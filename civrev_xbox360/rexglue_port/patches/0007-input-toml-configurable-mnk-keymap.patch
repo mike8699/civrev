@@ -1,5 +1,5 @@
 diff --git a/include/rex/input/mnk/mnk_input_driver.h b/include/rex/input/mnk/mnk_input_driver.h
-index 2483b99..3280b7e 100644
+index 2483b99..4b52f78 100644
 --- a/include/rex/input/mnk/mnk_input_driver.h
 +++ b/include/rex/input/mnk/mnk_input_driver.h
 @@ -11,6 +11,7 @@
@@ -37,6 +37,18 @@ index 2483b99..3280b7e 100644
    std::mutex state_mutex_;
    bool key_down_[256] = {};
  
+@@ -71,8 +82,10 @@ class MnkInputDriver final : public InputDriver,
+   bool mouse_captured_ = false;
+   bool has_focus_ = true;
+ 
+-  // Keystroke queue
++  // Keystroke queue and the last button set reported through it (bits ordered
++  // per the kKeystrokeControls table in GetKeystroke).
+   std::queue<X_INPUT_KEYSTROKE> keystroke_queue_;
++  uint32_t last_keystroke_buttons_ = 0;
+ 
+   // Packet number incremented on state change
+   uint32_t packet_number_ = 0;
 diff --git a/include/rex/input/mnk/mnk_keymap.h b/include/rex/input/mnk/mnk_keymap.h
 new file mode 100644
 index 0000000..0c0adca
@@ -213,7 +225,7 @@ index 698967d..96c4683 100644
  target_link_libraries(rexinput PUBLIC rexcore rexui SDL3::SDL3)
 +target_link_libraries(rexinput PRIVATE tomlplusplus)
 diff --git a/src/input/mnk/mnk_input_driver.cpp b/src/input/mnk/mnk_input_driver.cpp
-index d7b8a11..3f20093 100644
+index d7b8a11..f89c0bb 100644
 --- a/src/input/mnk/mnk_input_driver.cpp
 +++ b/src/input/mnk/mnk_input_driver.cpp
 @@ -20,6 +20,8 @@
@@ -376,10 +388,10 @@ index d7b8a11..3f20093 100644
 +      buttons |= mask;
 +    }
 +  }
-+
+ 
 +  uint8_t lt = pressed(Control::kLeftTrigger) ? 0xFF : 0;
 +  uint8_t rt = pressed(Control::kRightTrigger) ? 0xFF : 0;
- 
++
 +  // Digital stick emulation from keys.
    int32_t lx = 0;
    int32_t ly = 0;
@@ -434,7 +446,57 @@ index d7b8a11..3f20093 100644
  
    auto clamp16 = [](int32_t v) -> int16_t {
      return static_cast<int16_t>(std::clamp(v, (int32_t)INT16_MIN, (int32_t)INT16_MAX));
-@@ -334,6 +403,12 @@ void MnkInputDriver::OnMouseDown(rex::ui::MouseEvent& e) {
+@@ -236,6 +305,49 @@ X_RESULT MnkInputDriver::GetKeystroke(uint32_t user_index, uint32_t flags,
+     return X_ERROR_DEVICE_NOT_CONNECTED;
+   }
+   std::lock_guard lock(state_mutex_);
++
++  // Synthesize VK_PAD_* keystrokes from mapped button state transitions, the
++  // way the SDL gamepad driver does - games use XamInputGetKeystroke for
++  // event-style input (e.g. skipping the intro movies) rather than polling
++  // XamInputGetState.
++  if (is_active() && has_focus_) {
++    // Bits 0-15 mirror X_INPUT_GAMEPAD buttons; 16/17 are the triggers.
++    static constexpr std::pair<Control, VirtualKey> kKeystrokeControls[] = {
++        {Control::kDpadUp, VirtualKey::kXInputPadDpadUp},
++        {Control::kDpadDown, VirtualKey::kXInputPadDpadDown},
++        {Control::kDpadLeft, VirtualKey::kXInputPadDpadLeft},
++        {Control::kDpadRight, VirtualKey::kXInputPadDpadRight},
++        {Control::kStart, VirtualKey::kXInputPadStart},
++        {Control::kBack, VirtualKey::kXInputPadBack},
++        {Control::kLeftThumb, VirtualKey::kXInputPadLThumbPress},
++        {Control::kRightThumb, VirtualKey::kXInputPadRThumbPress},
++        {Control::kLeftShoulder, VirtualKey::kXInputPadLShoulder},
++        {Control::kRightShoulder, VirtualKey::kXInputPadRShoulder},
++        {Control::kA, VirtualKey::kXInputPadA},
++        {Control::kB, VirtualKey::kXInputPadB},
++        {Control::kX, VirtualKey::kXInputPadX},
++        {Control::kY, VirtualKey::kXInputPadY},
++        {Control::kLeftTrigger, VirtualKey::kXInputPadLTrigger},
++        {Control::kRightTrigger, VirtualKey::kXInputPadRTrigger},
++    };
++    uint32_t current = 0;
++    for (size_t i = 0; i < std::size(kKeystrokeControls); ++i) {
++      if (IsControlPressed(kKeystrokeControls[i].first)) {
++        current |= uint32_t(1) << i;
++      }
++    }
++    uint32_t changed = current ^ last_keystroke_buttons_;
++    if (changed) {
++      for (size_t i = 0; i < std::size(kKeystrokeControls); ++i) {
++        if (changed & (uint32_t(1) << i)) {
++          EnqueueKeystroke(uint16_t(kKeystrokeControls[i].second),
++                           (current & (uint32_t(1) << i)) != 0);
++        }
++      }
++      last_keystroke_buttons_ = current;
++    }
++  }
++
+   if (keystroke_queue_.empty()) {
+     return X_ERROR_EMPTY;
+   }
+@@ -334,6 +446,12 @@ void MnkInputDriver::OnMouseDown(rex::ui::MouseEvent& e) {
      case rex::ui::MouseEvent::Button::kMiddle:
        SetKeyState(static_cast<uint16_t>(VirtualKey::kMButton), true);
        break;
@@ -447,7 +509,7 @@ index d7b8a11..3f20093 100644
      default:
        break;
    }
-@@ -353,6 +428,12 @@ void MnkInputDriver::OnMouseUp(rex::ui::MouseEvent& e) {
+@@ -353,6 +471,12 @@ void MnkInputDriver::OnMouseUp(rex::ui::MouseEvent& e) {
      case rex::ui::MouseEvent::Button::kMiddle:
        SetKeyState(static_cast<uint16_t>(VirtualKey::kMButton), false);
        break;
@@ -460,7 +522,7 @@ index d7b8a11..3f20093 100644
      default:
        break;
    }
-@@ -370,6 +451,19 @@ void MnkInputDriver::OnMouseMove(rex::ui::MouseEvent& e) {
+@@ -370,6 +494,19 @@ void MnkInputDriver::OnMouseMove(rex::ui::MouseEvent& e) {
    prev_mouse_y_ = y;
  }
  
