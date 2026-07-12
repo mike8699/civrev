@@ -1,0 +1,1020 @@
+diff --git a/include/rex/input/mnk/mnk_input_driver.h b/include/rex/input/mnk/mnk_input_driver.h
+index 2483b99..3280b7e 100644
+--- a/include/rex/input/mnk/mnk_input_driver.h
++++ b/include/rex/input/mnk/mnk_input_driver.h
+@@ -11,6 +11,7 @@
+ #pragma once
+ 
+ #include <rex/input/input_driver.h>
++#include <rex/input/mnk/mnk_keymap.h>
+ #include <rex/ui/window_listener.h>
+ 
+ #include <cstdint>
+@@ -44,6 +45,7 @@ class MnkInputDriver final : public InputDriver,
+   void OnMouseDown(rex::ui::MouseEvent& e) override;
+   void OnMouseUp(rex::ui::MouseEvent& e) override;
+   void OnMouseMove(rex::ui::MouseEvent& e) override;
++  void OnMouseWheel(rex::ui::MouseEvent& e) override;
+ 
+   // WindowListener
+   void OnClosing(rex::ui::UIEvent& e) override;
+@@ -57,9 +59,18 @@ class MnkInputDriver final : public InputDriver,
+   void UpdateMouseCapture();
+   void SetKeyState(uint16_t vk, bool down);
+   void EnqueueKeystroke(uint16_t vk_pad, bool down);
++  bool IsControlPressed(Control control) const;
+ 
+   rex::ui::Window* attached_window_ = nullptr;
+ 
++  // Bindings: from the mnk_config TOML when it loads, else the keybind_* cvars.
++  MnkKeymap keymap_;
++  bool config_loaded_ = false;
++
++  // Wheel notches are momentary - pulse the bound control for a few polls.
++  int32_t wheel_up_pulse_ = 0;
++  int32_t wheel_down_pulse_ = 0;
++
+   std::mutex state_mutex_;
+   bool key_down_[256] = {};
+ 
+diff --git a/include/rex/input/mnk/mnk_keymap.h b/include/rex/input/mnk/mnk_keymap.h
+new file mode 100644
+index 0000000..0c0adca
+--- /dev/null
++++ b/include/rex/input/mnk/mnk_keymap.h
+@@ -0,0 +1,152 @@
++/**
++ * @file        rex/input/mnk/mnk_keymap.h
++ * @brief       TOML-configurable key/mouse -> Xbox 360 controller mapping.
++ *
++ * Loads a controls.toml describing which keyboard keys / mouse buttons map to
++ * each Xbox 360 controller control, plus mouse-motion options (which stick the
++ * mouse drives, sensitivity, Y inversion) and mouse-wheel bindings. When no
++ * file is configured (or it fails to parse), bindings fall back to the legacy
++ * per-control `keybind_*` cvars so existing behavior is preserved.
++ *
++ * @section mnk_keymap_schema Schema (all keys optional)
++ *
++ * @code{.toml}
++ * [options]
++ * enabled = true            # enable MnK emulation (same as --mnk_mode=true)
++ * user_index = 0            # controller slot 0-3
++ *
++ * [mouse]
++ * stick = "right"           # which stick mouse motion drives: right|left|none
++ * sensitivity = 1.0         # mouse sensitivity multiplier
++ * invert_y = false          # invert mouse Y
++ * wheel_up = "right_trigger"    # controller control pulsed by wheel up
++ * wheel_down = "left_trigger"   # controller control pulsed by wheel down
++ *
++ * [buttons]                 # value: key name string, or array of them
++ * a = ["Space", "LMB"]
++ * b = "Shift"
++ * start = ["Return", "Escape"]
++ * # ... (see kControlNames for the full list)
++ *
++ * [triggers]
++ * left = "RMB"
++ * right = "LMB"
++ *
++ * [sticks.left]             # digital stick emulation from keys
++ * up = "W"
++ * down = "S"
++ * left = "A"
++ * right = "D"
++ *
++ * [sticks.right]
++ * up = ""
++ * # ...
++ * @endcode
++ *
++ * Key names are the rex::ui::ParseVirtualKey() names ("A".."Z", "0".."9",
++ * "F1".."F24", "Space", "Return", "Escape", "Tab", "Shift", "Control", "Alt",
++ * "Up"/"Down"/"Left"/"Right", "LMB"/"RMB"/"MMB", numpad keys, ...).
++ *
++ * @copyright   Copyright (c) 2026 Tom Clay <tomc@tctechstuff.com>
++ *              All rights reserved.
++ *
++ * @license     BSD 3-Clause License
++ *              See LICENSE file in the project root for full license text.
++ */
++#pragma once
++
++#include <rex/ui/virtual_key.h>
++
++#include <array>
++#include <cstdint>
++#include <string>
++#include <string_view>
++#include <vector>
++
++namespace rex::input::mnk {
++
++// Logical controller controls that can be bound to keys / mouse buttons.
++enum class Control : size_t {
++  kA,
++  kB,
++  kX,
++  kY,
++  kLeftShoulder,
++  kRightShoulder,
++  kLeftThumb,
++  kRightThumb,
++  kBack,
++  kStart,
++  kGuide,
++  kDpadUp,
++  kDpadDown,
++  kDpadLeft,
++  kDpadRight,
++  kLeftTrigger,
++  kRightTrigger,
++  kLStickUp,
++  kLStickDown,
++  kLStickLeft,
++  kLStickRight,
++  kRStickUp,
++  kRStickDown,
++  kRStickLeft,
++  kRStickRight,
++  kCount,
++};
++
++// Which stick mouse motion drives.
++enum class MouseStick : uint8_t {
++  kNone,
++  kLeft,
++  kRight,
++};
++
++class MnkKeymap {
++ public:
++  static constexpr size_t kControlCount = size_t(Control::kCount);
++
++  // TOML name for each control ([buttons]/[triggers]/[sticks.*] map onto these).
++  static const char* ControlName(Control control);
++  // Parse a controller-control name ("a", "start", "right_trigger", ...) as
++  // used by the [mouse] wheel_up / wheel_down values.
++  static Control ParseControlName(std::string_view name);  // kCount if invalid
++
++  MnkKeymap();
++
++  // Populate all bindings from the legacy keybind_* cvars (the defaults).
++  void LoadFromCvars();
++
++  // Load bindings from a TOML file, replacing the current ones entirely.
++  // On failure the previous bindings are kept and false is returned with a
++  // human-readable message in error_out.
++  bool LoadFromFile(const std::string& path, std::string* error_out);
++
++  const std::vector<rex::ui::VirtualKey>& bindings(Control control) const {
++    return bindings_[size_t(control)];
++  }
++
++  bool enabled_by_config() const { return enabled_by_config_; }
++  int32_t user_index() const { return user_index_; }
++  MouseStick mouse_stick() const { return mouse_stick_; }
++  double mouse_sensitivity() const { return mouse_sensitivity_; }
++  bool invert_mouse_y() const { return invert_mouse_y_; }
++  // Control pulsed by a wheel notch, or Control::kCount for none.
++  Control wheel_up_control() const { return wheel_up_control_; }
++  Control wheel_down_control() const { return wheel_down_control_; }
++
++  // One-line summary of the loaded bindings for logging.
++  std::string Describe() const;
++
++ private:
++  std::array<std::vector<rex::ui::VirtualKey>, kControlCount> bindings_;
++  bool enabled_by_config_ = false;
++  int32_t user_index_ = 0;
++  MouseStick mouse_stick_ = MouseStick::kRight;
++  double mouse_sensitivity_ = 1.0;
++  bool invert_mouse_y_ = false;
++  Control wheel_up_control_ = Control::kCount;
++  Control wheel_down_control_ = Control::kCount;
++};
++
++}  // namespace rex::input::mnk
+diff --git a/src/input/CMakeLists.txt b/src/input/CMakeLists.txt
+index 698967d..96c4683 100644
+--- a/src/input/CMakeLists.txt
++++ b/src/input/CMakeLists.txt
+@@ -4,6 +4,7 @@
+ add_library(rexinput OBJECT
+     input_system.cpp
+     mnk/mnk_input_driver.cpp
++    mnk/mnk_keymap.cpp
+     nop/nop_input_driver.cpp
+ )
+ add_library(rex::input ALIAS rexinput)
+@@ -19,3 +20,4 @@ else()
+ endif()
+ 
+ target_link_libraries(rexinput PUBLIC rexcore rexui SDL3::SDL3)
++target_link_libraries(rexinput PRIVATE tomlplusplus)
+diff --git a/src/input/mnk/mnk_input_driver.cpp b/src/input/mnk/mnk_input_driver.cpp
+index d7b8a11..3f20093 100644
+--- a/src/input/mnk/mnk_input_driver.cpp
++++ b/src/input/mnk/mnk_input_driver.cpp
+@@ -20,6 +20,8 @@
+ #include <algorithm>
+ #include <cmath>
+ #include <cstring>
++#include <filesystem>
++#include <utility>
+ 
+ #if REX_PLATFORM_WIN32
+ #include <Windows.h>
+@@ -29,6 +31,10 @@ REXCVAR_DEFINE_BOOL(mnk_mode, false, "Input", "Enable keyboard/mouse controller
+ REXCVAR_DEFINE_INT32(mnk_user_index, 0, "Input", "Controller slot (0-3) for MnK").range(0, 3);
+ REXCVAR_DEFINE_DOUBLE(mnk_sensitivity, 1.0, "Input", "Mouse sensitivity for right stick")
+     .range(0.01, 10.0);
++REXCVAR_DEFINE_STRING(mnk_config, "controls.toml", "Input",
++                      "Path to the TOML keyboard/mouse controller mapping. When the file exists "
++                      "its bindings replace the keybind_* cvars entirely, and its "
++                      "[options].enabled can turn MnK emulation on without --mnk_mode.");
+ 
+ REXCVAR_DEFINE_STRING(keybind_a, "Space", "Input/Keybinds/Controller", "A button");
+ REXCVAR_DEFINE_STRING(keybind_b, "Shift", "Input/Keybinds/Controller", "B button");
+@@ -70,6 +76,25 @@ MnkInputDriver::~MnkInputDriver() {
+ }
+ 
+ X_STATUS MnkInputDriver::Setup() {
++  const std::string& config_path = REXCVAR_GET(mnk_config);
++  if (!config_path.empty() && std::filesystem::exists(config_path)) {
++    std::string error;
++    if (keymap_.LoadFromFile(config_path, &error)) {
++      config_loaded_ = true;
++      REXLOG_INFO("MnK: loaded controller mapping from {} (enabled={}, user={}, mouse_stick={}): {}",
++                  config_path, keymap_.enabled_by_config(), keymap_.user_index(),
++                  keymap_.mouse_stick() == MouseStick::kRight
++                      ? "right"
++                      : (keymap_.mouse_stick() == MouseStick::kLeft ? "left" : "none"),
++                  keymap_.Describe());
++    } else {
++      REXLOG_ERROR("MnK: failed to load {}: {} - falling back to keybind_* cvars", config_path,
++                   error);
++      keymap_.LoadFromCvars();
++    }
++  } else if (!config_path.empty()) {
++    REXLOG_INFO("MnK: no config at {} - using keybind_* cvars", config_path);
++  }
+   REXLOG_INFO("MnK input driver initialized");
+   return X_STATUS_SUCCESS;
+ }
+@@ -96,19 +121,23 @@ void MnkInputDriver::OnClosing(rex::ui::UIEvent&) {
+ }
+ 
+ uint32_t MnkInputDriver::UserIndex() const {
+-  return static_cast<uint32_t>(REXCVAR_GET(mnk_user_index));
++  return config_loaded_ ? static_cast<uint32_t>(keymap_.user_index())
++                        : static_cast<uint32_t>(REXCVAR_GET(mnk_user_index));
+ }
+ 
+ bool MnkInputDriver::IsEnabled() const {
+-  return REXCVAR_GET(mnk_mode);
++  return REXCVAR_GET(mnk_mode) || (config_loaded_ && keymap_.enabled_by_config());
+ }
+ 
+-static bool IsBindPressed(const bool (&key_down)[256], const std::string& cvar_val) {
+-  VirtualKey vk = rex::ui::ParseVirtualKey(cvar_val);
+-  if (vk == VirtualKey::kNone)
+-    return false;
+-  uint16_t idx = static_cast<uint16_t>(vk);
+-  return idx < 256 && key_down[idx];
++// Any of the keys bound to the control currently held? (state_mutex_ held.)
++bool MnkInputDriver::IsControlPressed(Control control) const {
++  for (VirtualKey vk : keymap_.bindings(control)) {
++    uint16_t idx = static_cast<uint16_t>(vk);
++    if (idx < 256 && key_down_[idx]) {
++      return true;
++    }
++  }
++  return false;
+ }
+ 
+ X_RESULT MnkInputDriver::GetCapabilities(uint32_t user_index, uint32_t flags,
+@@ -151,58 +180,98 @@ X_RESULT MnkInputDriver::GetState(uint32_t user_index, X_INPUT_STATE* out_state)
+ 
+   std::lock_guard lock(state_mutex_);
+ 
++  // If the config wasn't loaded from a file the keybind_* cvars may have been
++  // changed at runtime - refresh the fallback bindings from them.
++  if (!config_loaded_) {
++    keymap_.LoadFromCvars();
++  }
++
++  // A wheel notch has no release event - hold the bound control for a couple
++  // of polls so the game reliably sees the press.
++  auto wheel_pulsed = [&](Control control) {
++    return (wheel_up_pulse_ > 0 && keymap_.wheel_up_control() == control) ||
++           (wheel_down_pulse_ > 0 && keymap_.wheel_down_control() == control);
++  };
++  auto pressed = [&](Control control) {
++    return IsControlPressed(control) || wheel_pulsed(control);
++  };
++  if (wheel_up_pulse_ > 0) {
++    --wheel_up_pulse_;
++  }
++  if (wheel_down_pulse_ > 0) {
++    --wheel_down_pulse_;
++  }
++
++  static constexpr std::pair<Control, uint16_t> kButtonMasks[] = {
++      {Control::kA, X_INPUT_GAMEPAD_A},
++      {Control::kB, X_INPUT_GAMEPAD_B},
++      {Control::kX, X_INPUT_GAMEPAD_X},
++      {Control::kY, X_INPUT_GAMEPAD_Y},
++      {Control::kLeftShoulder, X_INPUT_GAMEPAD_LEFT_SHOULDER},
++      {Control::kRightShoulder, X_INPUT_GAMEPAD_RIGHT_SHOULDER},
++      {Control::kLeftThumb, X_INPUT_GAMEPAD_LEFT_THUMB},
++      {Control::kRightThumb, X_INPUT_GAMEPAD_RIGHT_THUMB},
++      {Control::kBack, X_INPUT_GAMEPAD_BACK},
++      {Control::kStart, X_INPUT_GAMEPAD_START},
++      {Control::kGuide, X_INPUT_GAMEPAD_GUIDE},
++      {Control::kDpadUp, X_INPUT_GAMEPAD_DPAD_UP},
++      {Control::kDpadDown, X_INPUT_GAMEPAD_DPAD_DOWN},
++      {Control::kDpadLeft, X_INPUT_GAMEPAD_DPAD_LEFT},
++      {Control::kDpadRight, X_INPUT_GAMEPAD_DPAD_RIGHT},
++  };
+   uint16_t buttons = 0;
+-  if (IsBindPressed(key_down_, REXCVAR_GET(keybind_a)))
+-    buttons |= X_INPUT_GAMEPAD_A;
+-  if (IsBindPressed(key_down_, REXCVAR_GET(keybind_b)))
+-    buttons |= X_INPUT_GAMEPAD_B;
+-  if (IsBindPressed(key_down_, REXCVAR_GET(keybind_x)))
+-    buttons |= X_INPUT_GAMEPAD_X;
+-  if (IsBindPressed(key_down_, REXCVAR_GET(keybind_y)))
+-    buttons |= X_INPUT_GAMEPAD_Y;
+-  if (IsBindPressed(key_down_, REXCVAR_GET(keybind_left_shoulder)))
+-    buttons |= X_INPUT_GAMEPAD_LEFT_SHOULDER;
+-  if (IsBindPressed(key_down_, REXCVAR_GET(keybind_right_shoulder)))
+-    buttons |= X_INPUT_GAMEPAD_RIGHT_SHOULDER;
+-  if (IsBindPressed(key_down_, REXCVAR_GET(keybind_lstick_press)))
+-    buttons |= X_INPUT_GAMEPAD_LEFT_THUMB;
+-  if (IsBindPressed(key_down_, REXCVAR_GET(keybind_rstick_press)))
+-    buttons |= X_INPUT_GAMEPAD_RIGHT_THUMB;
+-  if (IsBindPressed(key_down_, REXCVAR_GET(keybind_back)))
+-    buttons |= X_INPUT_GAMEPAD_BACK;
+-  if (IsBindPressed(key_down_, REXCVAR_GET(keybind_start)))
+-    buttons |= X_INPUT_GAMEPAD_START;
+-  if (IsBindPressed(key_down_, REXCVAR_GET(keybind_guide)))
+-    buttons |= X_INPUT_GAMEPAD_GUIDE;
+-  if (IsBindPressed(key_down_, REXCVAR_GET(keybind_dpad_up)))
+-    buttons |= X_INPUT_GAMEPAD_DPAD_UP;
+-  if (IsBindPressed(key_down_, REXCVAR_GET(keybind_dpad_down)))
+-    buttons |= X_INPUT_GAMEPAD_DPAD_DOWN;
+-  if (IsBindPressed(key_down_, REXCVAR_GET(keybind_dpad_left)))
+-    buttons |= X_INPUT_GAMEPAD_DPAD_LEFT;
+-  if (IsBindPressed(key_down_, REXCVAR_GET(keybind_dpad_right)))
+-    buttons |= X_INPUT_GAMEPAD_DPAD_RIGHT;
+-
+-  uint8_t lt = IsBindPressed(key_down_, REXCVAR_GET(keybind_left_trigger)) ? 0xFF : 0;
+-  uint8_t rt = IsBindPressed(key_down_, REXCVAR_GET(keybind_right_trigger)) ? 0xFF : 0;
++  for (const auto& [control, mask] : kButtonMasks) {
++    if (pressed(control)) {
++      buttons |= mask;
++    }
++  }
++
++  uint8_t lt = pressed(Control::kLeftTrigger) ? 0xFF : 0;
++  uint8_t rt = pressed(Control::kRightTrigger) ? 0xFF : 0;
+ 
++  // Digital stick emulation from keys.
+   int32_t lx = 0;
+   int32_t ly = 0;
+-  if (IsBindPressed(key_down_, REXCVAR_GET(keybind_lstick_left)))
++  if (pressed(Control::kLStickLeft))
+     lx -= INT16_MAX;
+-  if (IsBindPressed(key_down_, REXCVAR_GET(keybind_lstick_right)))
++  if (pressed(Control::kLStickRight))
+     lx += INT16_MAX;
+-  if (IsBindPressed(key_down_, REXCVAR_GET(keybind_lstick_up)))
++  if (pressed(Control::kLStickUp))
+     ly += INT16_MAX;
+-  if (IsBindPressed(key_down_, REXCVAR_GET(keybind_lstick_down)))
++  if (pressed(Control::kLStickDown))
+     ly -= INT16_MAX;
+-
+-  double sensitivity = REXCVAR_GET(mnk_sensitivity);
++  int32_t rx = 0;
++  int32_t ry = 0;
++  if (pressed(Control::kRStickLeft))
++    rx -= INT16_MAX;
++  if (pressed(Control::kRStickRight))
++    rx += INT16_MAX;
++  if (pressed(Control::kRStickUp))
++    ry += INT16_MAX;
++  if (pressed(Control::kRStickDown))
++    ry -= INT16_MAX;
++
++  // Mouse motion drives the configured stick.
++  double sensitivity =
++      config_loaded_ ? keymap_.mouse_sensitivity() : REXCVAR_GET(mnk_sensitivity);
+   constexpr double kBaseScale = 200.0;
+-  int32_t rx = static_cast<int32_t>(mouse_dx_ * sensitivity * kBaseScale);
+-  int32_t ry = static_cast<int32_t>(-mouse_dy_ * sensitivity * kBaseScale);
++  double y_sign = keymap_.invert_mouse_y() ? 1.0 : -1.0;
++  int32_t mouse_x = static_cast<int32_t>(mouse_dx_ * sensitivity * kBaseScale);
++  int32_t mouse_y = static_cast<int32_t>(y_sign * mouse_dy_ * sensitivity * kBaseScale);
+   mouse_dx_ = 0;
+   mouse_dy_ = 0;
++  switch (keymap_.mouse_stick()) {
++    case MouseStick::kRight:
++      rx += mouse_x;
++      ry += mouse_y;
++      break;
++    case MouseStick::kLeft:
++      lx += mouse_x;
++      ly += mouse_y;
++      break;
++    case MouseStick::kNone:
++      break;
++  }
+ 
+   auto clamp16 = [](int32_t v) -> int16_t {
+     return static_cast<int16_t>(std::clamp(v, (int32_t)INT16_MIN, (int32_t)INT16_MAX));
+@@ -334,6 +403,12 @@ void MnkInputDriver::OnMouseDown(rex::ui::MouseEvent& e) {
+     case rex::ui::MouseEvent::Button::kMiddle:
+       SetKeyState(static_cast<uint16_t>(VirtualKey::kMButton), true);
+       break;
++    case rex::ui::MouseEvent::Button::kX1:
++      SetKeyState(static_cast<uint16_t>(VirtualKey::kXButton1), true);
++      break;
++    case rex::ui::MouseEvent::Button::kX2:
++      SetKeyState(static_cast<uint16_t>(VirtualKey::kXButton2), true);
++      break;
+     default:
+       break;
+   }
+@@ -353,6 +428,12 @@ void MnkInputDriver::OnMouseUp(rex::ui::MouseEvent& e) {
+     case rex::ui::MouseEvent::Button::kMiddle:
+       SetKeyState(static_cast<uint16_t>(VirtualKey::kMButton), false);
+       break;
++    case rex::ui::MouseEvent::Button::kX1:
++      SetKeyState(static_cast<uint16_t>(VirtualKey::kXButton1), false);
++      break;
++    case rex::ui::MouseEvent::Button::kX2:
++      SetKeyState(static_cast<uint16_t>(VirtualKey::kXButton2), false);
++      break;
+     default:
+       break;
+   }
+@@ -370,6 +451,19 @@ void MnkInputDriver::OnMouseMove(rex::ui::MouseEvent& e) {
+   prev_mouse_y_ = y;
+ }
+ 
++void MnkInputDriver::OnMouseWheel(rex::ui::MouseEvent& e) {
++  if (!IsEnabled() || !has_focus_)
++    return;
++  std::lock_guard lock(state_mutex_);
++  // Hold the bound control for a couple of GetState polls per notch.
++  constexpr int32_t kPulsePolls = 3;
++  if (e.scroll_y() > 0 && keymap_.wheel_up_control() != Control::kCount) {
++    wheel_up_pulse_ = kPulsePolls;
++  } else if (e.scroll_y() < 0 && keymap_.wheel_down_control() != Control::kCount) {
++    wheel_down_pulse_ = kPulsePolls;
++  }
++}
++
+ void MnkInputDriver::OnLostFocus(rex::ui::UISetupEvent&) {
+   std::lock_guard lock(state_mutex_);
+   has_focus_ = false;
+diff --git a/src/input/mnk/mnk_keymap.cpp b/src/input/mnk/mnk_keymap.cpp
+new file mode 100644
+index 0000000..438fecf
+--- /dev/null
++++ b/src/input/mnk/mnk_keymap.cpp
+@@ -0,0 +1,341 @@
++/**
++ * @file        input/mnk/mnk_keymap.cpp
++ * @brief       TOML-configurable key/mouse -> controller mapping.
++ *
++ * @copyright   Copyright (c) 2026 Tom Clay <tomc@tctechstuff.com>
++ *              All rights reserved.
++ *
++ * @license     BSD 3-Clause License
++ *              See LICENSE file in the project root for full license text.
++ */
++#include <rex/input/mnk/mnk_keymap.h>
++
++#include <rex/cvar.h>
++#include <rex/logging.h>
++#include <rex/ui/keybinds.h>
++
++#include <toml++/toml.h>
++
++#include <algorithm>
++#include <filesystem>
++#include <sstream>
++#include <utility>
++
++// Legacy per-control binds (defined in mnk_input_driver.cpp).
++REXCVAR_DECLARE(std::string, keybind_a);
++REXCVAR_DECLARE(std::string, keybind_b);
++REXCVAR_DECLARE(std::string, keybind_x);
++REXCVAR_DECLARE(std::string, keybind_y);
++REXCVAR_DECLARE(std::string, keybind_left_trigger);
++REXCVAR_DECLARE(std::string, keybind_right_trigger);
++REXCVAR_DECLARE(std::string, keybind_left_shoulder);
++REXCVAR_DECLARE(std::string, keybind_right_shoulder);
++REXCVAR_DECLARE(std::string, keybind_lstick_up);
++REXCVAR_DECLARE(std::string, keybind_lstick_down);
++REXCVAR_DECLARE(std::string, keybind_lstick_left);
++REXCVAR_DECLARE(std::string, keybind_lstick_right);
++REXCVAR_DECLARE(std::string, keybind_lstick_press);
++REXCVAR_DECLARE(std::string, keybind_rstick_press);
++REXCVAR_DECLARE(std::string, keybind_dpad_up);
++REXCVAR_DECLARE(std::string, keybind_dpad_down);
++REXCVAR_DECLARE(std::string, keybind_dpad_left);
++REXCVAR_DECLARE(std::string, keybind_dpad_right);
++REXCVAR_DECLARE(std::string, keybind_back);
++REXCVAR_DECLARE(std::string, keybind_start);
++REXCVAR_DECLARE(std::string, keybind_guide);
++REXCVAR_DECLARE(int32_t, mnk_user_index);
++REXCVAR_DECLARE(double, mnk_sensitivity);
++
++namespace rex::input::mnk {
++
++using rex::ui::ParseVirtualKey;
++using rex::ui::VirtualKey;
++
++namespace {
++
++constexpr const char* kControlNames[MnkKeymap::kControlCount] = {
++    "a",           "b",           "x",           "y",
++    "left_shoulder", "right_shoulder", "left_thumb", "right_thumb",
++    "back",        "start",       "guide",
++    "dpad_up",     "dpad_down",   "dpad_left",   "dpad_right",
++    "left_trigger", "right_trigger",
++    "lstick_up",   "lstick_down", "lstick_left", "lstick_right",
++    "rstick_up",   "rstick_down", "rstick_left", "rstick_right",
++};
++
++// Parse one key name; empty strings mean "unbound" and are skipped silently.
++bool AppendKeyName(std::vector<VirtualKey>& out, std::string_view name,
++                   const char* control_name, std::string* error_out) {
++  if (name.empty()) {
++    return true;
++  }
++  VirtualKey vk = ParseVirtualKey(name);
++  if (vk == VirtualKey::kNone) {
++    if (error_out) {
++      *error_out = "unknown key name \"" + std::string(name) + "\" bound to \"" +
++                   control_name + "\"";
++    }
++    return false;
++  }
++  out.push_back(vk);
++  return true;
++}
++
++// A binding value is either a string or an array of strings.
++bool ParseBindingValue(const toml::node* node, std::vector<VirtualKey>& out,
++                       const char* control_name, std::string* error_out) {
++  if (!node) {
++    return true;
++  }
++  if (const auto* str = node->as_string()) {
++    return AppendKeyName(out, str->get(), control_name, error_out);
++  }
++  if (const auto* arr = node->as_array()) {
++    for (const auto& element : *arr) {
++      const auto* element_str = element.as_string();
++      if (!element_str) {
++        if (error_out) {
++          *error_out = std::string("binding \"") + control_name +
++                       "\" array must contain only strings";
++        }
++        return false;
++      }
++      if (!AppendKeyName(out, element_str->get(), control_name, error_out)) {
++        return false;
++      }
++    }
++    return true;
++  }
++  if (error_out) {
++    *error_out = std::string("binding \"") + control_name +
++                 "\" must be a key name string or an array of them";
++  }
++  return false;
++}
++
++}  // namespace
++
++const char* MnkKeymap::ControlName(Control control) {
++  return kControlNames[size_t(control)];
++}
++
++Control MnkKeymap::ParseControlName(std::string_view name) {
++  for (size_t i = 0; i < kControlCount; ++i) {
++    if (name == kControlNames[i]) {
++      return Control(i);
++    }
++  }
++  return Control::kCount;
++}
++
++MnkKeymap::MnkKeymap() {
++  LoadFromCvars();
++}
++
++void MnkKeymap::LoadFromCvars() {
++  for (auto& binding : bindings_) {
++    binding.clear();
++  }
++  auto set = [&](Control control, const std::string& name) {
++    VirtualKey vk = ParseVirtualKey(name);
++    if (vk != VirtualKey::kNone) {
++      bindings_[size_t(control)].push_back(vk);
++    }
++  };
++  set(Control::kA, REXCVAR_GET(keybind_a));
++  set(Control::kB, REXCVAR_GET(keybind_b));
++  set(Control::kX, REXCVAR_GET(keybind_x));
++  set(Control::kY, REXCVAR_GET(keybind_y));
++  set(Control::kLeftShoulder, REXCVAR_GET(keybind_left_shoulder));
++  set(Control::kRightShoulder, REXCVAR_GET(keybind_right_shoulder));
++  set(Control::kLeftThumb, REXCVAR_GET(keybind_lstick_press));
++  set(Control::kRightThumb, REXCVAR_GET(keybind_rstick_press));
++  set(Control::kBack, REXCVAR_GET(keybind_back));
++  set(Control::kStart, REXCVAR_GET(keybind_start));
++  set(Control::kGuide, REXCVAR_GET(keybind_guide));
++  set(Control::kDpadUp, REXCVAR_GET(keybind_dpad_up));
++  set(Control::kDpadDown, REXCVAR_GET(keybind_dpad_down));
++  set(Control::kDpadLeft, REXCVAR_GET(keybind_dpad_left));
++  set(Control::kDpadRight, REXCVAR_GET(keybind_dpad_right));
++  set(Control::kLeftTrigger, REXCVAR_GET(keybind_left_trigger));
++  set(Control::kRightTrigger, REXCVAR_GET(keybind_right_trigger));
++  set(Control::kLStickUp, REXCVAR_GET(keybind_lstick_up));
++  set(Control::kLStickDown, REXCVAR_GET(keybind_lstick_down));
++  set(Control::kLStickLeft, REXCVAR_GET(keybind_lstick_left));
++  set(Control::kLStickRight, REXCVAR_GET(keybind_lstick_right));
++  enabled_by_config_ = false;
++  user_index_ = REXCVAR_GET(mnk_user_index);
++  mouse_stick_ = MouseStick::kRight;
++  mouse_sensitivity_ = REXCVAR_GET(mnk_sensitivity);
++  invert_mouse_y_ = false;
++  wheel_up_control_ = Control::kCount;
++  wheel_down_control_ = Control::kCount;
++}
++
++bool MnkKeymap::LoadFromFile(const std::string& path, std::string* error_out) {
++  toml::table root;
++  try {
++    root = toml::parse_file(path);
++  } catch (const toml::parse_error& err) {
++    if (error_out) {
++      std::ostringstream ss;
++      ss << err;
++      *error_out = ss.str();
++    }
++    return false;
++  }
++
++  MnkKeymap loaded;  // starts from cvar defaults; TOML bindings replace them
++  for (auto& binding : loaded.bindings_) {
++    binding.clear();
++  }
++
++  // [options]
++  if (const auto* options = root["options"].as_table()) {
++    loaded.enabled_by_config_ = (*options)["enabled"].value_or(false);
++    loaded.user_index_ =
++        std::clamp((*options)["user_index"].value_or(int64_t(0)), int64_t(0), int64_t(3));
++  }
++
++  // [mouse]
++  if (const auto* mouse = root["mouse"].as_table()) {
++    std::string stick = (*mouse)["stick"].value_or(std::string("right"));
++    if (stick == "right") {
++      loaded.mouse_stick_ = MouseStick::kRight;
++    } else if (stick == "left") {
++      loaded.mouse_stick_ = MouseStick::kLeft;
++    } else if (stick == "none") {
++      loaded.mouse_stick_ = MouseStick::kNone;
++    } else {
++      if (error_out) {
++        *error_out = "[mouse].stick must be \"right\", \"left\" or \"none\" (got \"" + stick +
++                     "\")";
++      }
++      return false;
++    }
++    loaded.mouse_sensitivity_ =
++        std::clamp((*mouse)["sensitivity"].value_or(1.0), 0.01, 100.0);
++    loaded.invert_mouse_y_ = (*mouse)["invert_y"].value_or(false);
++    for (const auto& [key, member] :
++         {std::pair{"wheel_up", &loaded.wheel_up_control_},
++          std::pair{"wheel_down", &loaded.wheel_down_control_}}) {
++      std::string value = (*mouse)[key].value_or(std::string());
++      if (!value.empty()) {
++        Control control = ParseControlName(value);
++        if (control == Control::kCount) {
++          if (error_out) {
++            *error_out = std::string("[mouse].") + key + " names an unknown control \"" + value +
++                         "\"";
++          }
++          return false;
++        }
++        *member = control;
++      }
++    }
++  } else {
++    loaded.mouse_sensitivity_ = REXCVAR_GET(mnk_sensitivity);
++  }
++
++  // [buttons] - face/system/dpad/shoulder/thumb buttons.
++  static constexpr Control kButtonControls[] = {
++      Control::kA,          Control::kB,          Control::kX,           Control::kY,
++      Control::kLeftShoulder, Control::kRightShoulder, Control::kLeftThumb, Control::kRightThumb,
++      Control::kBack,       Control::kStart,      Control::kGuide,
++      Control::kDpadUp,     Control::kDpadDown,   Control::kDpadLeft,    Control::kDpadRight,
++  };
++  if (const auto* buttons = root["buttons"].as_table()) {
++    for (Control control : kButtonControls) {
++      const char* name = ControlName(control);
++      if (!ParseBindingValue(buttons->get(name), loaded.bindings_[size_t(control)], name,
++                             error_out)) {
++        return false;
++      }
++    }
++    // Reject unknown button names so typos fail loudly instead of silently
++    // leaving a control unbound.
++    for (const auto& [key, value] : *buttons) {
++      Control control = ParseControlName(key.str());
++      bool known = false;
++      for (Control button : kButtonControls) {
++        if (control == button) {
++          known = true;
++          break;
++        }
++      }
++      if (!known) {
++        if (error_out) {
++          *error_out = "[buttons] has unknown control \"" + std::string(key.str()) + "\"";
++        }
++        return false;
++      }
++    }
++  }
++
++  // [triggers]
++  if (const auto* triggers = root["triggers"].as_table()) {
++    if (!ParseBindingValue(triggers->get("left"),
++                           loaded.bindings_[size_t(Control::kLeftTrigger)], "left_trigger",
++                           error_out) ||
++        !ParseBindingValue(triggers->get("right"),
++                           loaded.bindings_[size_t(Control::kRightTrigger)], "right_trigger",
++                           error_out)) {
++      return false;
++    }
++  }
++
++  // [sticks.left] / [sticks.right] - digital stick emulation.
++  struct StickControls {
++    const char* table_name;
++    Control up, down, left, right;
++  };
++  static constexpr StickControls kSticks[] = {
++      {"left", Control::kLStickUp, Control::kLStickDown, Control::kLStickLeft,
++       Control::kLStickRight},
++      {"right", Control::kRStickUp, Control::kRStickDown, Control::kRStickLeft,
++       Control::kRStickRight},
++  };
++  if (const auto* sticks = root["sticks"].as_table()) {
++    for (const StickControls& stick : kSticks) {
++      const auto* stick_table = (*sticks)[stick.table_name].as_table();
++      if (!stick_table) {
++        continue;
++      }
++      if (!ParseBindingValue(stick_table->get("up"), loaded.bindings_[size_t(stick.up)],
++                             ControlName(stick.up), error_out) ||
++          !ParseBindingValue(stick_table->get("down"), loaded.bindings_[size_t(stick.down)],
++                             ControlName(stick.down), error_out) ||
++          !ParseBindingValue(stick_table->get("left"), loaded.bindings_[size_t(stick.left)],
++                             ControlName(stick.left), error_out) ||
++          !ParseBindingValue(stick_table->get("right"), loaded.bindings_[size_t(stick.right)],
++                             ControlName(stick.right), error_out)) {
++        return false;
++      }
++    }
++  }
++
++  *this = std::move(loaded);
++  return true;
++}
++
++std::string MnkKeymap::Describe() const {
++  std::string result;
++  for (size_t i = 0; i < kControlCount; ++i) {
++    if (bindings_[i].empty()) {
++      continue;
++    }
++    if (!result.empty()) {
++      result += ", ";
++    }
++    result += kControlNames[i];
++    result += "=";
++    for (size_t j = 0; j < bindings_[i].size(); ++j) {
++      if (j) {
++        result += "+";
++      }
++      result += rex::ui::VirtualKeyToString(bindings_[i][j]);
++    }
++  }
++  return result;
++}
++
++}  // namespace rex::input::mnk
+diff --git a/src/ui/keybinds.cpp b/src/ui/keybinds.cpp
+index 9822f3b..abeaf2a 100644
+--- a/src/ui/keybinds.cpp
++++ b/src/ui/keybinds.cpp
+@@ -141,6 +141,8 @@ static const std::unordered_map<std::string, VirtualKey> kKeyNames = {
+     {"LMB", VirtualKey::kLButton},
+     {"RMB", VirtualKey::kRButton},
+     {"MMB", VirtualKey::kMButton},
++    {"Mouse4", VirtualKey::kXButton1},
++    {"Mouse5", VirtualKey::kXButton2},
+ };
+ 
+ VirtualKey ParseVirtualKey(std::string_view name) {
+diff --git a/tests/unit/CMakeLists.txt b/tests/unit/CMakeLists.txt
+index bb3e51c..6c78da0 100644
+--- a/tests/unit/CMakeLists.txt
++++ b/tests/unit/CMakeLists.txt
+@@ -19,6 +19,7 @@ add_executable(unit_tests
+     codegen/manifest_test.cpp
+     rexglue/migration_scan_test.cpp
+     rexglue/ui_test.cpp
++    input/mnk_keymap_test.cpp
+ )
+ 
+ target_sources(unit_tests PRIVATE
+@@ -36,6 +37,7 @@ target_link_libraries(unit_tests PRIVATE
+     rexcore
+     rexcodegen
+     rexruntime
++    rexinput
+     Catch2::Catch2WithMain
+ )
+ 
+diff --git a/tests/unit/input/mnk_keymap_test.cpp b/tests/unit/input/mnk_keymap_test.cpp
+new file mode 100644
+index 0000000..b29e4cf
+--- /dev/null
++++ b/tests/unit/input/mnk_keymap_test.cpp
+@@ -0,0 +1,152 @@
++/**
++ * @file        tests/unit/input/mnk_keymap_test.cpp
++ * @brief       Unit tests for the TOML keyboard/mouse controller mapping.
++ *
++ * @copyright   Copyright (c) 2026 Tom Clay <tomc@tctechstuff.com>
++ *              All rights reserved.
++ *
++ * @license     BSD 3-Clause License
++ *              See LICENSE file in the project root for full license text.
++ */
++
++#include <catch2/catch_test_macros.hpp>
++
++#include <rex/input/mnk/mnk_keymap.h>
++#include <rex/ui/virtual_key.h>
++
++#include <filesystem>
++#include <fstream>
++#include <string>
++
++namespace fs = std::filesystem;
++using rex::input::mnk::Control;
++using rex::input::mnk::MnkKeymap;
++using rex::input::mnk::MouseStick;
++using rex::ui::VirtualKey;
++
++static fs::path WriteToml(const std::string& name, const std::string& content) {
++  auto path = fs::temp_directory_path() / ("mnk_keymap_test_" + name);
++  std::ofstream(path) << content;
++  return path;
++}
++
++TEST_CASE("MnkKeymap parses buttons, triggers, sticks and options", "[mnk][keymap]") {
++  auto path = WriteToml("full.toml", R"([options]
++enabled = true
++user_index = 2
++
++[mouse]
++stick = "left"
++sensitivity = 2.5
++invert_y = true
++wheel_up = "right_trigger"
++wheel_down = "left_trigger"
++
++[buttons]
++a = ["Space", "LMB"]
++start = "Return"
++dpad_up = "Up"
++
++[triggers]
++left = "Q"
++right = "E"
++
++[sticks.left]
++up = "W"
++down = "S"
++)");
++
++  MnkKeymap keymap;
++  std::string error;
++  REQUIRE(keymap.LoadFromFile(path.string(), &error));
++  REQUIRE(error.empty());
++
++  CHECK(keymap.enabled_by_config());
++  CHECK(keymap.user_index() == 2);
++  CHECK(keymap.mouse_stick() == MouseStick::kLeft);
++  CHECK(keymap.mouse_sensitivity() == 2.5);
++  CHECK(keymap.invert_mouse_y());
++  CHECK(keymap.wheel_up_control() == Control::kRightTrigger);
++  CHECK(keymap.wheel_down_control() == Control::kLeftTrigger);
++
++  // A has two keys.
++  const auto& a = keymap.bindings(Control::kA);
++  REQUIRE(a.size() == 2);
++  CHECK(a[0] == VirtualKey::kSpace);
++  CHECK(a[1] == VirtualKey::kLButton);
++
++  CHECK(keymap.bindings(Control::kStart).size() == 1);
++  CHECK(keymap.bindings(Control::kStart)[0] == VirtualKey::kReturn);
++  CHECK(keymap.bindings(Control::kDpadUp)[0] == VirtualKey::kUp);
++  CHECK(keymap.bindings(Control::kLeftTrigger)[0] == VirtualKey::kQ);
++  CHECK(keymap.bindings(Control::kRightTrigger)[0] == VirtualKey::kE);
++  CHECK(keymap.bindings(Control::kLStickUp)[0] == VirtualKey::kW);
++  CHECK(keymap.bindings(Control::kLStickDown)[0] == VirtualKey::kS);
++
++  // Controls not mentioned in the TOML are unbound (bindings replace defaults).
++  CHECK(keymap.bindings(Control::kB).empty());
++
++  fs::remove(path);
++}
++
++TEST_CASE("MnkKeymap defaults are sensible when tables are omitted", "[mnk][keymap]") {
++  auto path = WriteToml("min.toml", "[buttons]\na = \"Space\"\n");
++  MnkKeymap keymap;
++  std::string error;
++  REQUIRE(keymap.LoadFromFile(path.string(), &error));
++  CHECK_FALSE(keymap.enabled_by_config());  // [options].enabled default false
++  CHECK(keymap.mouse_stick() == MouseStick::kRight);
++  CHECK(keymap.wheel_up_control() == Control::kCount);  // no wheel binding
++  CHECK(keymap.bindings(Control::kA)[0] == VirtualKey::kSpace);
++  fs::remove(path);
++}
++
++TEST_CASE("MnkKeymap rejects an unknown key name", "[mnk][keymap]") {
++  auto path = WriteToml("badkey.toml", "[buttons]\na = \"NotAKey\"\n");
++  MnkKeymap keymap;
++  std::string error;
++  CHECK_FALSE(keymap.LoadFromFile(path.string(), &error));
++  CHECK(error.find("NotAKey") != std::string::npos);
++  fs::remove(path);
++}
++
++TEST_CASE("MnkKeymap rejects an unknown control name", "[mnk][keymap]") {
++  auto path = WriteToml("badctl.toml", "[buttons]\nnope = \"Space\"\n");
++  MnkKeymap keymap;
++  std::string error;
++  CHECK_FALSE(keymap.LoadFromFile(path.string(), &error));
++  CHECK(error.find("nope") != std::string::npos);
++  fs::remove(path);
++}
++
++TEST_CASE("MnkKeymap rejects an invalid mouse stick", "[mnk][keymap]") {
++  auto path = WriteToml("badstick.toml", "[mouse]\nstick = \"middle\"\n");
++  MnkKeymap keymap;
++  std::string error;
++  CHECK_FALSE(keymap.LoadFromFile(path.string(), &error));
++  fs::remove(path);
++}
++
++TEST_CASE("MnkKeymap keeps previous bindings when a load fails", "[mnk][keymap]") {
++  auto good = WriteToml("good.toml", "[buttons]\nstart = \"Return\"\n");
++  MnkKeymap keymap;
++  std::string error;
++  REQUIRE(keymap.LoadFromFile(good.string(), &error));
++  REQUIRE(keymap.bindings(Control::kStart)[0] == VirtualKey::kReturn);
++
++  auto bad = WriteToml("bad2.toml", "[buttons]\nstart = \"Bogus\"\n");
++  CHECK_FALSE(keymap.LoadFromFile(bad.string(), &error));
++  // Unchanged after the failed load.
++  CHECK(keymap.bindings(Control::kStart)[0] == VirtualKey::kReturn);
++
++  fs::remove(good);
++  fs::remove(bad);
++}
++
++TEST_CASE("MnkKeymap ParseControlName round-trips control names", "[mnk][keymap]") {
++  for (size_t i = 0; i < MnkKeymap::kControlCount; ++i) {
++    Control control = Control(i);
++    CHECK(MnkKeymap::ParseControlName(MnkKeymap::ControlName(control)) == control);
++  }
++  CHECK(MnkKeymap::ParseControlName("definitely_not_a_control") == Control::kCount);
++}

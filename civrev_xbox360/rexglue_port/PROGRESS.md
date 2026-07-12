@@ -496,3 +496,43 @@ vertex-shader extent estimation bounds the mask draw and ownership stays correct
 - Old draft "Issue C" (brightness) superseded: the real cause is the exp_adjust
   word-3/word-4 bug (Fix 1) — rewrite before filing. Fix 2 is Xenia-default
   restoration and should also go upstream. NOT filed — needs user confirmation.
+
+---
+
+## Input — TOML-configurable keyboard/mouse controls (2026-07-12): ✅ DONE, verified
+
+Goal: remappable keyboard+mouse controls via a TOML config.
+
+**What was added** (`patches/0007-input-toml-configurable-mnk-keymap.patch`):
+- `rex/input/mnk/mnk_keymap.{h,cpp}` — TOML mapping loader (toml++). Schema:
+  `[options]` enabled/user_index; `[mouse]` stick=right|left|none, sensitivity,
+  invert_y, wheel_up/wheel_down→any controller control (pulsed per notch);
+  `[buttons]` a/b/x/y/start/back/shoulders/thumbs/dpad_* (single key name or
+  array); `[triggers]` left/right; `[sticks.left|right]` up/down/left/right
+  digital emulation. Key names = rex::ui::ParseVirtualKey names (letters,
+  digits, F-keys, nav, modifiers, numpad, LMB/RMB/MMB + new Mouse4/Mouse5).
+  Unknown keys/controls fail loudly; a failed load keeps previous bindings and
+  falls back to the legacy keybind_* cvars.
+- MnK driver: `--mnk_config` cvar (default `controls.toml` in CWD); TOML
+  `[options].enabled` can switch the emulation on without `--mnk_mode`; mouse
+  wheel listener; X1/X2 mouse buttons; mouse motion can drive either stick with
+  inversion; bindings table replaces the per-cvar chain.
+- Sample config: `rexglue_port/controls.toml` (fully commented).
+- Unit tests: `tests/unit/input/mnk_keymap_test.cpp` — 7 cases / 60 assertions,
+  ALL PASS (parse, defaults, unknown-key/control rejection, bad mouse.stick,
+  failed-load keeps old bindings, control-name round-trip).
+
+**End-to-end verification** (`test_controls.sh` — boots the port, waits for the
+title screen, injects real X11 input via xdotool in-container, checks whether
+the game advances):
+| test | config | injected | expect | result |
+|---|---|---|---|---|
+| A  | controls.toml (Return→a/start) | hold Return | advance | ✅ PASS |
+| B  | remap: Return unbound          | hold Return | ignore  | ✅ PASS |
+| C  | remap: start="J"               | hold J      | advance | ✅ PASS (reached MAIN MENU) |
+| D  | controls.toml (a=["Return","LMB"]) | hold left mouse btn | advance | ✅ PASS (buttons=0x1000) |
+| A' | final production build re-run  | hold Return | advance | ✅ PASS |
+
+Notes: xdotool `key` taps are too short for the slow llvmpipe poll loop — hold
+via `keydown`/`keyup` with `sleep 3` between. One boot hang observed once after
+a rebuild (log stops during .fxobj load, pre-render) — not reproducible; watch.

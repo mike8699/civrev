@@ -1,0 +1,67 @@
+# ============================================================================
+# CivRev port — keyboard & mouse controller mapping
+# ============================================================================
+# Loaded by the ReXGlue MnK input driver from the path given by --mnk_config
+# (default: "controls.toml" in the working directory). When this file loads,
+# its bindings replace the built-in keybind_* cvar defaults entirely.
+#
+# Key names (case-sensitive):
+#   Letters "A".."Z", digits "0".."9", "F1".."F24"
+#   "Space", "Return", "Escape", "Tab", "Backspace", "Delete", "Insert",
+#   "Home", "End", "PageUp", "PageDown"
+#   "Up", "Down", "Left", "Right"        (arrow keys)
+#   "Shift", "Control", "Alt", "CapsLock"
+#   "Numpad0".."Numpad9", "NumpadEnter", "NumpadPlus", "NumpadMinus",
+#   "NumpadStar", "NumpadSlash"
+#   "Minus", "Plus", "Comma", "Period", "Semicolon", "Slash", "Backslash",
+#   "LBracket", "RBracket", "Quote", "Backtick"
+#   Mouse: "LMB", "RMB", "MMB", "Mouse4", "Mouse5"
+#
+# A binding is a single key name or an array of them ("" = unbound):
+#   a = "Space"
+#   a = ["Space", "LMB"]
+# ============================================================================
+
+[options]
+enabled = true        # turn on keyboard/mouse -> controller emulation
+user_index = 0        # controller slot (0-3) presented to the game
+
+[mouse]
+stick = "right"       # mouse motion drives: "right" | "left" | "none"
+sensitivity = 1.0     # motion sensitivity multiplier (0.01 - 100)
+invert_y = false
+wheel_up = "right_trigger"    # controller control pulsed per wheel notch
+wheel_down = "left_trigger"   # ("" or omit to disable). CivRev: zoom in/out.
+
+[buttons]
+a = ["Return", "LMB"] # confirm / select
+b = ["Backspace", "RMB"]
+x = "R"
+y = "E"
+start = ["Escape", "Return"]
+back = "Tab"
+left_shoulder = "Q"   # rotate / cycle
+right_shoulder = "F"
+left_thumb = "C"
+right_thumb = "MMB"
+dpad_up = "Up"
+dpad_down = "Down"
+dpad_left = "Left"
+dpad_right = "Right"
+guide = ""
+
+[triggers]
+left = "PageDown"     # zoom out
+right = "PageUp"      # zoom in
+
+[sticks.left]         # map cursor / unit movement
+up = "W"
+down = "S"
+left = "A"
+right = "D"
+
+[sticks.right]        # camera (also driven by mouse per [mouse].stick)
+up = ""
+down = ""
+left = ""
+right = ""
