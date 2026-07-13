@@ -1,0 +1,46 @@
+diff --git a/include/rex/kernel/xboxkrnl/module.h b/include/rex/kernel/xboxkrnl/module.h
+index e4cbbbc..d7f287f 100644
+--- a/include/rex/kernel/xboxkrnl/module.h
++++ b/include/rex/kernel/xboxkrnl/module.h
+@@ -40,6 +40,10 @@ class XboxkrnlModule : public system::KernelModule {
+ 
+  private:
+   std::unique_ptr<rex::thread::HighResolutionTimer> timestamp_timer_;
++  // Advances each guest KTHREAD's millisecond clock field (unk_58 @ 0x58), which
++  // the real kernel maintains but the SDK otherwise leaves at 0. Games poll it
++  // for elapsed-time timeouts (e.g. the GPU ring-wait stall detector).
++  std::unique_ptr<rex::thread::HighResolutionTimer> kthread_clock_timer_;
+ };
+ 
+ }  // namespace rex::kernel::xboxkrnl
+diff --git a/src/kernel/xboxkrnl/xboxkrnl_module.cpp b/src/kernel/xboxkrnl/xboxkrnl_module.cpp
+index dcb3af6..5878dd6 100644
+--- a/src/kernel/xboxkrnl/xboxkrnl_module.cpp
++++ b/src/kernel/xboxkrnl/xboxkrnl_module.cpp
+@@ -198,6 +198,26 @@ XboxkrnlModule::XboxkrnlModule(Runtime* emulator, KernelState* kernel_state)
+                                          chrono::Clock::QueryGuestUptimeMillis());
+       });
+ 
++  // Per-thread millisecond clock (X_KTHREAD::unk_58 @ 0x58). The 360 kernel keeps
++  // this field ticking; the SDK never wrote it, so it stayed 0 forever. Games use
++  // it as a monotonic ms timestamp — notably the GPU ring-buffer wait's stall
++  // detector, which subtracts a saved value and force-recovers when the delta
++  // exceeds 5000ms. With the field frozen at 0 that delta is always 0, so a
++  // transient producer/consumer stall (CPU waiting on the GPU read pointer)
++  // deadlocks forever. Tick it here so the game's own recovery path can fire.
++  auto* ks = kernel_state_;
++  kthread_clock_timer_ = rex::thread::HighResolutionTimer::CreateRepeating(
++      std::chrono::milliseconds(4), [ks]() {
++        const uint32_t now = chrono::Clock::QueryGuestUptimeMillis();
++        for (auto& thread : ks->object_table()->GetObjectsByType<XThread>()) {
++          const uint32_t kthread = thread->guest_object();
++          if (!kthread) continue;
++          memory::store_and_swap<uint32_t>(
++              ks->memory()->TranslateVirtual(kthread + offsetof(X_KTHREAD, unk_58)),
++              now);
++        }
++      });
++
+   // Wire kernel object type variables to KernelGuestGlobals.
+   // KernelGuestGlobals is allocated in KernelState ctor, which runs before this.
+   auto kgg = kernel_state_->GetKernelGuestGlobals();

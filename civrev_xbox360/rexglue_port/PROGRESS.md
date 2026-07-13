@@ -721,3 +721,266 @@ Artifacts: `M6_terrain_with_city.png`, `M6_terrain_map.png`, `M6_ingame_hud.png`
   scenario/civ/map/advisor). Structural match is the real check and passes:
   terrain + selected unit + action panel + city + HUD chrome all present, at
   Xenia's own render quality (the stated bar).
+
+---
+
+## Session — 2026-07-12 (evening) — TEXT/UI RENDERING BUG (in progress, root-caused)
+
+**Symptom (user report):** "some words or characters not rendering." Actually
+UI *bitmap images*, not text: the controller **button-prompt glyphs** ((A) on
+Play Now, (Y)/(X)/(B)/(Ls) in the unit panel, (RB)/(RT)), unit **portraits**,
+civ leader **thumbnails**, and the tutorial dialog **button fills** are all
+invisible/black. Plain text, vector button-gradient fills, HUD panels, and the
+3D scene all render correctly.
+
+**Root cause (narrowed, not yet fixed):** small **tiled `k_8_8_8_8` (RGBA8)**
+textures **load as black** (sample to zero), while `k_8` (font atlas) and
+`k_DXT1`/`k_DXT2_3` (scene backgrounds) load fine.
+
+Evidence chain:
+- The failing draws EXIST (not culled): `--civrev_no_blend=true` renders the
+  (A)-glyph region as an opaque BLACK box next to "Play Now" -> the draw runs
+  but its texture samples RGB=0, alpha~0 (invisible under normal alpha blend).
+- Fetch constants for all 5 menu textures are NORMAL (identity/expected
+  swizzle, unsigned, exp_adjust=0) -> NOT another misread field like the M4
+  exp_adjust(word3) bug. No "Unsupported texture format" errors.
+- The 5 menu textures: `1FB17000 k_8 1024x1024` (font, WORKS), `1AEC2000
+  k_DXT2_3 2048x512` (city panorama - kill-test removed it, DXT DECODES FINE),
+  `1AEA2000 k_DXT1 1024x256` (sky - kill-test removed it), and TWO `64x64
+  k_8_8_8_8 tiled` (`1BC9E000`,`1BCAA000`). By elimination the button glyph is a
+  64x64 k_8_8_8_8.
+- Trace log: the 64x64 k_8_8_8_8 are **"Created"+"Loaded"** (from guest via the
+  load shader), **NOT resolve targets** -> it's the tiled-k_8_8_8_8 LOAD path,
+  not EDRAM resolve.
+- Host-format mapping for k_8_8_8_8 is standard (kLoadShaderIndex32bpb ->
+  R8G8B8A8_UNORM, RGBA swizzle) - matches upstream Xenia, no obvious divergence.
+
+**Two remaining candidate mechanisms (next experiment disambiguates):**
+1. The generic **32bpb tiled untile load shader** produces zero for these
+   (small 64x64, endian=2/8in32) — a decode/untile bug.
+2. **Shared-memory dirty-tracking staleness**: the game CPU-writes these UI
+   textures to guest RAM but the memory watch misses it, so the load shader
+   reads stale zeros. (The M4 session hit an analogous swap-texture staleness —
+   see the `civrev_swap_reload` diagnostic / `ForceBaseOutdated`.) DXT scene
+   textures are uploaded once at load (watch catches them); UI glyphs may be
+   written later.
+   Test: force-reload all textures (ForceBaseOutdated) each frame -> if glyphs
+   appear, it's texture-cache staleness; if not, untile or shared-mem upload.
+
+**Diagnostic tooling added to the SDK working tree (env-gated, inert normally;
+in `src/graphics/vulkan/command_processor.cpp` after SetScissor in
+UpdateDynamicState):**
+- `CIVREV_TEXDIAG=1` — logs each draw's scissor + its pixel-shader texture
+  descriptors (base/dims/format/tiled/endian/swizzle/sign/exp_adjust).
+- `CIVREV_TEXKILL=<hexbase>` — suppresses draws sampling that texture (empty
+  scissor) to identify which on-screen element uses which texture.
+- Host scripts: `debug_textures.sh`, `id_kill.sh` (OCR-nav + kill + diff);
+  `run_port.sh` gained `CIVREV_LOG_LEVEL` and forwards the two env vars.
+- Guest-memory dump is USELESS here: `0x100000000 + fetch_base` reads zero even
+  for the working font atlas -> these are GPU-resident; that host mapping is
+  wrong for GPU-physical texture addresses. Need GPU readback, not gdb.
+
+### CORRECTION (same session, later): format hypothesis DISPROVEN — reframed
+The "tiled k_8_8_8_8 loads black" root cause above is WRONG. Follow-up work:
+- Dumped the menu textures at the CORRECT physical host address
+  (physical_membase = mapping_base(0x100000000) + 0x100000000 = 0x200000000;
+  TranslatePhysical(g) = 0x200000000 + (g & 0x1FFFFFFF); earlier 0x100000000+g
+  read the VIRTUAL heap = zero for everyone, incl. the working font atlas).
+  The 64x64 k_8_8_8_8 textures have VALID data (71-88% nonzero); untiled offline
+  via GetTiledOffset2D they are a brown and an orange rounded square.
+- One-shot experiment (SDK IssueSwap, env CIVREV_FORCE_REUPLOAD + touch
+  /output/reupload): InvalidateAllPages() + texture_cache_->ClearCache() forces
+  every texture to re-upload from guest RAM and reload. The (A) glyph stayed
+  black -> NOT shared-memory staleness.
+- TEXKILL at the menu: killing 1BC9E000 (a 64x64 tiled k_8_8_8_8) removed the
+  BLUE BUTTON BACKGROUNDS -> that texture is the button-fill skin and it RENDERS
+  FINE (blue, cxform-tinted from the brown source). So **tiled k_8_8_8_8 works**;
+  the format is not the bug.
+
+**Reframed understanding:** the menu's 5 pixel textures are font(k_8, text OK),
+2 DXT atlases (city+sky backgrounds, OK), and 2 small k_8_8_8_8 (button skins,
+OK). The green (A) button-prompt glyph is NOT among them and its draw samples
+black. Combined with: the Xenia reference (golden_v6) was captured with a
+VIRTUAL XBOX GAMEPAD (uinput virtpad), while the port runs KEYBOARD/MOUSE.
+STRONG hypothesis: the game only draws controller **button-prompt glyphs**
+(A/Y/X/B/LB/RB/RT/Ls) when a gamepad is detected -> with MnK they are
+intentionally not drawn -> the "missing button prompts" may NOT be a rendering
+bug. TEST: run the port with a virtpad (like the oracle) and see if the prompts
+appear.
+- SEPARATE, still-open genuine texture gaps (NOT controller prompts): unit
+  PORTRAIT in the HUD panel, civ leader THUMBNAILS (gold placeholder boxes), and
+  the tutorial dialog button FILLS (empty outlines while the MAIN-menu button
+  fills render). These need in-game GPU-capture-level analysis; NOT yet
+  root-caused. The 1BCAA000 (orange) 64x64 may be one of the gold placeholders.
+
+Diagnostics still in the SDK working tree (env-gated, inert normally):
+CIVREV_TEXDIAG, CIVREV_TEXKILL, CIVREV_FORCE_REUPLOAD (one-shot via
+/output/reupload). Offline tools in scratch: decode_tex.py, untile.py.
+
+---
+
+## Session — 2026-07-12 (late): M6 gameplay / turn-loop — reached, input harness-limited
+
+**Goal:** get the in-game turn loop working (end-turn advances the date).
+
+**Confirmed working:**
+- Play Now reaches full interactive gameplay: terrain renders, city (Rome, pop 2),
+  Warrior unit selected with action panel (Move to Location / Defend City / Wait
+  One Turn / Civilopedia), date plaque **4000 BC**, City Screen + Diplomacy.
+- **End-turn input identified: RT (right trigger)** — the Xenia reference date
+  plaque reads "4000 BC RT". In nav_controls.toml RT = PageUp.
+- Input DOES reach and control the game in-game: the dpad moves the destination
+  cursor (yellow "?"), pans the camera, and switches the panel to "Move to
+  Location" with green movement arrows; buttons trigger pipeline creation. Menu
+  input (reach_ingame probe) navigates reliably.
+
+**Blocker (harness, not a port bug):** precise in-game unit control is
+unreliable at the headless llvmpipe **~1 fps**. `xdotool key` TAPS get dropped
+(the ~1fps poll misses them); only long HOLDS register, and the MnK driver emits
+ONE keystroke per key transition (no auto-repeat), so per-tile cursor
+positioning needs many separate hold/release cycles that mis-time. Net: I could
+not reliably give the Warrior orders, so the turn never became end-able (the RT
+prompt only appears once all units are done). Also: Play Now runs the TUTORIAL,
+which hard-gates input to "move the Warrior" until it's done.
+- Window FOCUS under bare Xvfb is lost between spaced commands; must
+  `xdotool windowfocus <win>` before every input batch (getactivewindow returns
+  nothing otherwise). This bit the manual driving until re-focus was added.
+
+**Recommended next steps (unblock the turn-loop verification):**
+1. golden_age scenario (TUTORIAL-FREE): menu-nav to in-game (reliable), then a
+   single held RT skips remaining units and ends the turn — no per-tile unit
+   movement needed. This sidesteps both the tutorial gate and the imprecise
+   cursor.
+2. Real-GPU host at 60fps where input timing is reliable (the harness runs
+   ~1fps under llvmpipe; a real GPU makes taps/holds land).
+
+---
+
+## Session — 2026-07-12 (very late): golden_age turn-loop — REACHED, input-delivery blocked
+
+Per user choice, built the tutorial-free **golden_age** headless path
+(golden_reach.sh + golden_resume.sh, using port_nav_lib). Result:
+
+**Achieved:**
+- Full menu nav works on the port with the LEFT STICK (W/A/S/D): main menu ->
+  Single Player -> Play Scenario -> **Choose Scenario list** (OCR-verified
+  "Golden Age" selected) -> Deity difficulty -> civ carousel (scrolled 28x LEFT
+  to Romans, confirmed by OCR) -> accept -> load. All OCR-verified via find_text
+  crops. The whole carousel nav is reliable.
+- **Reached golden_age gameplay (tutorial-free):** terrain renders, a **Settlers**
+  unit is active, and the on-screen **"End Turn" button** is shown (top-center) —
+  the turn loop is literally one input away. Date plaque reads **4000 BC**.
+- **End-turn input = RT** (on-screen End Turn button + the Xenia reference date
+  plaque "4000 BC RT"); RT = PageUp in nav_controls.toml.
+
+**Blocker (harness, not a port bug):** could not drive the turn advance. In-game
+the game is **event-driven and idle-waits** for input (gdb: ALL threads in
+`futex_abstimed_wait`, run.log growth = 0, screen frozen with no animation). The
+injected keyboard input (xdotool XTEST, `key --window` XSendEvent, and mouse
+click) does NOT wake its SDL event loop in this state — so RT/A/START/dpad all
+produce zero change. Menu navigation works because there the game actively POLLS
+input every frame (animated menus), so injected input is seen on the next poll.
+- Possible contributing cause: golden_resume's end-turn loop fired RT/Return/
+  BackSpace 5x while the map was still LOADING (the 22s wait was too short for
+  golden_age's map-gen); those queued events may have wedged the post-load state.
+  A clean run that waits for the real HUD (not just absence of "Loading") before
+  any input is the next thing to try.
+
+**Recommended:**
+1. Clean golden_age re-run: wait for the real in-game HUD (e.g. "End Turn" /
+   "Diplomacy" + unit panel, NOT a Loading tip) before ANY input, then a single
+   held RT. Rules out the loading-spam wedge.
+2. If still blocked: the in-game input path needs the SDL event loop to be woken
+   by injected events under Xvfb — investigate whether the game blocks on
+   SDL_WaitEvent in-game (vs SDL_PollEvent in menus); a harness fix would inject
+   via uinput (virtpad) rather than X events. OR verify on a real-GPU host at
+   60fps with real input, where this doesn't arise.
+
+---
+
+## Session — 2026-07-13: virtpad in-game input BREAKTHROUGH + turn-advance HANG found
+
+Per user choice, implemented the uinput VIRTPAD path (SDL gamepad) — the fix for
+the earlier "in-game input doesn't wake the event loop" blocker.
+
+**BREAKTHROUGH — virtpad drives the port:**
+- `run_port.sh` gained `CIVREV_VIRTPAD=1`: starts the oracle's `virtpad.py`
+  (uinput Xbox 360 pad, evdev auto-installed) on FIFO `/tmp/virtpad.cmd` BEFORE
+  the game so SDL enumerates it at init. Drive from host via
+  `docker exec ... printf '<cmd>' > /tmp/virtpad.cmd`. `port_pad_lib.sh` wraps it.
+- **KEY: at ~1fps the game coalesces quick presses — buttons need a HELD press**
+  (`down A; sleep >=2; up A`); a 0.4s tap is dropped. dpad/triggers likewise.
+- Validated: virtpad START -> main menu (PAD_VALIDATE_PASS). Full golden_age nav
+  automated via the pad (dpad + held A + OCR-verified carousel finds):
+  main menu -> SP -> Play Scenario -> Golden Age -> (Deity) -> civ -> load ->
+  gameplay. `golden_pad_full.sh` = self-contained boot->gameplay->turn-test.
+  Menu/nav input is now RELIABLE via the pad.
+
+**TURN-ADVANCE BLOCKER (root-caused, unfixed):** in-game, pressing End Turn (RT)
+hangs the game — screen freezes (0 render, 0 log growth). gdb: the **CivConsole
+thread is ON-CPU in a guest-code INFINITE LOOP**, PC advancing through
+`sub_8269D820` / `sub_8268E100` (call chain sub_82C6DCF8 -> sub_821CC8D0 ->
+sub_8250D4A8 -> sub_82518198 -> sub_826A4EB0 -> sub_8268E100 -> sub_8269D820)
+for 2+ minutes at native recompiled speed = never exits. This is the SAME CLASS
+as the loading hang (CivConsole stuck) but NOT a switch-table ud2 trap (PC
+advances; no 'Switch case out of range' / REX_FATAL in these funcs) — a real
+loop whose exit condition is never met. Date stays 4000 BC across 8 end-turns.
+- Also unresolved: `Y` (Found City) via pad didn't found the Settlers' city
+  (the Settlers persists) — may be related (the hang triggered by ending the
+  turn with an unhandled unit, or Found City itself doesn't register).
+- Next: instrument the loop (log the register/memory values `sub_8268E100`
+  compares each iteration) to find what it waits for — likely a value another
+  subsystem should set (GPU/kernel/another thread) or a miscompiled loop
+  condition. Deep recompilation-debug, akin to the switch-table effort.
+
+Scripts: validate_pad.sh, golden_pad.sh, golden_pad_full.sh, port_pad_lib.sh.
+
+---
+
+## Session — 2026-07-13 (cont.): turn-hang ROOT-CAUSED + FIXED (KTHREAD ms clock)
+
+Instrumented the CivConsole infinite loop with gdb (installed in-container) and
+found the never-met exit condition, then fixed it in the SDK.
+
+**Diagnosis (live gdb on the hung process):**
+- CivConsole is spinning in `sub_8268E100` (poll step) called from `sub_8269D820`
+  (ring-buffer wait). Every OTHER thread is idle (futex/nanosleep) — including the
+  "GPU Commands" thread. Classic producer/consumer stall: the CPU wrote ring
+  commands (write cursor **9559**) and waits for the consumer to advance the read
+  cursor (frozen at **9543**, gap 16). Since the map *renders* fine, the GPU
+  normally advances this read pointer — so this is a **transient deadlock**, not a
+  dead GPU.
+- `sub_8268E100` disassembly: exit only when `elapsed = *(KTHREAD+0x58) - wctx+12`
+  reaches **5000** (ms) → calls stall handler `sub_826A6300` which force-completes
+  the wait (sets abort flag, fakes read cursor). This is the game's OWN designed
+  deadlock-recovery path.
+- The clock it uses, **`*(KTHREAD+0x58)` (X_KTHREAD::unk_58)**, is **frozen at 0** —
+  the real 360 kernel ticks this field but the SDK never wrote it. gdb sampling:
+  `timer[+0x58]=0` across 300+ poll iterations → `elapsed ≡ 0 < 5000` forever →
+  stall handler NEVER fires → infinite loop.
+  - Pointer chain verified live: guest `r13`=KPCR, `*(r13+256)`=`KPRCB.current_thread`
+    =KTHREAD, `+0x58`=unk_58. Also `sub_82809E98` returns `*(KTHREAD+0x14C)`=thread_id
+    (a self-wait owner check vs `ring+10888`), consistent with the struct.
+
+**FIX (SDK, librexruntime.so):** maintain `X_KTHREAD::unk_58` as a monotonic ms
+clock, mirroring the existing `KeTimeStampBundle` 1ms `HighResolutionTimer`. Added a
+companion repeating timer (`kthread_clock_timer_`, 4ms) in `XboxkrnlModule` ctor
+(`xboxkrnl_module.cpp`) that walks `object_table()->GetObjectsByType<XThread>()` and
+writes `QueryGuestUptimeMillis()` (big-endian) to each guest KTHREAD's `unk_58`.
+Header member added in `include/rex/kernel/xboxkrnl/module.h`. Rebuilt+installed the
+lib to `rexglue-sdk/out/install/linux-amd64/lib` (mounted at `/sdk`).
+Now the game's own 5000ms stall-recovery can fire and break the transient deadlock.
+- Diagnostic gdb scripts: `inspect_hang.py`, plus `/tmp/{ring3,timer}.py` probes.
+- Verification: fresh `golden_pad_full.sh` run (soft in-game gate now) → turn loop.
+
+**VERIFIED (2026-07-13):** fresh `golden_pad_full.sh` run on the fixed lib →
+founded Athens (Greeks) and ran **8 end-turns with NO hang**. Date advanced
+**4000 BC → 3800 BC** (turn_6 shot), city grew, worker units appeared and
+simulated. gdb on the live process: `KTHREAD.unk_58` now **1,160,682 → 1,161,630
+(delta 948ms) = TICKING** (was frozen at 0). Game stayed alive through the probes,
+log kept growing. Turn-advance blocker RESOLVED — interactive gameplay works.
+Bonus: in-game HUD text renders CRISPLY here ("City Screen"/"Diplomacy"/"Athens"/
+"Warrior"/"3800 BC") — the parked glyph-soup issue is absent on these screens.
+Next (optional M6 hardening): 20-turn soak (task #12); investigate whether the
+transient GPU-ring stall itself is avoidable (would remove the ~per-turn 5s
+recovery latency), but not required for playability.

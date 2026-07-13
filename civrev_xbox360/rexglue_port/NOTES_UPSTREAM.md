@@ -74,3 +74,29 @@ Every entry lists symptom, root cause, our carry, and upstream status.
   are link-time-required by generated code. Carried as app-side stubs in
   `civrev/src/kernel_stubs.cpp` (Xenia semantics: Create MUST return success).
   Candidate for upstreaming as SDK stubs.
+
+## 6. KTHREAD millisecond clock (unk_58 @ 0x58) never ticks (FIXED locally, 0009)
+
+- **Symptom:** in-game, pressing End Turn deadlocks — the `CivConsole` thread
+  busy-spins forever in guest `sub_8269D820`→`sub_8268E100` (a GPU ring-buffer
+  wait); screen freezes, no log growth, every other thread idle.
+- **Root cause:** the wait is CPU-waits-for-GPU: the game wrote ring commands
+  (write cursor ahead) and polls for the GPU consumer to advance the read
+  cursor. It has a built-in 5000ms stall-recovery (`sub_826A6300`, force-
+  completes the wait), gated on `elapsed = *(X_KTHREAD+0x58) - saved`. That
+  field (`unk_58`, a per-thread ms clock the real 360 kernel keeps ticking) is
+  **frozen at 0** because the SDK never writes it → `elapsed ≡ 0 < 5000` forever
+  → recovery never fires → infinite spin. The map renders fine, so the GPU
+  normally drains the ring; this is a *transient* deadlock the recovery exists
+  to break. Verified live via gdb (unk_58 unchanged across 300+ poll iters).
+- **Local patch:** `patches/0009-kernel-kthread-ms-clock-unk58.patch` —
+  `XboxkrnlModule` gains a 4ms repeating `HighResolutionTimer` (mirrors the
+  existing `KeTimeStampBundle` 1ms pattern) that walks
+  `object_table()->GetObjectsByType<XThread>()` and writes
+  `QueryGuestUptimeMillis()` (big-endian) into every guest `KTHREAD::unk_58`.
+- **Verified:** 8 end-turns, no hang, date 4000 BC→3500 BC, city founded, units
+  simulate; gdb: unk_58 now ticks (delta ~948ms/120 polls, was 0).
+- **Upstream status:** likely a real SDK gap (per-thread KTHREAD timing fields
+  unmaintained). Report — repro = any title polling `KTHREAD+0x58` as a clock.
+  Upstream may prefer maintaining it in the scheduler/quantum path rather than a
+  standalone timer.

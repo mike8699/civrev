@@ -70,9 +70,20 @@ export SDL_AUDIODRIVER=alsa
 export LD_LIBRARY_PATH=/sdk/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
 Xvfb :99 -screen 0 1280x720x24 &
 sleep 2
+# CIVREV_VIRTPAD=1: create a uinput Xbox 360 pad (like the Xenia oracle) BEFORE
+# the game so SDL enumerates it at init. Injected keyboard (xdotool) does not
+# wake the game event loop in-game (it SDL_WaitEvent-blocks there); a real
+# uinput gamepad does. Drive it via the FIFO /tmp/virtpad.cmd from the host.
+if [ "${CIVREV_VIRTPAD:-0}" = 1 ]; then
+    python3 -c "import evdev" 2>/dev/null || (apt-get update -qq && apt-get install -y -qq python3-evdev) >/dev/null 2>&1
+    rm -f /tmp/virtpad.cmd; mkfifo /tmp/virtpad.cmd
+    python3 /virtpad.py /tmp/virtpad.cmd > /output/virtpad.log 2>&1 &
+    sleep 3   # let the pad device + /dev/input node come up before SDL init
+    echo "virtpad started"
+fi
 echo "starting port binary"
 cd /output
-/port/'"$BIN_NAME"' --log_level=trace --log_file=/output/run.log --game_data_root=/game_data --gpu_plugin=xenos '"${EXTRA_ARGS:-}"' \
+/port/'"$BIN_NAME"' --log_level='"${CIVREV_LOG_LEVEL:-trace}"' --log_file=/output/run.log --game_data_root=/game_data --gpu_plugin=xenos '"${EXTRA_ARGS:-}"' \
     > /output/game.stdout 2>&1 &
 GAME_PID=$!
 echo "$GAME_PID" > /output/game.pid
@@ -105,6 +116,9 @@ run_container() {
         -e VK_SCREENSHOT_FRAMES -e VK_SCREENSHOT_FORMAT -e SDL_VIDEODRIVER \
         -e GFXRECON_CAPTURE_FILE -e GFXRECON_CAPTURE_FRAMES -e GFXRECON_CAPTURE_TRIGGER \
         -e CIVREV_FB_DUMP -e CIVREV_FB_DUMP_START -e CIVREV_FB_DUMP_STEP \
+        -e CIVREV_TEXDIAG -e CIVREV_TEXKILL -e CIVREV_FORCE_REUPLOAD \
+        -e CIVREV_VIRTPAD \
+        -v "$REPO_X360/xenia_automation/oracle/virtpad.py:/virtpad.py:ro" \
         --tmpfs /dev/shm:rw,nosuid,nodev,exec,size=1g \
         --security-opt seccomp=unconfined \
         -e CIVREV_KEEP_MOVIES="${CIVREV_KEEP_MOVIES:-0}" \
