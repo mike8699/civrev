@@ -1177,3 +1177,28 @@ sub_8250CCF0 -> sub_826A3338 ... -> sub_826A20A0` (writes atlas bytes).
   trap point but boots VERY slowly (guest-timed boot steps also 20x). Boot-hang
   became ~100% this evening regardless of pipeline cache (fresh-cache theory
   disproven) — host slowdown tipped a race; morning boots at 1.0 worked.
+
+### Logo bug: full decision-path decode + wedge-specimen methodology (cont. 4)
+
+- **Wedged boots are usable specimens**: the ~100% 541-line boot deadlock happens
+  AFTER Scaleform init — attach gdb and read guest structures. Heap-scan for
+  vtable value (BE bytes) finds object instances (30 holder-class vt=0x8200FA68
+  objects found; 4 glyph-cache slot holders WITH textures; the front-buffer
+  holder; ONE null holder = hal+28obj's +240 slot, likely "current RTT target").
+- **Class identified: the text/glyph manager IS the HAL singleton** (vt 0x82047040
+  found by scanning default_decompressed.bin for 0x82511510 at vt+348):
+  vt[116]=sub_825161E8=`return *(hal+1356)` (current target-context holder);
+  vt[332]=sub_8250CCF0 (flush); vt[348]=sub_82511510 (render-text-runs).
+- **Gate verdict on specimen: PASSES** — *(hal+1356)=holder 0x40107924, its +28 =
+  front-buffer texture (0x40108dc0). So flags bits survive to the flush.
+- **sub_8250CCF0 decode**: mode = (flags&1 ? 0xF:0) | (flags&4 && gate ? 16:0) |
+  (flags&2 && gate ? 32:0); then `sub_826A3338(hal->188, 1, rect, mode, hal->532,
+  hal->528, hal->536)`. **hal+188 = 0x400DFA00 — the SAME GFx private command
+  ring as the end-turn hang and the graphics-interrupt context.** The glyph/atlas
+  rendering is emitted as commands INTO this ring; a consumer turns them into GPU
+  draws. Next: how the ring consumer handles mode-16/32 (HW cache quads) vs the
+  base path — sub_826A3338 -> sub_826A3210 -> descendants, and who consumes ring
+  commands (interrupt callback 8269CDF8 context 400DFA00).
+- Xenia-side same-scan harness works (guest membase also 0x100000000 in Xenia;
+  scan script /tmp/scanvt_xenia2.py walks hal->+28->slots + holder census) — run
+  it at Xenia TITLE for the definitive port-vs-Xenia structure diff.
