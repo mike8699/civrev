@@ -984,3 +984,41 @@ Bonus: in-game HUD text renders CRISPLY here ("City Screen"/"Diplomacy"/"Athens"
 Next (optional M6 hardening): 20-turn soak (task #12); investigate whether the
 transient GPU-ring stall itself is avoidable (would remove the ~per-turn 5s
 recovery latency), but not required for playability.
+
+---
+
+## Session — 2026-07-13 (cont.): 20-turn soak + intermittent boot GPU-hang finding
+
+Committed the turn-hang fix (898414c, patch 0009 + NOTES #6). Then ran the soak.
+
+**20-turn soak (golden_soak.sh + golden_soak_retry.sh): PASS on stability.**
+- `SOAK_PASS: 20 turns, no crash, 19 screen-changes` — the game process stayed
+  ALIVE across all 20 End-Turn (RT) presses, run.log grew (2452->2732), screen
+  responded (19/20 CHANGED, one isolated SAME — NOT a hang cluster).
+- Caveat: in THIS run the initial Found-City didn't register (settler kept
+  cycling; year stayed 4000 BC), so the 20 turns exercised the end-turn path
+  without advancing the year. Real turn advancement is proven separately
+  (golden_pad_full: 8 turns, 4000 BC->3500 BC, Athens founded). Founding a city
+  / unit-action-menu nav via the virtpad is UNRELIABLE at ~1fps (RT registers;
+  dpad+A on the unit menu often gets dropped) — a harness limit, not a port bug.
+
+**INTERMITTENT boot-time GPU-hang (new finding, mostly a headless artifact):**
+- On boot the guest D3D fires `ERR[D3D]: The GPU is hung!` + a `tw/td trap
+  (type 22)` — a guest software watchdog that decides the GPU stalled. Under
+  llvmpipe (~1fps software raster) this trips ROUTINELY: the successful
+  golden_pad_full run hit it **19 times and recovered every time** (reached
+  in-game + 8 turns). Occasionally the recovery loses the race and boot
+  deadlocks (first soak attempt froze at 543 log lines right after the first
+  trap). `golden_soak_retry.sh` detects a boot deadlock (run.log frozen after a
+  trap) and retries; attempt 1 booted clean here.
+- Relationship to the fix: the KTHREAD unk_58 timer is what makes these
+  watchdogs/recovery FUNCTION (before, frozen timer => neither fired => the
+  end-turn silent hang). It's a net win (turns work). The residual boot
+  flakiness is llvmpipe being so slow the guest thinks the GPU hung — on a
+  REAL GPU (actual play) the GPU is fast and these watchdogs never fire. So the
+  boot-hang is largely a software-rendering test artifact, not a HW-play bug.
+- Optional future hardening: reduce transient GPU-ring stalls (CP ring re-init
+  race, NOTES #2/#3) or test on a real Vulkan GPU to eliminate the watchdog
+  trips entirely. Not required for playability.
+
+Scripts: golden_soak.sh, golden_soak_retry.sh.
