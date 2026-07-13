@@ -1,0 +1,23 @@
+diff --git a/src/system/runtime.cpp b/src/system/runtime.cpp
+index c1f4e06..a0d0957 100644
+--- a/src/system/runtime.cpp
++++ b/src/system/runtime.cpp
+@@ -28,6 +28,9 @@
+ #include <rex/system/xthread.h>
+ #include <rex/thread.h>
+ 
++REXCVAR_DEFINE_DOUBLE(time_scalar, 1.0, "Runtime",
++                      "Guest time scalar (<1 slows guest-perceived time; e.g. 0.25 makes guest "
++                      "watchdogs tolerate slow software rendering)");
+ REXCVAR_DEFINE_STRING(game_data_root, "", "Runtime", "Override game data path");
+ REXCVAR_DEFINE_STRING(user_data_root, "", "Runtime", "Override user data path");
+ REXCVAR_DEFINE_STRING(update_data_root, "", "Runtime", "Override update data path");
+@@ -110,7 +113,7 @@ X_STATUS Runtime::Setup(RuntimeConfig config) {
+   // Initialize clock
+   chrono::Clock::set_guest_tick_frequency(50000000);
+   chrono::Clock::set_guest_system_time_base(chrono::Clock::QueryHostSystemTime());
+-  chrono::Clock::set_guest_time_scalar(1.0);
++  chrono::Clock::set_guest_time_scalar(REXCVAR_GET(time_scalar));
+ 
+   // Enable threading affinity configuration
+   thread::EnableAffinityConfiguration();

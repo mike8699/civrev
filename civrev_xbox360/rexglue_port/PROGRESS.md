@@ -1124,3 +1124,56 @@ ACCELERATOR: the iOS build is symbolicated ("Rosetta Stone", see Korea-mod memor
 glyph-cache family) to read the logic with names. Also worth checking guest reads
 of the VdGlobalDevice/VdGlobalXamDevice variables and D3D caps the glyph cache
 might branch on.
+
+### Guest glyph-cache gate analysis (logo bug, static recomp reading)
+
+Call chain into the atlas rasterizer (from HW watchpoint):
+`sub_821D6D78 -> sub_821D6E38 -> vtable[348] -> sub_82511510 -> (vtable call) ->
+sub_8250CCF0 -> sub_826A3338 ... -> sub_826A20A0` (writes atlas bytes).
+
+- `sub_821D6D78` calls `vtable[116](this)` (=GetRenderer) then `sub_821D6E38(this,
+  renderer, r5=**hardcoded 7**)` — flag bits 1|2 (0x6) = "use HW glyph-cache atlas"
+  are ALWAYS requested. Bit 0 = base render.
+- `sub_821D6E38`: mode gate (*(this+160) in {1,2,4}) + failure latch (*(this+156),
+  set when vtable[348] returns nonzero; fail-fast on later calls unless mode==4).
+  Flags pass through unchanged to vtable[348] -> sub_82511510(this, renderer, flags).
+- `sub_82511510` entry: r18 = sub_82521DC0(this) (syncs 4 cache-texture slots
+  this+256.. vs globals @82F6FC14, via sub_82691E18(halGlobal+188, i)); if r18==0
+  -> WHOLE function exits (no rasterize — but rasterize DOES happen, so passes).
+  Then **sub_823ABF58(renderer) = (*(renderer+28) != 0)**; if FALSE -> `flags &=
+  ~6` (kill HW-atlas bits!) and skip vtable[112]+sub_82510638 (bind cache texture).
+  Later: `if ((flags&4) XOR (flags&2)) vtable[332](this,0,flags&6)` then main
+  `vtable[332](this,0,flags)`. With flags=7 both bits set -> XOR false -> single
+  main call WITH bits 6 -> HW path inside vtable[332]. With +28==0 -> flags=1 ->
+  vector/CPU path (no atlas quads) = EXACTLY the port's behavior.
+- HAL singleton [0x82F6E1E0] (=0x400C5740 in a probed boot): hal+188 =
+  **0x400DFA00** — the SAME object as the graphics-interrupt callback context and
+  the end-turn ring-wait object. hal+28 nonzero (but hal may not be the checked
+  renderer object; renderer comes from vtable[116] — class ctor sub_823ABFD0
+  vtable 0x8200FA68 zeroes +28; setter unknown).
+- Probe in flight: at sub_82511510 entry read (flags, renderer, *(renderer+28)).
+  If +28==0 -> find who fails to set it (Xenia comparison). Boot-hang mitigation:
+  fresh per-attempt CIVREV_PORT_CACHE (the grown persistent cache lengthens the
+  boot pipeline-preload stall; the guest GPU-watchdog then deadlocks boot).
+
+### Logo bug: setter identified + time_scalar mitigation (cont. 3)
+
+- `sub_82521DC0` always returns 1 (read to end) — non-factor. Everything gates on
+  `*(renderer+28)`.
+- **+28 setter found**: `sub_823AC2B8` (vtable slot **+104** of class vt 0x8200FA68)
+  assigns its r4 arg into this+28 via `sub_82567D30(&this[28], tex)` (ref-ptr assign).
+  The wrapper object (36 bytes) is built by factory `sub_823AC478`: gates on
+  `vtable[144](renderer) >= 1` (caps/texture-count query), constructs
+  (`sub_823ABFD0`, +28 zeroed), sets +24=1, then calls `vtable[100]`=`sub_823AC250`
+  (slot-array init via sub_82567D30 into this[(slot+2)*4], NOT +28). So +28 is
+  assigned LATER via vfunc+104 — caller unknown (too many generic +104 sites);
+  runtime probe pending. Init chain: `sub_82510E38` (glyph-cache-mgr init, recomp.28)
+  -> sub_823AC3E8/sub_823AC478 factories.
+- **BOOT-HANG mitigation added (SDK)**: new `--time_scalar=<f>` cvar
+  (`runtime.cpp`, wired to the existing-but-hardcoded
+  `Clock::set_guest_time_scalar`) — <1 slows guest-perceived time so the guest
+  D3D "GPU hung" panic (2.5s guest) tolerates llvmpipe pipeline-compile stalls.
+  0.25 delayed the panic 4x (still tripped); 0.05 boot survives past the usual
+  trap point but boots VERY slowly (guest-timed boot steps also 20x). Boot-hang
+  became ~100% this evening regardless of pipeline cache (fresh-cache theory
+  disproven) — host slowdown tipped a race; morning boots at 1.0 worked.
