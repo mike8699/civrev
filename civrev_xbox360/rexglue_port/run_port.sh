@@ -117,6 +117,7 @@ run_container() {
         -e GFXRECON_CAPTURE_FILE -e GFXRECON_CAPTURE_FRAMES -e GFXRECON_CAPTURE_TRIGGER \
         -e CIVREV_FB_DUMP -e CIVREV_FB_DUMP_START -e CIVREV_FB_DUMP_STEP \
         -e CIVREV_TEXDIAG -e CIVREV_TEXKILL -e CIVREV_FORCE_REUPLOAD \
+        -e CIVREV_DRAWDIAG \
         -e CIVREV_VIRTPAD \
         -v "$REPO_X360/xenia_automation/oracle/virtpad.py:/virtpad.py:ro" \
         --tmpfs /dev/shm:rw,nosuid,nodev,exec,size=1g \

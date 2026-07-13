@@ -1022,3 +1022,105 @@ Committed the turn-hang fix (898414c, patch 0009 + NOTES #6). Then ran the soak.
   trips entirely. Not required for playability.
 
 Scripts: golden_soak.sh, golden_soak_retry.sh.
+
+---
+
+## Session — 2026-07-13 (cont.): title-logo investigation (diagnosed, NOT fixed) + boot-instability
+
+**Goal:** fix the title logo ("SID MEIER'S CIVILIZATION REVOLUTION" banner) not
+rendering on the title screen.
+
+**Diagnosis (confirmed, not yet fixed):**
+- Port title = correct 3D landscape + "Press START to begin", but the dark-blue
+  banner + logo are ABSENT (Xenia reference shows them). Not a color/alpha bug:
+  the logo is simply **never drawn**.
+- TEXDIAG at the title (definitive multi-frame capture): the port samples ONLY 5
+  textures — font `1FB17000` (k_8), 2 DXT backgrounds `1AEC2000`/`1AEA2000`, and
+  2 button-skin `1BC9E000`/`1BCAA000` (64x64 k_8_8_8_8). **NO logo texture is
+  sampled at all** — same 5 as the menu. So the logo draw is not issued / its
+  texture never bound.
+- NOT a file-load issue: assets load from FPKs (no per-`.dds`/`.gfx` file opens;
+  the failing opens are `GAME:\Assets\Xenon\`,`\Resource\Xenon\`,`ObjectIcons\`
+  optional-override dir probes that Xenia ALSO probes-and-ignores).
+- **Asset IS present**: ran Xenia (`run_scenario.sh boot`) on the SAME extracted
+  tree the port uses (`xenon_recomp/work/extracted`, `run_extracted.sh` = "same
+  bytes") — Xenia renders the full logo banner. So it's a PORT draw bug, not an
+  asset/extraction gap. `output/logo_ref/03_title.png` = Xenia proof.
+- Class matches the parked "UI bitmaps render black" issue (portraits, leader
+  thumbnails, tutorial fills) — needs a GPU-capture-level differential (what draw
+  /texture Xenia issues for the logo that the port doesn't).
+
+**Diagnostic added (uncommitted, inert, env-gated):** `CIVREV_DRAWDIAG=1` in
+`command_processor.cpp` IssueDraw logs EVERY draw (prim, index count, VS/PS ucode
+hash) incl. texture-less/culled draws. `run_port.sh` forwards it. NOTE: per-draw
+REXGPU_ERROR logging is heavy under llvmpipe and can trip the GPU-hang watchdog
+once rendering starts — needs in-code dedup/throttle to be usable.
+
+**BLOCKER — boot-instability (worsened this session):** the port boot hangs with
+`CivConsole` busy-spinning (~8 cores, 790% CPU, which itself drives host load to
+~16 — the load/hang correlation is BACKWARDS: the spin causes the load). Same
+GPU-ring-wait spin class as the end-turn hang; at boot under llvmpipe the recovery
+sometimes never wins the race and boot never reaches the title. Booted fine this
+morning (golden_pad_full) with identical code (verified: restoring the original
+Jul-12 `librexgpu-xenos.so` did NOT help — my DRAWDIAG rebuild was NOT the cause),
+so it's environmental/timing degradation (heavy session use, 6-day uptime). This
+blocks iterative port-side title captures. Likely aggravated by the KTHREAD-timer
+fix enabling the guest GPU-hang watchdog under slow software rendering.
+
+**Next steps to actually fix (both are larger efforts):**
+1. Xenia GPU-trace differential (Xenia boots reliably): dump Xenia's title-frame
+   draw/texture list, find the logo's texture base+format+shader, then trace why
+   the port doesn't load/bind/draw it.
+2. A real-GPU (non-llvmpipe) headless env would remove the boot-hang + watchdog
+   trips, making port-side iteration reliable.
+
+---
+
+## Session — 2026-07-13 (cont. 2): LOGO ROOT CAUSE NARROWED — Scaleform atlas never sampled
+
+Xenia-differential + live-gdb investigation. The missing title logo, button-prompt
+glyphs, portraits, and tutorial button fills are ONE bug.
+
+**The unified mechanism (proven):**
+- Xenia (same extracted tree) title uses 11 textures; the port uses 5. The key
+  missing pair: two tiled 1024x256 k_8_8_8_8 pages at **1BBBC000/1BB92000** —
+  the **Scaleform glyph/image ATLAS**. Decoded it from PORT memory (gdb dump +
+  offline untile): it contains the LOGO lettering + globe, the tutorial button
+  fills, AND the controller glyphs (Ls/LT...) — every missing UI bitmap, one atlas.
+- **The port's guest CPU fully rasterizes this atlas EVERY FRAME** (hardware
+  watchpoint on the atlas bytes: writer = guest chain sub_826A20A0 <- sub_826A2390
+  <- sub_826A25F0 <- sub_826A2B80 <- sub_826A3210 <- sub_826A3338 <- sub_8250CCF0
+  <- sub_82511510 <- sub_821D6E38 <- sub_821D6D78 <- sub_82C6DCF8 (CivConsole)).
+  In XENIA the atlas is invalidated only ~6 times total (rasterize-once, then reuse).
+- **The port NEVER issues any draw sampling the atlas** (TEXDIAG with new ps= hash
+  across whole boots: zero fetch constants ever reference 1BBBC000/1BB92000).
+  In Xenia the atlas is sampled with VS 5F6EB3BC96CE8FC0 + PS 6831098A8316F932 —
+  the SAME pipeline the port uses for the (working) 64x64 button-skin quads.
+- So: the guest's glyph-cache "valid/latched" state never sticks -> re-rasterize
+  every frame -> never emit atlas quads. The gating input differs from Xenia.
+
+**Ruled out this session (each with evidence):**
+- Asset/extraction gap (Xenia renders logo from the SAME tree) - file I/O (all
+  reads succeed; 1064 APC-style reads, APCs queue+deliver; log_noisy=true trace)
+- XMemDecompress (not imported) - fences via EVENT_WRITE-with-address (all
+  EVENT_WRITE packets have count=1) - EVENT_WRITE_SHD (implemented, Xenia-identical)
+- CP interrupts (source=1 dispatches flow, 20 PM4_INTERRUPT/s) - COHER (matches
+  Xenia base impl) - pipeline-cache poisoning (fresh cache: identical behavior)
+- shader translation failures (none) - texture-format bugs (atlas never referenced
+  at all) - GPU-hang recovery aborting atlas (a zero-hang boot still lacked draws).
+
+**Diagnostics added (SDK working tree, env-gated):** TEXDIAG now logs ps= ucode
+hash + ntex=0 draws; new CIVREV_DRAWDIAG logs EVERY IssueDraw (prim/idx/vs/ps).
+run_port.sh forwards CIVREV_DRAWDIAG. **GOTCHA: the GPU plugin is dlopen'd from
+/port (staged next to the binary, $ORIGIN), NOT /sdk/lib — stage rebuilt
+librexgpu-xenos.so into civrev/out/build/linux-amd64-release/ or it won't load**
+(librexruntime.so DOES come from /sdk/lib via LD_LIBRARY_PATH).
+
+**Next step:** guest-logic dive into the glyph-cache manager (sub_821D6E38 /
+sub_82511510): find the branch that chooses re-rasterize vs reuse+draw, and which
+guest-visible input (a flag/counter someone must set) differs under the port.
+ACCELERATOR: the iOS build is symbolicated ("Rosetta Stone", see Korea-mod memory)
+— map these 360 functions to named iOS/Scaleform equivalents (GFxFontCacheManager /
+glyph-cache family) to read the logic with names. Also worth checking guest reads
+of the VdGlobalDevice/VdGlobalXamDevice variables and D3D caps the glyph cache
+might branch on.

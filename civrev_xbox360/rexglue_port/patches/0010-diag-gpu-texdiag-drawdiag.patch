@@ -1,0 +1,255 @@
+diff --git a/src/graphics/command_processor.cpp b/src/graphics/command_processor.cpp
+index 60efcd3..9774434 100644
+--- a/src/graphics/command_processor.cpp
++++ b/src/graphics/command_processor.cpp
+@@ -285,6 +285,15 @@ void CommandProcessor::WorkerThreadMain() {
+     }
+ 
+     uint32_t write_ptr_index = write_ptr_index_.load();
++    // Apply a pending ring re-initialization (see InitializeRingBuffer).
++    // Loaded AFTER the write pointer: guest store order is epoch then WPTR,
++    // so observing the new WPTR guarantees observing the epoch bump.
++    uint32_t ring_init_epoch = ring_init_epoch_.load(std::memory_order_acquire);
++    if (ring_init_epoch != ring_init_epoch_seen_) {
++      ring_init_epoch_seen_ = ring_init_epoch;
++      read_ptr_index_ = 0;
++      continue;  // re-evaluate with a fresh write pointer under the new ring
++    }
+     if (write_ptr_index == 0xBAADF00D || read_ptr_index_ == write_ptr_index) {
+       SCOPE_profile_cpu_i("gpu", "rex::graphics::CommandProcessor::Stall");
+       // We've run out of commands to execute.
+@@ -306,9 +315,10 @@ void CommandProcessor::WorkerThreadMain() {
+       } while (worker_running_ && pending_fns_.empty() &&
+                (write_ptr_index == 0xBAADF00D || read_ptr_index_ == write_ptr_index));
+       ReturnFromWait();
+-      if (!worker_running_ || !pending_fns_.empty()) {
+-        continue;
+-      }
++      // Always restart the loop after a stall: the wake-up may be a ring
++      // re-initialization (epoch bump), which must be applied before
++      // executing with the freshly loaded write pointer.
++      continue;
+     }
+     assert_true(read_ptr_index_ != write_ptr_index);
+ 
+@@ -386,9 +396,19 @@ bool CommandProcessor::SetupContext() {
+ void CommandProcessor::ShutdownContext() {}
+ 
+ void CommandProcessor::InitializeRingBuffer(uint32_t ptr, uint32_t size_log2) {
+-  read_ptr_index_ = 0;
+   primary_buffer_ptr_ = ptr;
+   primary_buffer_size_ = uint32_t(1) << (size_log2 + 3);
++  // Local patch (civrev): don't write read_ptr_index_ from the guest thread —
++  // if the worker is inside ExecutePrimaryBuffer, its returned index lands
++  // AFTER this reset and the stale value survives. Observed with CivRev's
++  // D3D device init, which re-initializes the ring and restarts its command
++  // stream at offset 0: the CP kept reading at the old index, hit mid-stream
++  // garbage, and died with "ExecutePacketType0 overflow". Signal the worker
++  // instead; it applies the reset at loop top (it owns read_ptr_index_).
++  // Store order matters: guest bumps the epoch BEFORE writing the new WPTR
++  // register, and the worker loads WPTR before the epoch, so a visible new
++  // WPTR implies a visible epoch bump.
++  ring_init_epoch_.fetch_add(1, std::memory_order_release);
+ }
+ 
+ void CommandProcessor::EnableReadPointerWriteBack(uint32_t ptr, uint32_t block_size_log2) {
+diff --git a/src/graphics/vulkan/command_processor.cpp b/src/graphics/vulkan/command_processor.cpp
+index a40436e..2ba8401 100644
+--- a/src/graphics/vulkan/command_processor.cpp
++++ b/src/graphics/vulkan/command_processor.cpp
+@@ -12,6 +12,9 @@
+ #include <algorithm>
+ #include <array>
+ #include <cstdint>
++#include <cstdio>
++#include <cstdlib>
++#include <unistd.h>  // civrev diag: access() for the one-shot reupload trigger
+ #include <cstring>
+ #include <iterator>
+ #include <mutex>
+@@ -2285,6 +2288,19 @@ void VulkanCommandProcessor::OnGammaRampPWLValueWritten() {
+ void VulkanCommandProcessor::IssueSwap(uint32_t frontbuffer_ptr, uint32_t frontbuffer_width,
+                                        uint32_t frontbuffer_height) {
+   SCOPE_profile_cpu_f("gpu");
++  // civrev TEST (env CIVREV_FORCE_REUPLOAD=1): when the file /output/reupload
++  // exists, do a ONE-SHOT re-upload of all shared-memory pages from guest RAM
++  // AND clear the texture cache (so textures reload from the fresh data), then
++  // consume the trigger. Fired once after the menu is up (fast nav preserved).
++  // If the missing UI glyphs then appear, their guest data was valid but the
++  // texture was loaded before the data arrived and never reloaded -> memory
++  // upload/invalidation timing bug, not an untile/decode bug.
++  if (std::getenv("CIVREV_FORCE_REUPLOAD") && access("/output/reupload", F_OK) == 0) {
++    shared_memory_->InvalidateAllPages();
++    texture_cache_->ClearCache();
++    std::remove("/output/reupload");
++    REXGPU_ERROR("TEXDIAG: one-shot shared-memory reupload + texture ClearCache fired");
++  }
+   vertex_buffers_in_sync_[0] = 0;
+   vertex_buffers_in_sync_[1] = 0;
+ 
+@@ -2332,6 +2348,79 @@ void VulkanCommandProcessor::IssueSwap(uint32_t frontbuffer_ptr, uint32_t frontb
+     REXGPU_ERROR("XELOG_GPU PRESENT: swap_texture_view=NULL");
+     return;
+   }
++  // civrev debug: dump the guest front buffer (the swap source in shared
++  // memory) to PPM via a synchronous GPU readback — same submit-and-await
++  // pattern as the memexport readback (safe at the swap boundary). Set
++  // CIVREV_FB_DUMP=<dir> to enable. Note: contents are in Xenos tiled layout;
++  // brightness is unaffected by tiling.
++  {
++    static const char* dump_dir = std::getenv("CIVREV_FB_DUMP");
++    if (dump_dir && frontbuffer_ptr) {
++      static uint32_t swap_count = 0, dump_count = 0;
++      static uint32_t dump_start = []() {
++        const char* s = std::getenv("CIVREV_FB_DUMP_START");
++        return s ? uint32_t(std::atoi(s)) : 0u;
++      }();
++      static uint32_t dump_step = []() {
++        const char* s = std::getenv("CIVREV_FB_DUMP_STEP");
++        return s ? std::max(1u, uint32_t(std::atoi(s))) : 2u;
++      }();
++      ++swap_count;
++      if (swap_count >= dump_start && swap_count % dump_step == 0 && dump_count < 200)
++      for (uint32_t fb_alt = 0; fb_alt < 2; ++fb_alt) {
++        uint32_t alt_ptr = fb_alt == 0 ? frontbuffer_ptr
++                                       : (frontbuffer_ptr == 0x1F360000u ? 0x1F6F8000u : 0x1F360000u);
++        uint32_t fb_w = frontbuffer_width ? std::min(frontbuffer_width, 1280u) : 1280u;
++        uint32_t fb_h = frontbuffer_height ? std::min(frontbuffer_height, 720u) : 720u;
++        uint32_t size = fb_w * fb_h * 4;
++        const ui::vulkan::VulkanDevice* vd = GetVulkanDevice();
++        const auto& dfn = vd->functions();
++        VkDevice device = vd->device();
++        VkBuffer rb = VK_NULL_HANDLE; VkDeviceMemory rbm = VK_NULL_HANDLE;
++        uint32_t mt = 0; VkDeviceSize ms = 0;
++        if (ui::vulkan::util::CreateDedicatedAllocationBuffer(
++                vd, size, VK_BUFFER_USAGE_TRANSFER_DST_BIT,
++                ui::vulkan::util::MemoryPurpose::kReadback, rb, rbm, &mt, &ms)) {
++          shared_memory_->RequestRange(alt_ptr, size);
++          shared_memory_->Use(VulkanSharedMemory::Usage::kRead);
++          SubmitBarriers(true);
++          VkBufferCopy cr = {}; cr.srcOffset = alt_ptr; cr.size = size;
++          deferred_command_buffer_.CmdVkCopyBuffer(shared_memory_->buffer(), rb, 1, &cr);
++          PushBufferMemoryBarrier(rb, 0, size, VK_PIPELINE_STAGE_TRANSFER_BIT,
++                                  VK_PIPELINE_STAGE_HOST_BIT, VK_ACCESS_TRANSFER_WRITE_BIT,
++                                  VK_ACCESS_HOST_READ_BIT);
++          if (AwaitAllQueueOperationsCompletion()) {
++            void* map = nullptr;
++            if (dfn.vkMapMemory(device, rbm, 0, VK_WHOLE_SIZE, 0, &map) == VK_SUCCESS) {
++              VkMappedMemoryRange mr = {VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE};
++              mr.memory = rbm; mr.size = VK_WHOLE_SIZE;
++              dfn.vkInvalidateMappedMemoryRanges(device, 1, &mr);
++              const uint8_t* px = reinterpret_cast<const uint8_t*>(map);
++              std::string path = fmt::format("{}/fb_{:03d}_{:08X}{}.ppm", dump_dir, dump_count,
++                                             alt_ptr, fb_alt ? "_alt" : "");
++              FILE* fp = std::fopen(path.c_str(), "wb");
++              if (fp) {
++                std::fprintf(fp, "P6\n%u %u\n255\n", fb_w, fb_h);
++                uint8_t cmax[4] = {0, 0, 0, 0};
++                for (uint32_t i = 0; i < fb_w * fb_h; ++i) {
++                  const uint8_t* p = px + i * 4;
++                  for (int c = 0; c < 4; ++c) if (p[c] > cmax[c]) cmax[c] = p[c];
++                  std::fputc(p[0], fp); std::fputc(p[1], fp); std::fputc(p[2], fp);
++                }
++                std::fclose(fp);
++                REXGPU_INFO("C3DUMP wrote {} chan_max=({},{},{},{})", path, cmax[0], cmax[1],
++                            cmax[2], cmax[3]);
++              }
++              dfn.vkUnmapMemory(device, rbm);
++            }
++          }
++          dfn.vkDestroyBuffer(device, rb, nullptr);
++          dfn.vkFreeMemory(device, rbm, nullptr);
++        }
++        if (fb_alt == 1) ++dump_count;
++      }
++    }
++  }
+   // The swap gamma / FXAA pass samples source texels by pixel index, but swap
+   // textures may be allocation-padded. Prefer the active frontbuffer region
+   // from the swap packet, scaled proportionally to the actual source texture.
+@@ -3623,6 +3712,21 @@ bool VulkanCommandProcessor::IssueDraw(xenos::PrimitiveType prim_type, uint32_t
+     return false;
+   };
+ 
++  // civrev DRAWDIAG (env CIVREV_DRAWDIAG=1): log EVERY draw the guest issues
++  // (prim, index count, VS/PS ucode hash) — including texture-less vertex-color
++  // draws and draws that get culled downstream, which TEXDIAG (textured draws
++  // only, later in the pipeline) misses. Used to find whether the title-logo /
++  // banner draw is issued-but-dropped vs never issued at all.
++  if (std::getenv("CIVREV_DRAWDIAG")) {
++    auto* ddiag_vs = static_cast<VulkanShader*>(active_vertex_shader());
++    auto* ddiag_ps = static_cast<VulkanShader*>(active_pixel_shader());
++    REXGPU_ERROR("DRAWDIAG prim={} idx={} vs={:016X} ps={:016X} edram={}",
++                 uint32_t(prim_type), index_count,
++                 ddiag_vs ? ddiag_vs->ucode_data_hash() : 0ull,
++                 ddiag_ps ? ddiag_ps->ucode_data_hash() : 0ull,
++                 uint32_t(regs.Get<reg::RB_MODECONTROL>().edram_mode));
++  }
++
+   xenos::EdramMode edram_mode = regs.Get<reg::RB_MODECONTROL>().edram_mode;
+   if (edram_mode == xenos::EdramMode::kCopy) {
+     // Special copy handling.
+@@ -4194,6 +4298,7 @@ bool VulkanCommandProcessor::IssueDraw(xenos::PrimitiveType prim_type, uint32_t
+     }
+   }
+ 
++
+   return true;
+ }
+ 
+@@ -5736,6 +5841,55 @@ void VulkanCommandProcessor::UpdateDynamicState(const draw_util::ViewportInfo& v
+   scissor_rect.extent.height = scissor.extent[1];
+   SetScissor(scissor_rect);
+ 
++  // civrev texture diag (env CIVREV_TEXDIAG=1): for each draw, dump its scissor
++  // and the descriptors of the textures its pixel shader samples (format,
++  // tiled/linear, sign, swizzle, exp_adjust). Used to compare the failing UI
++  // bitmap textures (button-prompt glyphs / icons that sample to black) against
++  // the working font-atlas / 3D textures. Dedup by fetch base per frame is done
++  // in post-processing of the log.
++  auto* texdiag_pixel_shader = static_cast<VulkanShader*>(active_pixel_shader());
++  if (texdiag_pixel_shader && std::getenv("CIVREV_TEXDIAG")) {
++    // Also log draws whose pixel shader samples NO textures (empty line with
++    // ntex=0) so shader usage is visible even for pure vertex-color draws, and
++    // include the PS ucode hash to tie each texture to the shader drawing it.
++    const auto& texdiag_bindings = texdiag_pixel_shader->GetTextureBindingsAfterTranslation();
++    if (texdiag_bindings.empty()) {
++      REXGPU_ERROR("TEXDIAG ps={:016X} ntex=0 scissor={},{}+{}x{}",
++                   texdiag_pixel_shader->ucode_data_hash(), scissor_rect.offset.x,
++                   scissor_rect.offset.y, scissor_rect.extent.width, scissor_rect.extent.height);
++    }
++    for (const auto& tb : texdiag_bindings) {
++      const auto fc = regs.GetTextureFetch(tb.fetch_constant);
++      REXGPU_ERROR(
++          "TEXDIAG ps={:016X} scissor={},{}+{}x{} fc={} base={:08X} {}x{} fmt={} tiled={} "
++          "endian={} num_fmt={} swizzle={:03X} exp_adj={} sign={},{},{},{}",
++          texdiag_pixel_shader->ucode_data_hash(), scissor_rect.offset.x, scissor_rect.offset.y,
++          scissor_rect.extent.width, scissor_rect.extent.height, tb.fetch_constant,
++          uint32_t(fc.base_address) << 12, fc.size_2d.width + 1, fc.size_2d.height + 1,
++          uint32_t(fc.format), uint32_t(fc.tiled), uint32_t(fc.endianness),
++          uint32_t(fc.num_format), uint32_t(fc.swizzle), int32_t(fc.exp_adjust),
++          uint32_t(fc.sign_x), uint32_t(fc.sign_y), uint32_t(fc.sign_z), uint32_t(fc.sign_w));
++    }
++  }
++  // civrev TEXKILL (env CIVREV_TEXKILL=<hex base>): suppress any draw whose
++  // pixel shader samples the texture at that base address, by collapsing its
++  // scissor to empty. Boot once per candidate texture; the on-screen element
++  // that VANISHES uses that texture (identifies which of the menu's few
++  // textures is the failing button-prompt-glyph atlas without a GPU capture).
++  if (const char* kill_hex = std::getenv("CIVREV_TEXKILL")) {
++    const uint32_t kill_base = uint32_t(strtoul(kill_hex, nullptr, 16));
++    auto* ps = static_cast<VulkanShader*>(active_pixel_shader());
++    if (ps) {
++      for (const auto& tb : ps->GetTextureBindingsAfterTranslation()) {
++        if ((uint32_t(regs.GetTextureFetch(tb.fetch_constant).base_address) << 12) == kill_base) {
++          VkRect2D empty{{0, 0}, {0, 0}};
++          SetScissor(empty);
++          break;
++        }
++      }
++    }
++  }
++
+   if (render_target_cache_->GetPath() == RenderTargetCache::Path::kHostRenderTargets) {
+     // Depth bias.
+     float depth_bias_constant_factor, depth_bias_slope_factor;
