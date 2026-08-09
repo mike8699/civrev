@@ -330,6 +330,49 @@ void main() {
 }
 """
 
+RIVER_VS = """
+#version 150
+in vec3 pos;
+in vec2 uv;
+uniform mat4 uMvp;
+out vec2 vUV;
+""" + CURVE_FN + """
+void main() {
+    vUV = uv;
+    gl_Position = uMvp * vec4(curved(pos), 1.0);
+}
+"""
+
+RIVER_FS = """
+#version 150
+in vec2 vUV;                 // u = distance along (tiles), v = 0..1 across
+uniform int uKind;           // 0 = sand bank, 1 = water channel
+out vec4 frag;
+void main() {
+    float edge = min(vUV.y, 1.0 - vUV.y) * 2.0;   // 0 banks -> 1 center
+    if (uKind == 0) {
+        // Sand halo, soft outer edge, slight speckle
+        vec3 sandc = vec3(0.93, 0.88, 0.72);
+        float sp = fract(sin(dot(floor(vUV * vec2(14.0, 9.0)),
+                                 vec2(12.9898, 78.233))) * 43758.5453);
+        sandc *= 0.96 + 0.07 * sp;
+        float a = smoothstep(0.0, 0.45, edge) * 0.85;
+        frag = vec4(sandc, a);
+    } else {
+        // Cyan channel: pale rim, teal body, deeper center thread
+        vec3 rim = vec3(0.82, 0.96, 1.0);
+        vec3 body = vec3(0.47, 0.80, 0.93);
+        vec3 core = vec3(0.30, 0.64, 0.88);
+        vec3 col = mix(rim, body, smoothstep(0.06, 0.45, edge));
+        col = mix(col, core, smoothstep(0.55, 1.0, edge) * 0.55);
+        // Gentle flow ripple
+        col *= 1.0 + 0.035 * sin(vUV.x * 9.0 + vUV.y * 4.0);
+        float a = smoothstep(0.0, 0.2, edge) * 0.95;
+        frag = vec4(col, a);
+    }
+}
+"""
+
 TREE_VS = """
 #version 150
 in vec3 pos;
@@ -379,50 +422,224 @@ def _tile_hash(r: int, c: int, k: int = 0) -> int:
     return ((r * 37 + c * 13 + k * 71 + 7) * 2654435761) & 0xFFFFFFFF
 
 
-def build_river_verts(grid: bytes, heights: np.ndarray) -> np.ndarray:
-    """Wide meandering river ribbons along flagged tile edges, like the
-    game's braided channels. (N,3) float32."""
-    tris = []
-    hw = 0.095                      # half width in tile units
-    lift = 0.06
+def _river_chains(grid: bytes) -> list:
+    """Chain flagged tile edges into polylines over lattice points.
 
-    def edge_strip(x0, y0, x1, y1, seed):
-        segs = 14
-        dx, dy = x1 - x0, y1 - y0
-        ln = math.hypot(dx, dy) or 1.0
-        nx, ny = -dy / ln, dx / ln            # perpendicular
-        amp = 0.10 + (seed % 100) / 100.0 * 0.05
-        phase = (seed >> 4) % 2 * math.pi
-        prev = None
-        for s in range(segs + 1):
-            t = s / segs
-            wig = amp * math.sin(t * math.pi * 2 + phase) * math.sin(t * math.pi)
-            cx = x0 + dx * t + nx * wig
-            cy = y0 + dy * t + ny * wig
-            w = hw * (0.75 + 0.5 * math.sin(t * math.pi * 3 + phase))
-            cz = _sample_height(heights, cx, cy) * HEIGHT_SCALE + lift
-            cur = (cx - nx * w, cy - ny * w, cz,
-                   cx + nx * w, cy + ny * w, cz)
-            if prev is not None:
-                tris.extend([
-                    prev[:3], prev[3:], (cur[0], cur[1], cur[2]),
-                    prev[3:], (cur[3], cur[4], cur[5]),
-                    (cur[0], cur[1], cur[2]),
-                ])
-            prev = cur
-
+    A tile's west edge is the segment x=c from y=r to r+1, east is x=c+1,
+    south is y=r+1. Adjacent tiles flagging the same physical line are
+    deduplicated. Returns a list of point lists [(x, y), ...].
+    """
+    edges = set()
     for r in range(GRID):
         for c in range(GRID):
             v = grid[r * GRID + c]
             if v & 0x20:
-                edge_strip(c, float(r), c, r + 1.0, _tile_hash(r, c, 1))
+                edges.add(((c, r), (c, r + 1)))
             if v & 0x40:
-                edge_strip(c + 1, float(r), c + 1, r + 1.0, _tile_hash(r, c, 2))
+                edges.add(((c + 1, r), (c + 1, r + 1)))
             if v & 0x80:
-                edge_strip(float(c), r + 1, c + 1.0, r + 1, _tile_hash(r, c, 3))
-    if not tris:
-        return np.zeros((0, 3), dtype=np.float32)
-    return np.array(tris, dtype=np.float32)
+                edges.add(((c, r + 1), (c + 1, r + 1)))
+
+    adj = {}
+    for a, b in edges:
+        adj.setdefault(a, set()).add(b)
+        adj.setdefault(b, set()).add(a)
+
+    unused = set(edges)
+    chains = []
+    # Prefer starting from endpoints (degree-1 nodes) for full runs
+    starts = [n for n, ns in adj.items()
+              if sum(1 for m in ns if _edge_free(unused, n, m)) == 1]
+    for start in starts + list(adj.keys()):
+        while any(_edge_free(unused, start, m) for m in adj.get(start, ())):
+            chain = _walk_chain(start, adj, unused)
+            if len(chain) > 1:
+                chains.append([(float(x), float(y)) for x, y in chain])
+    return chains
+
+
+def _edge_free(unused: set, a, b) -> bool:
+    return (a, b) in unused or (b, a) in unused
+
+
+def _walk_chain(start, adj, unused) -> list:
+    """One chain from `start`, preferring the straightest continuation."""
+    chain = [start]
+    cur, prev = start, None
+    while True:
+        cands = [m for m in adj.get(cur, ()) if _edge_free(unused, cur, m)]
+        if not cands:
+            return chain
+        if prev is None:
+            best = cands[0]
+        else:
+            dx0, dy0 = cur[0] - prev[0], cur[1] - prev[1]
+            best = max(cands, key=lambda m: (
+                (m[0] - cur[0]) * dx0 + (m[1] - cur[1]) * dy0))
+        unused.discard((cur, best))
+        unused.discard((best, cur))
+        chain.append(best)
+        prev, cur = cur, best
+
+
+def _smooth_chain(pts: list, seed: int) -> list:
+    """Jitter interior nodes, then Chaikin-smooth into a meander."""
+    if len(pts) > 2:
+        out = [pts[0]]
+        for i in range(1, len(pts) - 1):
+            px, py = pts[i - 1]
+            nx_, ny_ = pts[i + 1]
+            dx, dy = nx_ - px, ny_ - py
+            ln = math.hypot(dx, dy) or 1.0
+            h = _tile_hash(int(pts[i][1] * 7), int(pts[i][0] * 13), seed)
+            amt = ((h % 200) / 100.0 - 1.0) * 0.14
+            out.append((pts[i][0] + (-dy / ln) * amt,
+                        pts[i][1] + (dx / ln) * amt))
+        out.append(pts[-1])
+        pts = out
+    for _ in range(3):                     # Chaikin corner cutting
+        if len(pts) < 3:
+            break
+        nxt = [pts[0]]
+        for i in range(len(pts) - 1):
+            ax, ay = pts[i]
+            bx, by = pts[i + 1]
+            nxt.append((ax * 0.75 + bx * 0.25, ay * 0.75 + by * 0.25))
+            nxt.append((ax * 0.25 + bx * 0.75, ay * 0.25 + by * 0.75))
+        nxt.append(pts[-1])
+        pts = nxt
+    return pts
+
+
+def _emit_ribbon(tris, pts, half_widths, heights, lift, u_scale=1.0):
+    """Triangulate a ribbon along pts. Vertices: (x, y, z, u, v)."""
+    prev = None
+    u = 0.0
+    for i, (cx, cy) in enumerate(pts):
+        if i + 1 < len(pts):
+            dx, dy = pts[i + 1][0] - cx, pts[i + 1][1] - cy
+        else:
+            dx, dy = cx - pts[i - 1][0], cy - pts[i - 1][1]
+        ln = math.hypot(dx, dy) or 1.0
+        nx_, ny_ = -dy / ln, dx / ln
+        if i:
+            u += math.hypot(cx - pts[i - 1][0], cy - pts[i - 1][1]) * u_scale
+        w = half_widths[i]
+        cz = _sample_height(heights, cx, cy) * HEIGHT_SCALE + lift
+        cur = ((cx - nx_ * w, cy - ny_ * w, cz, u, 0.0),
+               (cx + nx_ * w, cy + ny_ * w, cz, u, 1.0))
+        if prev is not None:
+            a, b = prev
+            d, e = cur
+            tris.extend([a, b, d, b, e, d])
+        prev = cur
+
+
+def _mouth_in_ocean(pt, grid) -> bool:
+    """Does a chain endpoint touch an ocean tile?"""
+    x, y = int(round(pt[0])), int(round(pt[1]))
+    for dc, dr in ((0, 0), (-1, 0), (0, -1), (-1, -1)):
+        c, r = x + dc, y + dr
+        if 0 <= r < GRID and 0 <= c < GRID:
+            if grid[r * GRID + c] & 0x07 == 0:
+                return True
+    return False
+
+
+def _river_widths(n: int, h0: int, mouth0: bool, mouth1: bool) -> list:
+    """Width envelope: thin source, breathing middle, widening mouth."""
+    widths = []
+    for i in range(n):
+        t = i / max(1, n - 1)
+        w = 0.085 * (0.85 + 0.3 * math.sin(t * math.pi * (2 + h0 % 3) + h0))
+        if mouth1:
+            w *= 1.0 + 1.1 * max(0.0, t - 0.82) / 0.18
+        if mouth0:
+            w *= 1.0 + 1.1 * max(0.0, 0.18 - t) / 0.18
+        if not mouth0:
+            w *= min(1.0, 0.45 + t * 2.2)
+        if not mouth1:
+            w *= min(1.0, 0.45 + (1 - t) * 2.2)
+        widths.append(w)
+    return widths
+
+
+def _emit_braid(water, pts, heights):
+    """Mid-run sandbar: split the channel around a lens-shaped island."""
+    seg = pts[int(len(pts) * 0.38):int(len(pts) * 0.62)]
+    if len(seg) < 2:
+        return
+    for side in (-1.0, 1.0):
+        off_pts = []
+        for j, (cx, cy) in enumerate(seg):
+            k = j / max(1, len(seg) - 1)
+            bulge = math.sin(k * math.pi) * 0.09
+            if j + 1 < len(seg):
+                dx, dy = seg[j + 1][0] - cx, seg[j + 1][1] - cy
+            else:
+                dx, dy = cx - seg[j - 1][0], cy - seg[j - 1][1]
+            ln = math.hypot(dx, dy) or 1.0
+            off_pts.append((cx - dy / ln * bulge * side,
+                            cy + dx / ln * bulge * side))
+        _emit_ribbon(water, off_pts, [0.05] * len(off_pts), heights, 0.078)
+
+
+def _emit_delta(sand, water, end, prev, heights):
+    """Curved two-channel delta fan at a beach-level ocean mouth."""
+    if _sample_height(heights, *end) > WATER_NORM + 0.02:
+        return                               # cliff mouth: no fan
+    dx, dy = end[0] - prev[0], end[1] - prev[1]
+    ln = math.hypot(dx, dy) or 1.0
+    dx, dy = dx / ln, dy / ln
+    for side in (-1.0, 1.0):
+        fork = [end]
+        fx, fy = dx, dy
+        for _ in range(4):
+            ang = side * 0.22                # curve outward gradually
+            ca, sa = math.cos(ang), math.sin(ang)
+            fx, fy = fx * ca - fy * sa, fx * sa + fy * ca
+            lx, ly = fork[-1]
+            fork.append((lx + fx * 0.14, ly + fy * 0.14))
+        fw = [0.055, 0.045, 0.035, 0.025, 0.015]
+        _emit_ribbon(sand, fork, [w * 1.9 + 0.035 for w in fw],
+                     heights, 0.044)
+        _emit_ribbon(water, fork, fw, heights, 0.074)
+
+
+def build_river_geometry(grid: bytes, heights: np.ndarray) -> dict:
+    """Game-style rivers: sand-bank halo under a cyan channel, smooth
+    meanders, and braided deltas where a river meets the ocean.
+
+    Returns {'sand': (N,5) float32, 'water': (M,5) float32}.
+    """
+    sand, water = [], []
+    for ci, chain in enumerate(_river_chains(grid)):
+        pts = _smooth_chain(chain, ci + 1)
+        n = len(pts)
+        if n < 2:
+            continue
+        h0 = _tile_hash(ci, len(chain), 5)
+        mouth0 = _mouth_in_ocean(pts[0], grid)
+        mouth1 = _mouth_in_ocean(pts[-1], grid)
+
+        widths = _river_widths(n, h0, mouth0, mouth1)
+        _emit_ribbon(sand, pts, [w * 1.9 + 0.045 for w in widths],
+                     heights, 0.045)
+        _emit_ribbon(water, pts, widths, heights, 0.075)
+
+        if n >= 24 and (h0 >> 3) % 2 == 0:
+            _emit_braid(water, pts, heights)
+        if mouth1:
+            _emit_delta(sand, water, pts[-1], pts[-2], heights)
+        if mouth0:
+            _emit_delta(sand, water, pts[0], pts[1], heights)
+
+    def pack(v):
+        if not v:
+            return np.zeros((0, 5), dtype=np.float32)
+        return np.array(v, dtype=np.float32)
+
+    return {"sand": pack(sand), "water": pack(water)}
 
 
 # Tier stacks per species: list of (scale, z offset in tile units)
@@ -640,8 +857,8 @@ class SceneRenderer:
         self.programs = {}
         self.textures = {}
         self.buffers = {}
-        self.counts = {"terrain": 0, "river": 0, "tree": 0, "skirt": 0,
-                       "water": 6}
+        self.counts = {"terrain": 0, "river_sand": 0, "river_water": 0,
+                       "tree": 0, "skirt": 0, "water": 6}
         # Camera
         self.yaw = 0.0
         self.pitch = 54.0
@@ -670,6 +887,7 @@ class SceneRenderer:
         self.programs["flat"] = self._program(FLAT_VS, FLAT_FS)
         self.programs["tree"] = self._program(TREE_VS, TREE_FS)
         self.programs["water"] = self._program(WATER_VS, WATER_FS)
+        self.programs["river"] = self._program(RIVER_VS, RIVER_FS)
 
         self._build_terrain_grid()
         self._make_water()
@@ -834,9 +1052,11 @@ class SceneRenderer:
         tex.setMinMagFilters(QOpenGLTexture.Linear, QOpenGLTexture.Linear)
         tex.setWrapMode(QOpenGLTexture.ClampToEdge)
 
-        rivers = build_river_verts(s.grid, s.heights)
-        self._vbo("river", rivers)
-        self.counts["river"] = len(rivers)
+        rivers = build_river_geometry(s.grid, s.heights)
+        self._vbo("river_sand", rivers["sand"])
+        self._vbo("river_water", rivers["water"])
+        self.counts["river_sand"] = len(rivers["sand"])
+        self.counts["river_water"] = len(rivers["water"])
 
         trees = build_tree_verts(s.grid, s.heights)
         self._vbo("tree", trees)
@@ -934,15 +1154,24 @@ class SceneRenderer:
             flat.setAttributeBuffer("pos", GL_FLOAT, 0, 3)
             f.glDrawArrays(GL_TRIANGLES, 0, self.counts["skirt"])
 
-        # Rivers (bright cyan channels)
-        if self.counts["river"]:
+        # Rivers: sand-bank halo, then the cyan channel over it
+        if self.counts.get("river_water") or self.counts.get("river_sand"):
             f.glEnable(GL_BLEND)
             f.glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
-            flat.setUniformValue("uColor", 0.50, 0.78, 0.94, 0.85)
-            self.buffers["river"].bind()
-            flat.enableAttributeArray("pos")
-            flat.setAttributeBuffer("pos", GL_FLOAT, 0, 3)
-            f.glDrawArrays(GL_TRIANGLES, 0, self.counts["river"])
+            rp = self.programs["river"]
+            rp.bind()
+            self._set_common(rp, mvp)
+            stride = 5 * 4
+            for kind, buf in ((0, "river_sand"), (1, "river_water")):
+                if not self.counts.get(buf):
+                    continue
+                rp.setUniformValue("uKind", kind)
+                self.buffers[buf].bind()
+                rp.enableAttributeArray("pos")
+                rp.setAttributeBuffer("pos", GL_FLOAT, 0, 3, stride)
+                rp.enableAttributeArray("uv")
+                rp.setAttributeBuffer("uv", GL_FLOAT, 3 * 4, 2, stride)
+                f.glDrawArrays(GL_TRIANGLES, 0, self.counts[buf])
             f.glDisable(GL_BLEND)
 
         # Trees
