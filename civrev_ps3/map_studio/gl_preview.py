@@ -49,7 +49,9 @@ GL_DEPTH_BUFFER_BIT = 0x0100
 GL_CULL_FACE = 0x0B44
 
 H_TEX = 512
-HEIGHT_SCALE = 3.6           # world units per full 16-bit height range
+# Calibrated against RPCS3 captures: in-game mountains rise well under a
+# tile-width — relief is much subtler than the heightfield range suggests
+HEIGHT_SCALE = 1.55
 WATER_NORM = 0.335           # sea level in normalized height
 SKY = (0.235, 0.415, 0.78)   # the game's bright blue backdrop
 CURVE = 0.0032               # CivRev's rolling world-curvature
@@ -170,6 +172,11 @@ def build_vegetation_overlay(grid: bytes) -> np.ndarray:
     grain = _splat_noise(VEG_SIZE, 41, 0)
     out_rgb *= ((0.90 + 0.20 * n2) * (0.93 + 0.14 * grain))[:, :, None]
 
+    # Darker rim just inside splat borders, like the game's outlined edges
+    rim = np.clip((out_a - 0.15) * 5.0, 0, 1) * np.clip(
+        (0.75 - out_a) * 4.0, 0, 1)
+    out_rgb *= (1.0 - 0.22 * rim)[:, :, None]
+
     rgba = np.empty((VEG_SIZE, VEG_SIZE, 4), dtype=np.uint8)
     rgba[:, :, :3] = np.clip(out_rgb, 0, 255).astype(np.uint8)
     rgba[:, :, 3] = np.clip(out_a * 255, 0, 255).astype(np.uint8)
@@ -249,10 +256,11 @@ void main() {
                 * smoothstep(0.325, 0.34, hh);
     base *= mix(vec3(1.0), vec3(1.06, 1.0, 0.82), beach);
 
-    // Saturated vegetation splats over it, keeping the paint's shading
+    // Saturated vegetation splats colorized over the full painted texture,
+    // so the lightmap's mottled detail shows through the grass like in-game
     vec4 veg = texture(uVeg, vUV);
-    float lum = clamp(dot(light, vec3(0.42, 0.5, 0.35)) * 1.35, 0.0, 1.3);
-    base = mix(base, veg.rgb * lum, veg.a);
+    vec3 vegcol = veg.rgb * (light * vec3(1.35, 1.32, 1.30));
+    base = mix(base, vegcol, veg.a);
 
     // Rock texture on mountain mask (cool gray, light touch)
     float rock = texture(uBlend, vUV).g;
@@ -261,9 +269,9 @@ void main() {
                    * vec3(1.02, 0.98, 0.92);
     base = mix(base, rockcol, clamp(rock, 0.0, 1.0) * 0.55);
 
-    // Snow only on extreme peaks
+    // Snow only on the very highest peaks
     float h = texture(uHeights, vUV).r;
-    float snow = smoothstep(0.70, 0.82, h);
+    float snow = smoothstep(0.85, 0.95, h);
     base = mix(base, vec3(0.93, 0.96, 1.0) * (0.7 + 0.45 * light.r), snow);
 
     float diff = max(dot(n, normalize(uLightDir)), 0.0);
@@ -326,6 +334,12 @@ void main() {
     col = mix(col, vec3(0.10, 0.30, 0.58),
               smoothstep(0.3, 1.0, depth) * 0.62);
     float alpha = mix(0.35, 0.96, smoothstep(0.0, 0.35, depth));
+    // White foam ring hugging the shoreline, with a wobbly outer edge
+    float foamz = clamp((uWaterNorm - floor_h) * 60.0, 0.0, 1.0) * inside;
+    float wob = sin(vUV.x * 260.0) * sin(vUV.y * 240.0) * 0.25;
+    float foam = foamz * (1.0 - smoothstep(0.35 + wob, 0.9 + wob, foamz));
+    col = mix(col, vec3(0.97, 1.0, 1.0), foam * 0.85);
+    alpha = max(alpha, foam * 0.9);
     frag = vec4(col, mix(1.0, alpha, inside));
 }
 """
@@ -359,15 +373,15 @@ void main() {
         float a = smoothstep(0.0, 0.45, edge) * 0.85;
         frag = vec4(sandc, a);
     } else {
-        // Cyan channel: pale rim, teal body, deeper center thread
-        vec3 rim = vec3(0.82, 0.96, 1.0);
-        vec3 body = vec3(0.47, 0.80, 0.93);
-        vec3 core = vec3(0.30, 0.64, 0.88);
+        // Milky cyan channel like the game's: pale rim, soft teal body
+        vec3 rim = vec3(0.88, 0.98, 1.0);
+        vec3 body = vec3(0.62, 0.86, 0.95);
+        vec3 core = vec3(0.44, 0.74, 0.90);
         vec3 col = mix(rim, body, smoothstep(0.06, 0.45, edge));
-        col = mix(col, core, smoothstep(0.55, 1.0, edge) * 0.55);
+        col = mix(col, core, smoothstep(0.55, 1.0, edge) * 0.5);
         // Gentle flow ripple
-        col *= 1.0 + 0.035 * sin(vUV.x * 9.0 + vUV.y * 4.0);
-        float a = smoothstep(0.0, 0.2, edge) * 0.95;
+        col *= 1.0 + 0.03 * sin(vUV.x * 9.0 + vUV.y * 4.0);
+        float a = smoothstep(0.0, 0.2, edge) * 0.88;
         frag = vec4(col, a);
     }
 }
@@ -551,7 +565,7 @@ def _river_widths(n: int, h0: int, mouth0: bool, mouth1: bool) -> list:
     widths = []
     for i in range(n):
         t = i / max(1, n - 1)
-        w = 0.085 * (0.85 + 0.3 * math.sin(t * math.pi * (2 + h0 % 3) + h0))
+        w = 0.065 * (0.85 + 0.3 * math.sin(t * math.pi * (2 + h0 % 3) + h0))
         if mouth1:
             w *= 1.0 + 1.1 * max(0.0, t - 0.82) / 0.18
         if mouth0:
@@ -646,8 +660,24 @@ def build_river_geometry(grid: bytes, heights: np.ndarray) -> dict:
 _TIERS = {
     "pine": [(1.0, 0.05), (0.68, 0.15), (0.40, 0.25)],
     "broad": [(1.0, 0.06), (0.62, 0.15)],
-    "palm": [(1.0, 0.20)],
+    "palm": [(1.0, 0.30)],
 }
+
+
+def _emit_trunk(verts, tx, ty, gz, dia):
+    """Crossed vertical bark quads under a palm canopy (atlas cell 7)."""
+    top = gz + dia * 2.0 * _TIERS["palm"][0][1] + 0.02
+    hw = dia * 0.16
+    u0, v0, u1, v1 = 0.75, 0.5, 1.0, 1.0
+    for ang in (0.0, math.pi / 2):
+        dx, dy = math.cos(ang) * hw, math.sin(ang) * hw
+        a = (tx - dx, ty - dy, gz - 0.02)
+        b = (tx + dx, ty + dy, gz - 0.02)
+        ta = (tx - dx, ty - dy, top)
+        tb = (tx + dx, ty + dy, top)
+        for p, (u, v) in ((a, (u0, v0)), (b, (u1, v0)), (ta, (u0, v1)),
+                          (b, (u1, v0)), (tb, (u1, v1)), (ta, (u0, v1))):
+            verts.append((*p, u, v, 0.9))
 
 
 def _emit_canopy(verts, tx, ty, base_z, dia, cell, ang, shade):
@@ -666,11 +696,40 @@ def _emit_canopy(verts, tx, ty, base_z, dia, cell, ang, shade):
         verts.append((*p, u, v, shade))
 
 
+def _tree_species(band: float, hsh: int) -> tuple:
+    """(species, [big cell, med cell]) for a latitude band."""
+    if band <= 5.5:                            # warm: palms
+        return "palm", [6, 6]
+    if band > 10.5:                            # polar: snowy pines
+        return "pine", [4, 5]
+    if (hsh >> 5) & 1:
+        return "pine", [0, 1]
+    return "broad", [2, 3]
+
+
+def _emit_tree(verts, tx, ty, big, band, hsh, heights):
+    species, cells = _tree_species(band, hsh)
+    cell = cells[0] if big else cells[1]
+    dia = (0.36 + ((hsh >> 20) % 100) / 100.0 * 0.12 if big
+           else 0.24 + ((hsh >> 20) % 100) / 100.0 * 0.08)
+    if species == "palm":
+        dia *= 0.8
+    shade = 0.95 + ((hsh >> 8) % 100) / 100.0 * 0.28
+    gz = _sample_height(heights, tx, ty) * HEIGHT_SCALE
+    ang0 = ((hsh >> 3) % 628) / 100.0
+    if species == "palm":
+        _emit_trunk(verts, tx, ty, gz, dia)
+    for ti, (scale, zoff) in enumerate(_TIERS[species]):
+        _emit_canopy(verts, tx, ty, gz + zoff * (dia * 2.0),
+                     dia * scale, cell, ang0 + ti * 0.9,
+                     min(1.2, shade + ti * 0.08))
+
+
 def build_tree_verts(grid: bytes, heights: np.ndarray) -> np.ndarray:
     """Stacked-tier canopy trees on forest tiles, like the game's models.
 
     Atlas cells (4x2): 0 pine-big, 1 pine-med, 2 broadleaf-big,
-    3 broadleaf-med, 4 snowy-big, 5 snowy-med, 6 palm, 7 palm-small.
+    3 broadleaf-med, 4 snowy-big, 5 snowy-med, 6 palm, 7 palm bark.
     (N,6): pos3 + uv2 + shade.
     """
     verts = []
@@ -679,34 +738,12 @@ def build_tree_verts(grid: bytes, heights: np.ndarray) -> np.ndarray:
             if grid[r * GRID + c] & 0x07 != FOREST:
                 continue
             band = abs(r - 15.5)
-            n = 4 + _tile_hash(r, c) % 2
+            n = 7 + _tile_hash(r, c) % 3
             for k in range(n):
                 hsh = _tile_hash(r, c, k + 1)
-                tx = c + 0.14 + (hsh % 1000) / 1000.0 * 0.72
-                ty = r + 0.14 + ((hsh >> 10) % 1000) / 1000.0 * 0.72
-                big = k < 2
-                if band <= 5.5:                       # warm: palms
-                    species = "palm"
-                    cells = [6, 7]
-                elif band > 10.5:                     # polar: snowy pines
-                    species = "pine"
-                    cells = [4, 5]
-                elif (hsh >> 5) & 1:
-                    species = "pine"
-                    cells = [0, 1]
-                else:
-                    species = "broad"
-                    cells = [2, 3]
-                cell = cells[0] if big else cells[1]
-                dia = (0.58 + ((hsh >> 20) % 100) / 100.0 * 0.22 if big
-                       else 0.36 + ((hsh >> 20) % 100) / 100.0 * 0.14)
-                shade = 0.95 + ((hsh >> 8) % 100) / 100.0 * 0.28
-                gz = _sample_height(heights, tx, ty) * HEIGHT_SCALE
-                ang0 = ((hsh >> 3) % 628) / 100.0
-                for ti, (scale, zoff) in enumerate(_TIERS[species]):
-                    _emit_canopy(verts, tx, ty, gz + zoff * (dia * 2.0),
-                                 dia * scale, cell, ang0 + ti * 0.9,
-                                 min(1.2, shade + ti * 0.08))
+                tx = c + 0.10 + (hsh % 1000) / 1000.0 * 0.80
+                ty = r + 0.10 + ((hsh >> 10) % 1000) / 1000.0 * 0.80
+                _emit_tree(verts, tx, ty, k < 3, band, hsh, heights)
     if not verts:
         return np.zeros((0, 6), dtype=np.float32)
     return np.array(verts, dtype=np.float32)
@@ -813,12 +850,16 @@ def make_tree_texture() -> np.ndarray:
             cy = (i // 4) * 256 + 10
             atlas[cy:cy + 236, cx:cx + 236] = img
 
-        # Cells 6/7: palm star composed from the frond sprite
+        # Cell 6: palm star composed from the frond sprite
         star = _compose_palm_star()
-        atlas[266:502, 522:758] = star                  # cell 6
-        small = np.asarray(Image.fromarray(star).rotate(30).resize(
-            (236, 236)))
-        atlas[266:502, 778:1014] = small                # cell 7
+        atlas[266:502, 522:758] = star
+        # Cell 7: palm bark for trunks (opaque strip from the same sheet)
+        bark = decoded.get("palm_tree_diff.dds")
+        if bark is None:
+            bark = _decode_level_rgba("palm_tree_diff.dds")
+        strip = np.asarray(Image.fromarray(
+            bark[64:250, 208:250]).resize((236, 236)))
+        atlas[266:502, 778:1014] = strip
     except OSError:
         from PIL import ImageDraw
 
@@ -859,11 +900,11 @@ class SceneRenderer:
         self.buffers = {}
         self.counts = {"terrain": 0, "river_sand": 0, "river_water": 0,
                        "tree": 0, "skirt": 0, "water": 6}
-        # Camera
+        # Camera — defaults match the game's close-in view
         self.yaw = 0.0
-        self.pitch = 54.0
-        self.dist = 30.0
-        self.target = QVector3D(16.0, 17.0, 1.3)
+        self.pitch = 46.0
+        self.dist = 11.0
+        self.target = QVector3D(16.0, 17.0, 0.55)
         self._eye_xy = (16.0, 40.0)
 
     # ── Setup ───────────────────────────────────────────────
@@ -1072,6 +1113,9 @@ class SceneRenderer:
         aspect = w / max(1, h)
         proj = QMatrix4x4()
         proj.perspective(46.0, aspect, 0.3, 400.0)
+        # World is col->+x, row->+y with z up (left-handed): mirror view-x
+        # so the map reads like the game and the 2D canvas (east = right)
+        proj.scale(-1.0, 1.0, 1.0)
         yaw = math.radians(self.yaw)
         pitch = math.radians(self.pitch)
         eye = self.target + QVector3D(
@@ -1097,14 +1141,16 @@ class SceneRenderer:
     def pan(self, dx: float, dy: float):
         yaw = math.radians(self.yaw)
         scale = self.dist * 0.0016
-        rx = QVector3D(math.cos(yaw), -math.sin(yaw), 0) * (-dx * scale)
+        rx = QVector3D(math.cos(yaw), -math.sin(yaw), 0) * (dx * scale)
         ry = QVector3D(math.sin(yaw), math.cos(yaw), 0) * (dy * scale)
         self.target += rx + ry
         self.target.setX(min(34.0, max(-2.0, self.target.x())))
         self.target.setY(min(34.0, max(-2.0, self.target.y())))
 
     def zoom(self, factor: float):
-        self.dist = min(80.0, max(4.0, self.dist * factor))
+        # The game's zoom range is narrow (~4-12 tiles); allow a bit more
+        # headroom for editing overview but keep the close-in feel
+        self.dist = min(45.0, max(3.5, self.dist * factor))
 
     # ── Drawing ─────────────────────────────────────────────
 
@@ -1228,8 +1274,8 @@ class Preview3DWidget(QOpenGLWidget):
 
     def reset_camera(self):
         r = self.renderer
-        r.yaw, r.pitch, r.dist = 0.0, 54.0, 30.0
-        r.target = QVector3D(16.0, 17.0, 1.3)
+        r.yaw, r.pitch, r.dist = 0.0, 46.0, 11.0
+        r.target = QVector3D(16.0, 17.0, 0.55)
         self.update()
 
     def initializeGL(self):
@@ -1253,7 +1299,7 @@ class Preview3DWidget(QOpenGLWidget):
         self._last_pos = event.pos()
         if event.buttons() & Qt.LeftButton and not (
                 event.modifiers() & Qt.ShiftModifier):
-            self.renderer.orbit(-d.x(), d.y())
+            self.renderer.orbit(d.x(), d.y())
         elif event.buttons() & (Qt.MiddleButton | Qt.RightButton) or (
                 event.buttons() & Qt.LeftButton):
             self.renderer.pan(d.x() * self.renderer.dist,
