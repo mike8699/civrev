@@ -259,9 +259,9 @@ class SceneWorker(QThread):
                 corpus = texgen.load_corpus(self.pak9_original_dir)
                 target = next((s for s in corpus if s.tag == tag), None)
 
-            from gl_preview import build_ground_albedo
+            from gl_preview import build_vegetation_overlay
 
-            albedo = build_ground_albedo(bytes(model.data))
+            veg = build_vegetation_overlay(bytes(model.data))
             if target is not None:
                 heights, light, blend = texgen.patch_textures(
                     model, target, corpus, refs)
@@ -271,7 +271,7 @@ class SceneWorker(QThread):
                     light_rgb=None,
                     blend_dxt1=blend.tobytes(),
                     grid=bytes(model.data),
-                    albedo=albedo,
+                    veg=veg,
                 )
             else:
                 heights = texgen.synth_heights(model)
@@ -283,7 +283,7 @@ class SceneWorker(QThread):
                     light_rgb=np.ascontiguousarray(light_rgb),
                     blend_dxt1=blend.tobytes(),
                     grid=bytes(model.data),
-                    albedo=albedo,
+                    veg=veg,
                 )
             self.ready.emit(scene)
         except Exception as e:

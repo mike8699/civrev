@@ -193,6 +193,37 @@ def decode_dxt1(blocks: np.ndarray) -> np.ndarray:
               .reshape(hb * 4, wb * 4, 3))
 
 
+def decode_dxt1_rgba(blocks: np.ndarray) -> np.ndarray:
+    """DXT1 decode with 1-bit alpha (3-color-mode index 3 = transparent).
+
+    (Hb,Wb,8) uint8 -> (Hb*4, Wb*4, 4) uint8 RGBA.
+    """
+    hb, wb, _ = blocks.shape
+    n = hb * wb
+    b = blocks.reshape(n, 8).astype(np.uint32)
+    c0 = b[:, 0] | (b[:, 1] << 8)
+    c1 = b[:, 2] | (b[:, 3] << 8)
+    e0 = _unpack_565(c0).astype(np.int32)
+    e1 = _unpack_565(c1).astype(np.int32)
+    four = c0 > c1
+    p2 = np.where(four[:, None], (2 * e0 + e1) // 3, (e0 + e1) // 2)
+    p3 = np.where(four[:, None], (e0 + 2 * e1) // 3, 0)
+    pal = np.stack([e0, e1, p2, p3], axis=1).astype(np.uint8)
+    apal = np.stack([
+        np.full(n, 255), np.full(n, 255), np.full(n, 255),
+        np.where(four, 255, 0),
+    ], axis=1).astype(np.uint8)
+    idx = b[:, 4] | (b[:, 5] << 8) | (b[:, 6] << 16) | (b[:, 7] << 24)
+    codes = (idx[:, None] >> (np.arange(16, dtype=np.uint32) * 2)) & 0x3
+    px = pal[np.arange(n)[:, None], codes]
+    pa = apal[np.arange(n)[:, None], codes]
+    rgb = (px.reshape(hb, wb, 4, 4, 3).transpose(0, 2, 1, 3, 4)
+             .reshape(hb * 4, wb * 4, 3))
+    a = (pa.reshape(hb, wb, 4, 4).transpose(0, 2, 1, 3)
+           .reshape(hb * 4, wb * 4))
+    return np.dstack([rgb, a])
+
+
 def solid_dxt1_block(rgb: tuple) -> np.ndarray:
     """A single uniform-color DXT1 block, (8,) uint8."""
     c = _pack_565(np.array([rgb], dtype=np.uint8))[0]

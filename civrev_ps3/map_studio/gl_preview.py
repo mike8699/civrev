@@ -51,7 +51,8 @@ GL_CULL_FACE = 0x0B44
 H_TEX = 512
 HEIGHT_SCALE = 3.6           # world units per full 16-bit height range
 WATER_NORM = 0.335           # sea level in normalized height
-SKY = (0.043, 0.075, 0.11)
+SKY = (0.235, 0.415, 0.78)   # the game's bright blue backdrop
+CURVE = 0.0032               # CivRev's rolling world-curvature
 
 LEVEL_DIR = Path(__file__).resolve().parent.parent / "Level"
 
@@ -65,95 +66,119 @@ class SceneData:
     light_rgb: np.ndarray | None   # fallback (4096,4096,3) uint8
     blend_dxt1: bytes              # 2048x2048 DXT1 payload
     grid: bytes                    # 1024 display-order tile bytes
-    albedo: np.ndarray | None = None   # (2048,2048,3) uint8 ground colors
+    veg: np.ndarray | None = None  # (2048,2048,4) RGBA vegetation splats
 
 
-# ── Ground albedo (game-style: tiled Level/ terrain textures) ───────────
+# ── Vegetation splats (game-style: colored overlays on the pale ground) ─
 
-ALBEDO_SIZE = 2048                 # 64 px per tile
-_CELL = ALBEDO_SIZE // GRID
+VEG_SIZE = 2048                    # 64 px per tile
 
-# terrain type -> (warm, temperate, cold) Level texture names
-_BAND_TEX = {
-    1: ("grass_warm.dds", "grass_temperate.dds", "grass_cold.dds"),
-    2: ("plains_warm.dds", "plains_temperate.dds", "plains_cold.dds"),
-    5: ("desert_warm.dds", "desert_temperate.dds", "desert_cold.dds"),
-}
-_FIXED_TEX = {
-    0: "ocean.dds",
-    3: "mountain2.dds",            # Hills use the rocky ground texture
-    6: "hills1.dds",               # Mountains (blends overlay adds rock)
-    7: "snow.dds",
-}
+# In-game colors sampled from RPCS3 captures (pristine UK/Earth maps)
+GREEN_VEG = np.array([94, 162, 72], dtype=np.float32)      # grass/forest
+GREEN_WARM = np.array([118, 176, 68], dtype=np.float32)
+GREEN_COLD = np.array([84, 142, 74], dtype=np.float32)
+PLAINS_GOLD = np.array([196, 186, 98], dtype=np.float32)
+DESERT_GOLD = np.array([208, 186, 92], dtype=np.float32)
+ICE_BLUE = np.array([170, 212, 232], dtype=np.float32)
 
-_tiled_cache: dict = {}
+_noise_cache: dict = {}
 
 
-def _load_level_tile(name: str) -> np.ndarray:
-    """(64,64,3) float32 from a Level DDS first mip."""
-    import texgen
-    from PIL import Image
-
-    path = LEVEL_DIR / name
-    raw = path.read_bytes()
-    w = struct.unpack_from("<I", raw, 16)[0]
-    h = struct.unpack_from("<I", raw, 12)[0]
-    blocks = np.frombuffer(raw, dtype=np.uint8, offset=128,
-                           count=(w // 4) * (h // 4) * 8)
-    rgb = texgen.decode_dxt1(blocks.reshape(h // 4, w // 4, 8))
-    img = Image.fromarray(rgb, "RGB").resize((_CELL, _CELL), Image.BILINEAR)
-    arr = np.asarray(img, dtype=np.float32)
-    # Flatten strong features toward the mean so per-tile repetition
-    # doesn't read as a lattice at map scale
-    mean = arr.reshape(-1, 3).mean(axis=0)
-    return mean + (arr - mean) * 0.55
-
-
-def _tiled(choice: str, dark: float = 1.0) -> np.ndarray:
-    """Full-map (2048,2048,3) float32, texture repeating twice per tile."""
-    key = (choice, dark)
-    if key not in _tiled_cache:
+def _splat_noise(size: int, seed: int, blur: int) -> np.ndarray:
+    """Smooth deterministic noise in [0,1] for organic splat edges."""
+    key = (size, seed, blur)
+    if key not in _noise_cache:
         from PIL import Image
 
-        tile = _load_level_tile(choice) * dark
-        half = np.asarray(Image.fromarray(
-            tile.astype(np.uint8), "RGB").resize(
-            (_CELL // 2, _CELL // 2), Image.BILINEAR), dtype=np.float32)
-        _tiled_cache[key] = np.tile(half, (GRID * 2, GRID * 2, 1))
-    return _tiled_cache[key]
+        rng = np.random.default_rng(seed)
+        small = rng.random((size // 8, size // 8)).astype(np.float32)
+        img = Image.fromarray(small, "F").resize((size, size),
+                                                 Image.BILINEAR)
+        n = np.asarray(img)
+        for _ in range(blur):
+            p = np.pad(n, 1, mode="wrap")
+            n = sum(p[dy:dy + size, dx:dx + size]
+                    for dy in range(3) for dx in range(3)) / 9.0
+        lo, hi = n.min(), n.max()
+        _noise_cache[key] = (n - lo) / max(1e-6, hi - lo)
+    return _noise_cache[key]
 
 
-def _tile_choice(t: int, row: int) -> tuple:
-    """(texture name, darken) for a tile, using latitude bands like the game."""
-    if t in _FIXED_TEX:
-        return _FIXED_TEX[t], 1.0
-    band_dist = abs(row - 15.5)
-    idx = 0 if band_dist <= 5.5 else (1 if band_dist <= 10.5 else 2)
-    if t == FOREST:
-        return _BAND_TEX[1][idx], 0.8      # darkened grass forest floor
-    return _BAND_TEX.get(t, _BAND_TEX[1])[idx], 1.0
+def _class_mask(idx_map: np.ndarray, noise: np.ndarray) -> np.ndarray:
+    """32x32 bool map -> feathered organic 2048 alpha in [0,1].
 
-
-def build_ground_albedo(grid: bytes) -> np.ndarray:
-    """Blend tiled per-terrain textures with soft transitions between tiles."""
+    Splats cover their tiles fully and bleed slightly outward with noisy
+    feathered borders (matching the game's transition masks).
+    """
     from PIL import Image
 
-    choices: dict = {}
-    idx_map = np.zeros((GRID, GRID), dtype=np.int32)
-    for r in range(GRID):
-        for c in range(GRID):
-            key = _tile_choice(grid[r * GRID + c] & 0x07, r)
-            if key not in choices:
-                choices[key] = len(choices)
-            idx_map[r, c] = choices[key]
+    m = np.asarray(Image.fromarray(
+        idx_map.astype(np.float32), "F").resize((VEG_SIZE, VEG_SIZE),
+                                                Image.BILINEAR))
+    return np.clip((m - 0.22) * 4.0 + (noise - 0.5) * 1.1, 0.0, 1.0)
 
-    acc = np.zeros((ALBEDO_SIZE, ALBEDO_SIZE, 3), dtype=np.float32)
-    for key, ci in choices.items():
-        mask32 = (idx_map == ci).astype(np.float32)
-        mask = np.asarray(Image.fromarray(mask32, "F").resize(
-            (ALBEDO_SIZE, ALBEDO_SIZE), Image.BILINEAR))
-        acc += mask[:, :, None] * _tiled(*key)
-    return np.clip(acc, 0, 255).astype(np.uint8)
+
+def build_vegetation_overlay(grid: bytes) -> np.ndarray:
+    """(2048,2048,4) RGBA: the game's colored vegetation splats.
+
+    The painted lightmap is the base ground; grass/plains/desert/ice read
+    as saturated color splats with feathered edges over it.
+    """
+    g = np.frombuffer(bytes(grid), dtype=np.uint8).reshape(GRID, GRID) & 0x07
+    lat = np.abs(np.arange(GRID) - 15.5)
+
+    green = (g == 1) | (g == FOREST)
+    plains = g == 2
+    desert = g == 5
+    ice = g == 7
+
+    n1 = _splat_noise(VEG_SIZE, 11, 1)
+    n2 = _splat_noise(VEG_SIZE, 23, 0)
+
+    out_rgb = np.zeros((VEG_SIZE, VEG_SIZE, 3), dtype=np.float32)
+    out_a = np.zeros((VEG_SIZE, VEG_SIZE), dtype=np.float32)
+
+    # Latitude-banded green color field
+    band = np.select(
+        [lat <= 5.5, lat <= 10.5], [0, 1], default=2)
+    green_rows = np.stack([GREEN_WARM, GREEN_VEG, GREEN_COLD])[band]
+    green_field = np.repeat(green_rows[:, None, :], GRID, axis=1)
+    from PIL import Image
+
+    green_big = np.stack([
+        np.asarray(Image.fromarray(green_field[:, :, i], "F").resize(
+            (VEG_SIZE, VEG_SIZE), Image.BILINEAR))
+        for i in range(3)
+    ], axis=-1)
+
+    layers = [
+        (green, green_big, 0.97),
+        (plains, PLAINS_GOLD[None, None, :], 0.92),
+        (desert, DESERT_GOLD[None, None, :], 0.92),
+        (ice, ICE_BLUE[None, None, :], 0.85),
+    ]
+    for mask32, color, strength in layers:
+        if not mask32.any():
+            continue
+        a = _class_mask(mask32, n1) * strength
+        keep = a > out_a
+        col = np.broadcast_to(color, (VEG_SIZE, VEG_SIZE, 3))
+        out_rgb[keep] = col[keep]
+        out_a = np.maximum(out_a, a)
+
+    # Organic brightness variation + fine grass grain inside splats
+    grain = _splat_noise(VEG_SIZE, 41, 0)
+    out_rgb *= ((0.90 + 0.20 * n2) * (0.93 + 0.14 * grain))[:, :, None]
+
+    rgba = np.empty((VEG_SIZE, VEG_SIZE, 4), dtype=np.uint8)
+    rgba[:, :, :3] = np.clip(out_rgb, 0, 255).astype(np.uint8)
+    rgba[:, :, 3] = np.clip(out_a * 255, 0, 255).astype(np.uint8)
+    return rgba
+
+
+# Back-compat alias used by the scene worker
+def build_ground_albedo(grid: bytes) -> np.ndarray:
+    return build_vegetation_overlay(grid)
 
 
 def default_surface_format() -> QSurfaceFormat:
@@ -167,6 +192,16 @@ def default_surface_format() -> QSurfaceFormat:
 
 # ── Shaders ─────────────────────────────────────────────────────────────
 
+CURVE_FN = """
+uniform vec2 uEye;
+uniform float uCurve;
+vec3 curved(vec3 p) {
+    vec2 d = p.xy - uEye;
+    p.z -= uCurve * dot(d, d);
+    return p;
+}
+"""
+
 TERRAIN_VS = """
 #version 150
 in vec2 xy;
@@ -174,10 +209,11 @@ uniform sampler2D uHeights;
 uniform float uHScale;
 uniform mat4 uMvp;
 out vec2 vUV;
+""" + CURVE_FN + """
 void main() {
     vUV = xy / 32.0;
     float h = texture(uHeights, vUV).r;
-    gl_Position = uMvp * vec4(xy, h * uHScale, 1.0);
+    gl_Position = uMvp * vec4(curved(vec3(xy, h * uHScale)), 1.0);
 }
 """
 
@@ -188,7 +224,7 @@ uniform sampler2D uHeights;
 uniform sampler2D uLight;
 uniform sampler2D uBlend;
 uniform sampler2D uDetail;
-uniform sampler2D uAlbedo;
+uniform sampler2D uVeg;
 uniform float uHScale;
 uniform vec3 uLightDir;
 out vec4 frag;
@@ -201,21 +237,41 @@ void main() {
     float span = 2.0 * 32.0 / 512.0;
     vec3 n = normalize(vec3((hl - hr) * uHScale / span,
                             (hd - hu) * uHScale / span, 1.0));
-    // Ground color = tiled terrain textures modulated by the painted
-    // lightmap (the game's approach: the lightmap is light/tint, not albedo)
-    vec3 albedo = texture(uAlbedo, vUV).rgb;
-    // Neutralize the lightmap's lavender average so land hues stay true
-    vec3 light = texture(uLight, vUV).rgb * vec3(1.30, 1.32, 1.22);
-    vec3 base = albedo * light;
+
+    // The painted lightmap IS the ground (pale rock/sand with crevices),
+    // warmed slightly toward the game's cream tone
+    vec3 light = texture(uLight, vUV).rgb;
+    vec3 base = light * vec3(1.16, 1.12, 1.02);
+
+    // Warm sand ring just above the waterline
+    float hh = texture(uHeights, vUV).r;
+    float beach = (1.0 - smoothstep(0.345, 0.40, hh))
+                * smoothstep(0.325, 0.34, hh);
+    base *= mix(vec3(1.0), vec3(1.06, 1.0, 0.82), beach);
+
+    // Saturated vegetation splats over it, keeping the paint's shading
+    vec4 veg = texture(uVeg, vUV);
+    float lum = clamp(dot(light, vec3(0.42, 0.5, 0.35)) * 1.35, 0.0, 1.3);
+    base = mix(base, veg.rgb * lum, veg.a);
+
+    // Rock texture on mountain mask (cool gray, light touch)
     float rock = texture(uBlend, vUV).g;
     vec3 detail = texture(uDetail, vUV * 40.0).rgb;
-    base = mix(base, base * detail * 2.0, clamp(rock, 0.0, 1.0) * 0.45);
-    // Altitude snow, like the game's Snow.dds pass
+    vec3 rockcol = base * mix(vec3(1.0), detail * 1.7, 0.5)
+                   * vec3(1.02, 0.98, 0.92);
+    base = mix(base, rockcol, clamp(rock, 0.0, 1.0) * 0.55);
+
+    // Snow only on extreme peaks
     float h = texture(uHeights, vUV).r;
-    float snow = smoothstep(0.60, 0.74, h);
-    base = mix(base, vec3(0.90, 0.93, 0.97) * light, snow * 0.9);
+    float snow = smoothstep(0.70, 0.82, h);
+    base = mix(base, vec3(0.93, 0.96, 1.0) * (0.7 + 0.45 * light.r), snow);
+
     float diff = max(dot(n, normalize(uLightDir)), 0.0);
-    frag = vec4(base * (0.62 + 0.5 * diff), 1.0);
+    vec3 col = base * (0.86 + 0.30 * diff);
+    // Gentle saturation push toward the game's vivid look
+    float grey = dot(col, vec3(0.299, 0.587, 0.114));
+    col = clamp(mix(vec3(grey), col, 1.10), 0.0, 1.0);
+    frag = vec4(col, 1.0);
 }
 """
 
@@ -223,7 +279,8 @@ FLAT_VS = """
 #version 150
 in vec3 pos;
 uniform mat4 uMvp;
-void main() { gl_Position = uMvp * vec4(pos, 1.0); }
+""" + CURVE_FN + """
+void main() { gl_Position = uMvp * vec4(curved(pos), 1.0); }
 """
 
 FLAT_FS = """
@@ -238,22 +295,38 @@ WATER_VS = """
 in vec3 pos;
 uniform mat4 uMvp;
 out vec2 vUV;
-void main() { vUV = pos.xy / 32.0; gl_Position = uMvp * vec4(pos, 1.0); }
+""" + CURVE_FN + """
+void main() {
+    vUV = pos.xy / 32.0;
+    gl_Position = uMvp * vec4(curved(pos), 1.0);
+}
 """
 
 WATER_FS = """
 #version 150
 in vec2 vUV;
 uniform sampler2D uHeights;
+uniform sampler2D uLight;
 uniform float uWaterNorm;
 out vec4 frag;
 void main() {
+    // Beyond the map bounds: uniform deep ocean like the game's backdrop
+    float inside = step(0.0, vUV.x) * step(vUV.x, 1.0)
+                 * step(0.0, vUV.y) * step(vUV.y, 1.0);
     float floor_h = texture(uHeights, vUV).r;
-    float depth = clamp((uWaterNorm - floor_h) * 9.0, 0.0, 1.0);
-    vec3 shallow = vec3(0.36, 0.78, 0.82);
-    vec3 deep = vec3(0.07, 0.27, 0.55);
-    float alpha = mix(0.22, 0.58, depth);
-    frag = vec4(mix(shallow, deep, depth), alpha);
+    float depth = mix(1.0, clamp((uWaterNorm - floor_h) * 14.0, 0.0, 1.0),
+                      inside);
+    vec3 floorc = mix(vec3(0.72), texture(uLight, vUV).rgb, inside);
+    // Soften the painted seafloor slightly (in-game reads silky)
+    floorc = mix(floorc, vec3(0.74), 0.3);
+    // Blue glass: teal shelf -> dark saturated deep
+    vec3 tint = mix(vec3(0.50, 0.88, 0.96), vec3(0.13, 0.36, 0.74),
+                    smoothstep(0.0, 0.5, depth));
+    vec3 col = floorc * tint * 1.16;
+    col = mix(col, vec3(0.10, 0.30, 0.58),
+              smoothstep(0.3, 1.0, depth) * 0.62);
+    float alpha = mix(0.35, 0.96, smoothstep(0.0, 0.35, depth));
+    frag = vec4(col, mix(1.0, alpha, inside));
 }
 """
 
@@ -265,7 +338,12 @@ in float shade;
 uniform mat4 uMvp;
 out vec2 vUV;
 out float vShade;
-void main() { vUV = uv; vShade = shade; gl_Position = uMvp * vec4(pos, 1.0); }
+""" + CURVE_FN + """
+void main() {
+    vUV = uv;
+    vShade = shade;
+    gl_Position = uMvp * vec4(curved(pos), 1.0);
+}
 """
 
 TREE_FS = """
@@ -302,71 +380,116 @@ def _tile_hash(r: int, c: int, k: int = 0) -> int:
 
 
 def build_river_verts(grid: bytes, heights: np.ndarray) -> np.ndarray:
-    """Triangle strip quads along flagged tile edges. (N,3) float32."""
+    """Wide meandering river ribbons along flagged tile edges, like the
+    game's braided channels. (N,3) float32."""
     tris = []
-    hw = 0.07                       # half width in tile units
-    lift = 0.065
+    hw = 0.095                      # half width in tile units
+    lift = 0.06
 
-    def edge_strip(x0, y0, x1, y1):
-        segs = 10
+    def edge_strip(x0, y0, x1, y1, seed):
+        segs = 14
         dx, dy = x1 - x0, y1 - y0
-        # Perpendicular in the ground plane
         ln = math.hypot(dx, dy) or 1.0
-        px, py = -dy / ln * hw, dx / ln * hw
-        for s in range(segs):
-            t0, t1 = s / segs, (s + 1) / segs
-            ax, ay = x0 + dx * t0, y0 + dy * t0
-            bx, by = x0 + dx * t1, y0 + dy * t1
-            az = _sample_height(heights, ax, ay) * HEIGHT_SCALE + lift
-            bz = _sample_height(heights, bx, by) * HEIGHT_SCALE + lift
-            quad = [
-                (ax - px, ay - py, az), (ax + px, ay + py, az),
-                (bx - px, by - py, bz),
-                (ax + px, ay + py, az), (bx + px, by + py, bz),
-                (bx - px, by - py, bz),
-            ]
-            tris.extend(quad)
+        nx, ny = -dy / ln, dx / ln            # perpendicular
+        amp = 0.10 + (seed % 100) / 100.0 * 0.05
+        phase = (seed >> 4) % 2 * math.pi
+        prev = None
+        for s in range(segs + 1):
+            t = s / segs
+            wig = amp * math.sin(t * math.pi * 2 + phase) * math.sin(t * math.pi)
+            cx = x0 + dx * t + nx * wig
+            cy = y0 + dy * t + ny * wig
+            w = hw * (0.75 + 0.5 * math.sin(t * math.pi * 3 + phase))
+            cz = _sample_height(heights, cx, cy) * HEIGHT_SCALE + lift
+            cur = (cx - nx * w, cy - ny * w, cz,
+                   cx + nx * w, cy + ny * w, cz)
+            if prev is not None:
+                tris.extend([
+                    prev[:3], prev[3:], (cur[0], cur[1], cur[2]),
+                    prev[3:], (cur[3], cur[4], cur[5]),
+                    (cur[0], cur[1], cur[2]),
+                ])
+            prev = cur
 
     for r in range(GRID):
         for c in range(GRID):
             v = grid[r * GRID + c]
             if v & 0x20:
-                edge_strip(c, float(r), c, r + 1.0)
+                edge_strip(c, float(r), c, r + 1.0, _tile_hash(r, c, 1))
             if v & 0x40:
-                edge_strip(c + 1, float(r), c + 1, r + 1.0)
+                edge_strip(c + 1, float(r), c + 1, r + 1.0, _tile_hash(r, c, 2))
             if v & 0x80:
-                edge_strip(float(c), r + 1, c + 1.0, r + 1)
+                edge_strip(float(c), r + 1, c + 1.0, r + 1, _tile_hash(r, c, 3))
     if not tris:
         return np.zeros((0, 3), dtype=np.float32)
     return np.array(tris, dtype=np.float32)
 
 
+# Tier stacks per species: list of (scale, z offset in tile units)
+_TIERS = {
+    "pine": [(1.0, 0.05), (0.68, 0.15), (0.40, 0.25)],
+    "broad": [(1.0, 0.06), (0.62, 0.15)],
+    "palm": [(1.0, 0.20)],
+}
+
+
+def _emit_canopy(verts, tx, ty, base_z, dia, cell, ang, shade):
+    u0 = (cell % 4) * 0.25
+    v0 = (cell // 4) * 0.5
+    u1, v1 = u0 + 0.25, v0 + 0.5
+    ca, sa = math.cos(ang), math.sin(ang)
+    s = dia / 2
+    corners = []
+    for dx, dy in ((-s, -s), (s, -s), (-s, s), (s, s)):
+        corners.append((tx + dx * ca - dy * sa,
+                        ty + dx * sa + dy * ca, base_z))
+    a, b, d, e = corners
+    for p, (u, v) in ((a, (u0, v0)), (b, (u1, v0)), (d, (u0, v1)),
+                      (b, (u1, v0)), (e, (u1, v1)), (d, (u0, v1))):
+        verts.append((*p, u, v, shade))
+
+
 def build_tree_verts(grid: bytes, heights: np.ndarray) -> np.ndarray:
-    """Crossed billboard quads on forest tiles. (N,6): pos3 + uv2 + shade."""
+    """Stacked-tier canopy trees on forest tiles, like the game's models.
+
+    Atlas cells (4x2): 0 pine-big, 1 pine-med, 2 broadleaf-big,
+    3 broadleaf-med, 4 snowy-big, 5 snowy-med, 6 palm, 7 palm-small.
+    (N,6): pos3 + uv2 + shade.
+    """
     verts = []
     for r in range(GRID):
         for c in range(GRID):
             if grid[r * GRID + c] & 0x07 != FOREST:
                 continue
-            n = 5 + _tile_hash(r, c) % 3
+            band = abs(r - 15.5)
+            n = 4 + _tile_hash(r, c) % 2
             for k in range(n):
                 hsh = _tile_hash(r, c, k + 1)
-                tx = c + 0.15 + (hsh % 1000) / 1000.0 * 0.7
-                ty = r + 0.15 + ((hsh >> 10) % 1000) / 1000.0 * 0.7
-                size = 0.34 + ((hsh >> 20) % 100) / 100.0 * 0.22
-                shade = 0.75 + ((hsh >> 8) % 100) / 100.0 * 0.35
-                tz = _sample_height(heights, tx, ty) * HEIGHT_SCALE - 0.02
-                s = size / 2
-                for ang in (0.0, math.pi / 2):
-                    dx, dy = math.cos(ang) * s, math.sin(ang) * s
-                    a = (tx - dx, ty - dy, tz)
-                    b = (tx + dx, ty + dy, tz)
-                    top_a = (tx - dx, ty - dy, tz + size * 1.5)
-                    top_b = (tx + dx, ty + dy, tz + size * 1.5)
-                    for p, (u, w) in ((a, (0, 0)), (b, (1, 0)), (top_a, (0, 1)),
-                                      (b, (1, 0)), (top_b, (1, 1)),
-                                      (top_a, (0, 1))):
-                        verts.append((*p, u, w, shade))
+                tx = c + 0.14 + (hsh % 1000) / 1000.0 * 0.72
+                ty = r + 0.14 + ((hsh >> 10) % 1000) / 1000.0 * 0.72
+                big = k < 2
+                if band <= 5.5:                       # warm: palms
+                    species = "palm"
+                    cells = [6, 7]
+                elif band > 10.5:                     # polar: snowy pines
+                    species = "pine"
+                    cells = [4, 5]
+                elif (hsh >> 5) & 1:
+                    species = "pine"
+                    cells = [0, 1]
+                else:
+                    species = "broad"
+                    cells = [2, 3]
+                cell = cells[0] if big else cells[1]
+                dia = (0.58 + ((hsh >> 20) % 100) / 100.0 * 0.22 if big
+                       else 0.36 + ((hsh >> 20) % 100) / 100.0 * 0.14)
+                shade = 0.95 + ((hsh >> 8) % 100) / 100.0 * 0.28
+                gz = _sample_height(heights, tx, ty) * HEIGHT_SCALE
+                ang0 = ((hsh >> 3) % 628) / 100.0
+                for ti, (scale, zoff) in enumerate(_TIERS[species]):
+                    _emit_canopy(verts, tx, ty, gz + zoff * (dia * 2.0),
+                                 dia * scale, cell, ang0 + ti * 0.9,
+                                 min(1.2, shade + ti * 0.08))
     if not verts:
         return np.zeros((0, 6), dtype=np.float32)
     return np.array(verts, dtype=np.float32)
@@ -400,23 +523,96 @@ def build_skirt_verts(heights: np.ndarray) -> np.ndarray:
     return np.array(tris, dtype=np.float32)
 
 
-def make_tree_texture() -> np.ndarray:
-    """Procedural conifer billboard, (128,128,4) uint8 RGBA."""
+def _decode_level_rgba(name: str) -> np.ndarray:
+    """Decode a Level DDS (DXT1 + 1-bit alpha) to (H,W,4) uint8."""
+    import texgen
+
+    raw = (LEVEL_DIR / name).read_bytes()
+    w = struct.unpack_from("<I", raw, 16)[0]
+    h = struct.unpack_from("<I", raw, 12)[0]
+    blocks = np.frombuffer(raw, dtype=np.uint8, offset=128,
+                           count=(w // 4) * (h // 4) * 8)
+    return texgen.decode_dxt1_rgba(blocks.reshape(h // 4, w // 4, 8))
+
+
+# Canopy sprite crops (x0, y0, x1, y1), centered on each canopy
+_CANOPY_CROPS = [
+    ("pinebranch.dds", (7, 57, 337, 387)),          # 0 pine big
+    ("pinebranch.dds", (290, 12, 500, 212)),        # 1 pine med
+    ("tree_temperate_diff.dds", (10, 288, 230, 504)),  # 2 temperate big
+    ("tree_temperate_diff.dds", (237, 282, 457, 502)), # 3 temperate med
+    ("pinebranchsnowy.dds", (7, 57, 337, 387)),     # 4 snowy big
+    ("pinebranchsnowy.dds", (290, 12, 500, 212)),   # 5 snowy med
+]
+
+
+def _compose_palm_star() -> np.ndarray:
+    """Radial palm canopy composed from the game's frond sprite."""
     from PIL import Image, ImageDraw
 
-    img = Image.new("RGBA", (128, 128), (0, 0, 0, 0))
-    d = ImageDraw.Draw(img)
-    d.rectangle([58, 8, 70, 30], fill=(70, 50, 28, 255))          # trunk
-    for base_y, half, top_y in [(52, 52, 20), (78, 42, 44), (100, 32, 68),
-                                (118, 22, 92)]:
-        d.polygon([(64 - half, 128 - base_y + 30), (64 + half, 128 - base_y + 30),
-                   (64, 128 - top_y - 30)], fill=(16, 62, 30, 255))
-    for base_y, half, top_y in [(50, 44, 22), (76, 35, 46), (98, 26, 70),
-                                (116, 17, 94)]:
-        d.polygon([(64 - half, 128 - base_y + 30), (64 + half, 128 - base_y + 30),
-                   (64, 128 - top_y - 30)], fill=(28, 84, 44, 255))
-    arr = np.asarray(img, dtype=np.uint8)
-    return arr[::-1].copy()          # v=0 at bottom of tree
+    palm = _decode_level_rgba("palm_tree_dds".replace("dds", "diff.dds"))
+    frond = Image.fromarray(palm[140:196, 0:208])       # one frond
+    canvas = Image.new("RGBA", (236, 236), (0, 0, 0, 0))
+    # Two layered rings of wide fronds for a full canopy
+    for ring, (count, size, off) in enumerate(
+            [(9, (118, 52), 0), (7, (86, 40), 20)]):
+        fr = frond.resize(size)
+        for i in range(count):
+            layer = Image.new("RGBA", (236, 236), (0, 0, 0, 0))
+            layer.paste(fr, (118 - 6, 118 - size[1] // 2), fr)
+            layer = layer.rotate(i * (360 / count) + off + ring * 8,
+                                 center=(118, 118))
+            canvas = Image.alpha_composite(canvas, layer)
+    d = ImageDraw.Draw(canvas)
+    d.ellipse([108, 108, 128, 128], fill=(96, 72, 44, 255))
+    return np.asarray(canvas, dtype=np.uint8)
+
+
+def make_tree_texture() -> np.ndarray:
+    """Canopy atlas (512,1024,4) from the game's own tree sprites.
+
+    4x2 grid of 256px cells; falls back to a drawn conifer if Level/ is
+    missing.
+    """
+    from PIL import Image
+
+    atlas = np.zeros((512, 1024, 4), dtype=np.uint8)
+    try:
+        yy, xx = np.mgrid[0:236, 0:236].astype(np.float32)
+        rad = np.hypot(xx - 117.5, yy - 117.5) / 118.0
+        radial = np.clip((0.95 - rad) / 0.15, 0.0, 1.0)  # soft edge cutoff
+
+        decoded = {}
+        for i, (src, (x0, y0, x1, y1)) in enumerate(_CANOPY_CROPS):
+            if src not in decoded:
+                decoded[src] = _decode_level_rgba(src)
+            crop = decoded[src][y0:y1, x0:x1]
+            img = np.asarray(
+                Image.fromarray(crop).resize((236, 236), Image.LANCZOS)
+            ).copy()
+            img[:, :, 3] = (img[:, :, 3].astype(np.float32) * radial
+                            ).astype(np.uint8)
+            cx = (i % 4) * 256 + 10
+            cy = (i // 4) * 256 + 10
+            atlas[cy:cy + 236, cx:cx + 236] = img
+
+        # Cells 6/7: palm star composed from the frond sprite
+        star = _compose_palm_star()
+        atlas[266:502, 522:758] = star                  # cell 6
+        small = np.asarray(Image.fromarray(star).rotate(30).resize(
+            (236, 236)))
+        atlas[266:502, 778:1014] = small                # cell 7
+    except OSError:
+        from PIL import ImageDraw
+
+        img = Image.new("RGBA", (236, 236), (0, 0, 0, 0))
+        d = ImageDraw.Draw(img)
+        d.ellipse([20, 20, 216, 216], fill=(30, 86, 46, 255))
+        for i in range(8):
+            cy = (i // 4) * 256 + 10
+            atlas[cy:cy + 236, (i % 4) * 256 + 10:(i % 4) * 256 + 246] = \
+                np.asarray(img)
+    return atlas
 
 
 def load_detail_texture() -> tuple:
@@ -451,6 +647,7 @@ class SceneRenderer:
         self.pitch = 54.0
         self.dist = 30.0
         self.target = QVector3D(16.0, 17.0, 1.3)
+        self._eye_xy = (16.0, 40.0)
 
     # ── Setup ───────────────────────────────────────────────
 
@@ -523,12 +720,22 @@ class SceneRenderer:
         self.counts["terrain"] = len(tris)
 
     def _make_water(self):
+        # Tessellated so per-vertex world curvature tracks the terrain's
         z = WATER_NORM * HEIGHT_SCALE
-        quad = np.array([
-            (0, 0, z), (32, 0, z), (0, 32, z),
-            (32, 0, z), (32, 32, z), (0, 32, z),
-        ], dtype=np.float32)
+        lo, hi, n = -8.0, 40.0, 48
+        xs = np.linspace(lo, hi, n + 1, dtype=np.float32)
+        tris = []
+        for j in range(n):
+            for i in range(n):
+                x0, x1 = xs[i], xs[i + 1]
+                y0, y1 = xs[j], xs[j + 1]
+                tris.extend([
+                    (x0, y0, z), (x1, y0, z), (x0, y1, z),
+                    (x1, y0, z), (x1, y1, z), (x0, y1, z),
+                ])
+        quad = np.array(tris, dtype=np.float32)
         self._vbo("water", quad)
+        self.counts["water"] = len(quad)
 
     def _make_tree_texture(self):
         arr = make_tree_texture()
@@ -616,15 +823,14 @@ class SceneRenderer:
         tex.setMinMagFilters(QOpenGLTexture.Linear, QOpenGLTexture.Linear)
         tex.setWrapMode(QOpenGLTexture.ClampToEdge)
 
-        albedo = s.albedo if s.albedo is not None else build_ground_albedo(
-            s.grid)
-        albedo = np.ascontiguousarray(albedo)
-        tex = self._texture("albedo")
-        tex.setFormat(QOpenGLTexture.RGB8_UNorm)
-        tex.setSize(albedo.shape[1], albedo.shape[0])
+        veg = s.veg if s.veg is not None else build_vegetation_overlay(s.grid)
+        veg = np.ascontiguousarray(veg)
+        tex = self._texture("veg")
+        tex.setFormat(QOpenGLTexture.RGBA8_UNorm)
+        tex.setSize(veg.shape[1], veg.shape[0])
         tex.setMipLevels(1)
         tex.allocateStorage()
-        tex.setData(QOpenGLTexture.RGB, QOpenGLTexture.UInt8, albedo.tobytes())
+        tex.setData(QOpenGLTexture.RGBA, QOpenGLTexture.UInt8, veg.tobytes())
         tex.setMinMagFilters(QOpenGLTexture.Linear, QOpenGLTexture.Linear)
         tex.setWrapMode(QOpenGLTexture.ClampToEdge)
 
@@ -653,9 +859,16 @@ class SceneRenderer:
             math.cos(yaw) * math.cos(pitch) * self.dist,
             math.sin(pitch) * self.dist,
         )
+        self._eye_xy = (eye.x(), eye.y())
         view = QMatrix4x4()
         view.lookAt(eye, self.target, QVector3D(0, 0, 1))
         return proj * view
+
+    def _set_common(self, prog, mvp):
+        prog.setUniformValue("uMvp", mvp)
+        prog.setUniformValue("uEye", float(self._eye_xy[0]),
+                             float(self._eye_xy[1]))
+        prog.setUniformValue("uCurve", float(CURVE))
 
     def orbit(self, dx: float, dy: float):
         self.yaw = (self.yaw + dx * 0.4) % 360
@@ -693,13 +906,13 @@ class SceneRenderer:
         # Terrain
         prog = self.programs["terrain"]
         prog.bind()
-        prog.setUniformValue("uMvp", mvp)
+        self._set_common(prog, mvp)
         prog.setUniformValue("uHScale", float(HEIGHT_SCALE))
         prog.setUniformValue("uLightDir", QVector3D(-0.45, -0.55, 0.75))
         for unit, (name, uni) in enumerate(
                 [("heights", "uHeights"), ("light", "uLight"),
                  ("blend", "uBlend"), ("detail", "uDetail"),
-                 ("albedo", "uAlbedo")]):
+                 ("veg", "uVeg")]):
             self.textures[name].bind(unit)
             prog.setUniformValue(uni, unit)
         self.buffers["terrain"].bind()
@@ -710,22 +923,22 @@ class SceneRenderer:
                          GL_UNSIGNED_INT, None)
         self.buffers["terrain_idx"].release()
 
-        # Skirt walls
+        # Skirt walls (fall away into the blue backdrop)
         flat = self.programs["flat"]
         flat.bind()
-        flat.setUniformValue("uMvp", mvp)
-        flat.setUniformValue("uColor", 0.06, 0.09, 0.13, 1.0)
+        self._set_common(flat, mvp)
+        flat.setUniformValue("uColor", 0.16, 0.30, 0.58, 1.0)
         if self.counts["skirt"]:
             self.buffers["skirt"].bind()
             flat.enableAttributeArray("pos")
             flat.setAttributeBuffer("pos", GL_FLOAT, 0, 3)
             f.glDrawArrays(GL_TRIANGLES, 0, self.counts["skirt"])
 
-        # Rivers
+        # Rivers (bright cyan channels)
         if self.counts["river"]:
             f.glEnable(GL_BLEND)
             f.glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
-            flat.setUniformValue("uColor", 0.30, 0.62, 0.90, 0.85)
+            flat.setUniformValue("uColor", 0.50, 0.78, 0.94, 0.85)
             self.buffers["river"].bind()
             flat.enableAttributeArray("pos")
             flat.setAttributeBuffer("pos", GL_FLOAT, 0, 3)
@@ -736,7 +949,7 @@ class SceneRenderer:
         if self.counts["tree"]:
             tp = self.programs["tree"]
             tp.bind()
-            tp.setUniformValue("uMvp", mvp)
+            self._set_common(tp, mvp)
             self.textures["tree"].bind(0)
             tp.setUniformValue("uTex", 0)
             self.buffers["tree"].bind()
@@ -749,15 +962,17 @@ class SceneRenderer:
             tp.setAttributeBuffer("shade", GL_FLOAT, 5 * 4, 1, stride)
             f.glDrawArrays(GL_TRIANGLES, 0, self.counts["tree"])
 
-        # Water (depth-graded: cyan shallows, navy deeps)
+        # Water (blue glass over the painted seafloor)
         f.glEnable(GL_BLEND)
         f.glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
         wp = self.programs["water"]
         wp.bind()
-        wp.setUniformValue("uMvp", mvp)
+        self._set_common(wp, mvp)
         wp.setUniformValue("uWaterNorm", float(WATER_NORM))
         self.textures["heights"].bind(0)
         wp.setUniformValue("uHeights", 0)
+        self.textures["light"].bind(1)
+        wp.setUniformValue("uLight", 1)
         self.buffers["water"].bind()
         wp.enableAttributeArray("pos")
         wp.setAttributeBuffer("pos", GL_FLOAT, 0, 3)
