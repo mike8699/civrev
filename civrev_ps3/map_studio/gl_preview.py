@@ -668,7 +668,7 @@ def _emit_trunk(verts, tx, ty, gz, dia):
     """Crossed vertical bark quads under a palm canopy (atlas cell 7)."""
     top = gz + dia * 2.0 * _TIERS["palm"][0][1] + 0.02
     hw = dia * 0.16
-    u0, v0, u1, v1 = 0.75, 0.5, 1.0, 1.0
+    u0, v0, u1, v1 = _cell_uv(7)
     for ang in (0.0, math.pi / 2):
         dx, dy = math.cos(ang) * hw, math.sin(ang) * hw
         a = (tx - dx, ty - dy, gz - 0.02)
@@ -680,10 +680,14 @@ def _emit_trunk(verts, tx, ty, gz, dia):
             verts.append((*p, u, v, 0.9))
 
 
-def _emit_canopy(verts, tx, ty, base_z, dia, cell, ang, shade):
+def _cell_uv(cell: int) -> tuple:
     u0 = (cell % 4) * 0.25
-    v0 = (cell // 4) * 0.5
-    u1, v1 = u0 + 0.25, v0 + 0.5
+    v0 = (cell // 4) / ATLAS_ROWS
+    return u0, v0, u0 + 0.25, v0 + 1.0 / ATLAS_ROWS
+
+
+def _emit_canopy(verts, tx, ty, base_z, dia, cell, ang, shade):
+    u0, v0, u1, v1 = _cell_uv(cell)
     ca, sa = math.cos(ang), math.sin(ang)
     s = dia / 2
     corners = []
@@ -746,6 +750,112 @@ def build_tree_verts(grid: bytes, heights: np.ndarray) -> np.ndarray:
                 _emit_tree(verts, tx, ty, k < 3, band, hsh, heights)
     if not verts:
         return np.zeros((0, 6), dtype=np.float32)
+    return np.array(verts, dtype=np.float32)
+
+
+def _emit_upright(verts, tx, ty, gz, width, height, cell, shade):
+    """Crossed vertical quads (tufts, flags)."""
+    u0, v0, u1, v1 = _cell_uv(cell)
+    hw = width / 2
+    for ang in (0.0, math.pi / 2):
+        dx, dy = math.cos(ang) * hw, math.sin(ang) * hw
+        a = (tx - dx, ty - dy, gz - 0.01)
+        b = (tx + dx, ty + dy, gz - 0.01)
+        ta = (tx - dx, ty - dy, gz + height)
+        tb = (tx + dx, ty + dy, gz + height)
+        for p, (u, v) in ((a, (u0, v0)), (b, (u1, v0)), (ta, (u0, v1)),
+                          (b, (u1, v0)), (tb, (u1, v1)), (ta, (u0, v1))):
+            verts.append((*p, u, v, shade))
+
+
+def _emit_rocks(verts, r, c, hsh, water_z):
+    for k in range(1 + hsh % 3):
+        h2 = _tile_hash(r, c, 10 + k)
+        px = c + 0.15 + (h2 % 1000) / 1000.0 * 0.7
+        py = r + 0.15 + ((h2 >> 10) % 1000) / 1000.0 * 0.7
+        size = 0.05 + ((h2 >> 20) % 100) / 100.0 * 0.05
+        _emit_canopy(verts, px, py, water_z + 0.012,
+                     size, 8, (h2 % 62) / 10.0, 1.0)
+
+
+def _emit_tufts(verts, r, c, t, hsh, heights, water_z):
+    for k in range(3 + hsh % 4):
+        h2 = _tile_hash(r, c, 20 + k)
+        px = c + 0.08 + (h2 % 1000) / 1000.0 * 0.84
+        py = r + 0.08 + ((h2 >> 10) % 1000) / 1000.0 * 0.84
+        gz = _sample_height(heights, px, py) * HEIGHT_SCALE
+        if gz < water_z:
+            continue
+        shade = 0.9 if t == 1 else 1.1                 # olive on plains
+        _emit_upright(verts, px, py, gz, 0.07, 0.075, 9, shade)
+
+
+def build_prop_verts(grid: bytes, heights: np.ndarray) -> np.ndarray:
+    """Map-data props: shore rocks, grass tufts, spawn-marker flags.
+
+    Rocks scatter in coastal shallows and tufts on grass/plains like the
+    game's ambient decals (positions are deterministic per tile, not the
+    game's exact runtime scatter). Flags mark the map's 0x10 spawn bits —
+    real landmarks for lining the view up with the editor.
+    """
+    verts = []
+    water_z = WATER_NORM * HEIGHT_SCALE
+
+    def land(r, c):
+        return (0 <= r < GRID and 0 <= c < GRID
+                and grid[r * GRID + c] & 0x07 not in (0, 7))
+
+    for r in range(GRID):
+        for c in range(GRID):
+            v = grid[r * GRID + c]
+            t = v & 0x07
+            hsh = _tile_hash(r, c, 9)
+            if t == 0 and any(land(r + dr, c + dc)
+                              for dr, dc in ((1, 0), (-1, 0), (0, 1),
+                                             (0, -1))):
+                _emit_rocks(verts, r, c, hsh, water_z)
+            elif t in (1, 2):
+                _emit_tufts(verts, r, c, t, hsh, heights, water_z)
+            if v & 0x10:                               # spawn-marker flag
+                gz = _sample_height(heights, c + 0.5, r + 0.5) * HEIGHT_SCALE
+                gz = max(gz, water_z)
+                _emit_upright(verts, c + 0.5, r + 0.5, gz, 0.30, 0.48, 10,
+                              1.0)
+    if not verts:
+        return np.zeros((0, 6), dtype=np.float32)
+    return np.array(verts, dtype=np.float32)
+
+
+def build_grid_lines(heights: np.ndarray) -> dict:
+    """Draped tile-boundary lines. Every 4th line is emphasized so tiles
+    can be counted when matching a view against the game."""
+    minor, major = [], []
+    for i in range(GRID + 1):
+        for vertical in (True, False):
+            pts = []
+            for s in range(GRID * 2 + 1):
+                t = s / 2.0
+                x, y = (float(i), t) if vertical else (t, float(i))
+                pts.append((x, y))
+            target = major if i % 4 == 0 else minor
+            _emit_ribbon(target, pts, [0.013] * len(pts), heights, 0.03)
+    return {"minor": np.array(minor, dtype=np.float32),
+            "major": np.array(major, dtype=np.float32)}
+
+
+def build_marker_verts(row: int, col: int, heights: np.ndarray) -> np.ndarray:
+    """Bright border ribbon around one tile (the tile selected in Design)."""
+    verts = []
+    ring = [(float(col), float(row)), (col + 1.0, float(row)),
+            (col + 1.0, row + 1.0), (float(col), row + 1.0),
+            (float(col), float(row))]
+    dense = []
+    for i in range(len(ring) - 1):
+        for s in range(9):
+            t = s / 8.0
+            dense.append((ring[i][0] + (ring[i + 1][0] - ring[i][0]) * t,
+                          ring[i][1] + (ring[i + 1][1] - ring[i][1]) * t))
+    _emit_ribbon(verts, dense, [0.035] * len(dense), heights, 0.09)
     return np.array(verts, dtype=np.float32)
 
 
@@ -822,15 +932,71 @@ def _compose_palm_star() -> np.ndarray:
     return np.asarray(canvas, dtype=np.uint8)
 
 
-def make_tree_texture() -> np.ndarray:
-    """Canopy atlas (512,1024,4) from the game's own tree sprites.
+ATLAS_ROWS = 3
 
-    4x2 grid of 256px cells; falls back to a drawn conifer if Level/ is
-    missing.
+
+def _draw_rock_sprite() -> np.ndarray:
+    """Shore-rock cluster sprite (236,236,4)."""
+    from PIL import Image, ImageDraw
+
+    img = Image.new("RGBA", (236, 236), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    stones = [(70, 120, 60, 42, (225, 222, 212)),
+              (130, 95, 48, 36, (238, 236, 228)),
+              (150, 150, 38, 30, (214, 210, 198)),
+              (95, 165, 30, 24, (230, 226, 216))]
+    for cx, cy, rx, ry, col in stones:
+        d.ellipse([cx - rx + 5, cy - ry + 6, cx + rx + 5, cy + ry + 6],
+                  fill=(90, 100, 115, 110))          # soft shadow
+        d.ellipse([cx - rx, cy - ry, cx + rx, cy + ry], fill=col + (255,))
+        d.ellipse([cx - rx, cy - ry, cx + int(rx * 0.4), cy + int(ry * 0.4)],
+                  fill=(250, 250, 246, 90))
+    return np.asarray(img, dtype=np.uint8)
+
+
+def _draw_tuft_sprite() -> np.ndarray:
+    """Upright grass-tuft sprite (236,236,4), base at v=0."""
+    from PIL import Image, ImageDraw
+
+    img = Image.new("RGBA", (236, 236), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    base_y = 230
+    for i, (dx, h, w) in enumerate([(-60, 130, 16), (-30, 170, 18),
+                                    (0, 200, 20), (30, 175, 18),
+                                    (60, 135, 16), (-90, 100, 13),
+                                    (90, 105, 13)]):
+        col = (46, 110, 44, 255) if i % 2 else (64, 134, 52, 255)
+        tip_x = 118 + dx + (8 if dx >= 0 else -8)
+        d.polygon([(118 + dx - w, base_y), (118 + dx + w, base_y),
+                   (tip_x, base_y - h)], fill=col)
+    return np.asarray(img, dtype=np.uint8)[::-1].copy()
+
+
+def _draw_flag_sprite() -> np.ndarray:
+    """Spawn-marker flag sprite (236,236,4), pole base at v=0."""
+    from PIL import Image, ImageDraw
+
+    img = Image.new("RGBA", (236, 236), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    d.rectangle([112, 20, 124, 236], fill=(70, 58, 40, 255))       # pole
+    d.polygon([(124, 24), (216, 52), (124, 84)],
+              fill=(255, 204, 0, 255))                              # banner
+    d.polygon([(124, 30), (196, 52), (124, 76)], fill=(255, 232, 90, 255))
+    return np.asarray(img, dtype=np.uint8)[::-1].copy()
+
+
+def make_tree_texture() -> np.ndarray:
+    """Sprite atlas (768,1024,4): trees, palms, and map props.
+
+    Row-major 256px cells: 0-5 canopies, 6 palm, 7 palm bark,
+    8 shore rocks, 9 grass tuft, 10 spawn flag.
     """
     from PIL import Image
 
-    atlas = np.zeros((512, 1024, 4), dtype=np.uint8)
+    atlas = np.zeros((256 * ATLAS_ROWS, 1024, 4), dtype=np.uint8)
+    atlas[522:758, 10:246] = _draw_rock_sprite()      # cell 8
+    atlas[522:758, 266:502] = _draw_tuft_sprite()     # cell 9
+    atlas[522:758, 522:758] = _draw_flag_sprite()     # cell 10
     try:
         yy, xx = np.mgrid[0:236, 0:236].astype(np.float32)
         rad = np.hypot(xx - 117.5, yy - 117.5) / 118.0
@@ -858,8 +1024,9 @@ def make_tree_texture() -> np.ndarray:
         if bark is None:
             bark = _decode_level_rgba("palm_tree_diff.dds")
         strip = np.asarray(Image.fromarray(
-            bark[64:250, 208:250]).resize((236, 236)))
-        atlas[266:502, 778:1014] = strip
+            bark[64:188, 208:250]).resize((236, 236))).astype(np.float32)
+        strip[:, :, :3] *= np.array([0.72, 0.58, 0.42]) * 1.35
+        atlas[266:502, 778:1014] = np.clip(strip, 0, 255).astype(np.uint8)
     except OSError:
         from PIL import ImageDraw
 
@@ -899,7 +1066,11 @@ class SceneRenderer:
         self.textures = {}
         self.buffers = {}
         self.counts = {"terrain": 0, "river_sand": 0, "river_water": 0,
-                       "tree": 0, "skirt": 0, "water": 6}
+                       "tree": 0, "skirt": 0, "water": 6, "prop": 0,
+                       "grid_minor": 0, "grid_major": 0, "marker": 0}
+        self.show_grid3d = False
+        self.marker = None            # (row, col) selected in the editor
+        self._marker_dirty = False
         # Camera — defaults match the game's close-in view
         self.yaw = 0.0
         self.pitch = 46.0
@@ -1034,6 +1205,10 @@ class SceneRenderer:
         self.scene = scene
         self._scene_dirty = True
 
+    def set_marker(self, row, col):
+        self.marker = None if row is None else (row, col)
+        self._marker_dirty = True
+
     def _texture(self, name: str) -> QOpenGLTexture:
         old = self.textures.pop(name, None)
         if old is not None:
@@ -1107,6 +1282,17 @@ class SceneRenderer:
         self._vbo("skirt", skirt)
         self.counts["skirt"] = len(skirt)
 
+        props = build_prop_verts(s.grid, s.heights)
+        self._vbo("prop", props)
+        self.counts["prop"] = len(props)
+
+        lines = build_grid_lines(s.heights)
+        self._vbo("grid_minor", lines["minor"])
+        self._vbo("grid_major", lines["major"])
+        self.counts["grid_minor"] = len(lines["minor"])
+        self.counts["grid_major"] = len(lines["major"])
+        self._marker_dirty = True
+
     # ── Camera ──────────────────────────────────────────────
 
     def mvp(self, w: int, h: int) -> QMatrix4x4:
@@ -1154,10 +1340,44 @@ class SceneRenderer:
 
     # ── Drawing ─────────────────────────────────────────────
 
-    def render(self, w: int, h: int):
-        f = self.f
+    def _refresh_pending(self):
         if self._scene_dirty and self.scene is not None:
             self._apply_scene()
+        if self._marker_dirty and self.scene is not None:
+            self._marker_dirty = False
+            if self.marker is not None:
+                mk = build_marker_verts(self.marker[0], self.marker[1],
+                                        self.scene.heights)
+                self._vbo("marker", mk)
+                self.counts["marker"] = len(mk)
+            else:
+                self.counts["marker"] = 0
+
+    def _draw_rivers(self, f, mvp):
+        if not (self.counts.get("river_water")
+                or self.counts.get("river_sand")):
+            return
+        f.glEnable(GL_BLEND)
+        f.glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+        rp = self.programs["river"]
+        rp.bind()
+        self._set_common(rp, mvp)
+        stride = 5 * 4
+        for kind, buf in ((0, "river_sand"), (1, "river_water")):
+            if not self.counts.get(buf):
+                continue
+            rp.setUniformValue("uKind", kind)
+            self.buffers[buf].bind()
+            rp.enableAttributeArray("pos")
+            rp.setAttributeBuffer("pos", GL_FLOAT, 0, 3, stride)
+            rp.enableAttributeArray("uv")
+            rp.setAttributeBuffer("uv", GL_FLOAT, 3 * 4, 2, stride)
+            f.glDrawArrays(GL_TRIANGLES, 0, self.counts[buf])
+        f.glDisable(GL_BLEND)
+
+    def render(self, w: int, h: int):
+        f = self.f
+        self._refresh_pending()
 
         f.glViewport(0, 0, w, h)
         f.glClearColor(*SKY, 1.0)
@@ -1201,41 +1421,14 @@ class SceneRenderer:
             f.glDrawArrays(GL_TRIANGLES, 0, self.counts["skirt"])
 
         # Rivers: sand-bank halo, then the cyan channel over it
-        if self.counts.get("river_water") or self.counts.get("river_sand"):
-            f.glEnable(GL_BLEND)
-            f.glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
-            rp = self.programs["river"]
-            rp.bind()
-            self._set_common(rp, mvp)
-            stride = 5 * 4
-            for kind, buf in ((0, "river_sand"), (1, "river_water")):
-                if not self.counts.get(buf):
-                    continue
-                rp.setUniformValue("uKind", kind)
-                self.buffers[buf].bind()
-                rp.enableAttributeArray("pos")
-                rp.setAttributeBuffer("pos", GL_FLOAT, 0, 3, stride)
-                rp.enableAttributeArray("uv")
-                rp.setAttributeBuffer("uv", GL_FLOAT, 3 * 4, 2, stride)
-                f.glDrawArrays(GL_TRIANGLES, 0, self.counts[buf])
-            f.glDisable(GL_BLEND)
+        self._draw_rivers(f, mvp)
+
+        # Tile grid overlay (draped, counting-friendly)
+        if self.show_grid3d:
+            self._draw_grid(f, flat, mvp)
 
         # Trees
-        if self.counts["tree"]:
-            tp = self.programs["tree"]
-            tp.bind()
-            self._set_common(tp, mvp)
-            self.textures["tree"].bind(0)
-            tp.setUniformValue("uTex", 0)
-            self.buffers["tree"].bind()
-            stride = 6 * 4
-            tp.enableAttributeArray("pos")
-            tp.setAttributeBuffer("pos", GL_FLOAT, 0, 3, stride)
-            tp.enableAttributeArray("uv")
-            tp.setAttributeBuffer("uv", GL_FLOAT, 3 * 4, 2, stride)
-            tp.enableAttributeArray("shade")
-            tp.setAttributeBuffer("shade", GL_FLOAT, 5 * 4, 1, stride)
-            f.glDrawArrays(GL_TRIANGLES, 0, self.counts["tree"])
+        self._draw_sprites(f, mvp, "tree")
 
         # Water (blue glass over the painted seafloor)
         f.glEnable(GL_BLEND)
@@ -1254,6 +1447,56 @@ class SceneRenderer:
         f.glDrawArrays(GL_TRIANGLES, 0, self.counts["water"])
         f.glDisable(GL_BLEND)
 
+        # Props: shore rocks, tufts, spawn flags (crisp above the water)
+        self._draw_sprites(f, mvp, "prop")
+
+        # Selected-tile beacon (always on top of terrain)
+        if self.counts.get("marker"):
+            f.glEnable(GL_BLEND)
+            f.glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+            flat.bind()
+            self._set_common(flat, mvp)
+            flat.setUniformValue("uColor", 1.0, 0.92, 0.25, 0.95)
+            self.buffers["marker"].bind()
+            flat.enableAttributeArray("pos")
+            flat.setAttributeBuffer("pos", GL_FLOAT, 0, 3, 5 * 4)
+            f.glDrawArrays(GL_TRIANGLES, 0, self.counts["marker"])
+            f.glDisable(GL_BLEND)
+
+    def _draw_grid(self, f, flat, mvp):
+        f.glEnable(GL_BLEND)
+        f.glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+        flat.bind()
+        self._set_common(flat, mvp)
+        for buf, col in (("grid_minor", (0.05, 0.08, 0.12, 0.30)),
+                         ("grid_major", (0.98, 0.98, 1.0, 0.42))):
+            if not self.counts.get(buf):
+                continue
+            flat.setUniformValue("uColor", *col)
+            self.buffers[buf].bind()
+            flat.enableAttributeArray("pos")
+            flat.setAttributeBuffer("pos", GL_FLOAT, 0, 3, 5 * 4)
+            f.glDrawArrays(GL_TRIANGLES, 0, self.counts[buf])
+        f.glDisable(GL_BLEND)
+
+    def _draw_sprites(self, f, mvp, buf_name):
+        if not self.counts.get(buf_name):
+            return
+        tp = self.programs["tree"]
+        tp.bind()
+        self._set_common(tp, mvp)
+        self.textures["tree"].bind(0)
+        tp.setUniformValue("uTex", 0)
+        self.buffers[buf_name].bind()
+        stride = 6 * 4
+        tp.enableAttributeArray("pos")
+        tp.setAttributeBuffer("pos", GL_FLOAT, 0, 3, stride)
+        tp.enableAttributeArray("uv")
+        tp.setAttributeBuffer("uv", GL_FLOAT, 3 * 4, 2, stride)
+        tp.enableAttributeArray("shade")
+        tp.setAttributeBuffer("shade", GL_FLOAT, 5 * 4, 1, stride)
+        f.glDrawArrays(GL_TRIANGLES, 0, self.counts[buf_name])
+
 
 # ── Interactive widget ──────────────────────────────────────────────────
 
@@ -1270,6 +1513,14 @@ class Preview3DWidget(QOpenGLWidget):
 
     def set_scene(self, scene: SceneData):
         self.renderer.set_scene(scene)
+        self.update()
+
+    def set_marker(self, row, col):
+        self.renderer.set_marker(row, col)
+        self.update()
+
+    def set_grid_visible(self, on: bool):
+        self.renderer.show_grid3d = on
         self.update()
 
     def reset_camera(self):

@@ -251,6 +251,7 @@ class EditorWindow(QMainWindow):
             from gl_preview import Preview3DWidget
 
             self.preview3d = Preview3DWidget()
+            self.preview3d.renderer.show_grid3d = self.canvas.show_grid
             lay.addWidget(self.preview3d, 1)
         except Exception as e:                     # GL missing entirely
             err = QLabel(
@@ -574,6 +575,8 @@ class EditorWindow(QMainWindow):
 
     def _on_tile_clicked(self, row, col):
         self._update_inspector(row, col)
+        if self.preview3d is not None:
+            self.preview3d.set_marker(row, col)
 
     def _on_zoom_changed(self, ts):
         self.status_zoom.setText(f"{ts:.0f} px/tile")
@@ -880,6 +883,12 @@ class EditorWindow(QMainWindow):
     def toggle_grid(self):
         self.canvas.show_grid = not self.canvas.show_grid
         self.canvas.update()
+        if self.preview3d is not None:
+            self.preview3d.set_grid_visible(self.canvas.show_grid)
+            if self.center_tabs.currentIndex() == 1:
+                self.toast.show_message(
+                    "Grid " + ("on" if self.canvas.show_grid else "off")
+                    + " — bright lines every 4 tiles")
 
     def toggle_guides(self):
         self.canvas.show_guides = not self.canvas.show_guides
