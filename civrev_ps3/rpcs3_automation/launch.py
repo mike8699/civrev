@@ -254,7 +254,12 @@ def _send_ps3_button(button: str):
     Sends to the game window (FPS/Civilization title) specifically,
     since the keyboard pad handler only reads from that window.
     """
-    key_map = {"X": "Return", "O": "BackSpace", "start": "1"}
+    # NOTE: xdotool renders uppercase letter keysyms as Shift+<letter>, which
+    # RPCS3's keyboard pad handler does not match — use lowercase for letters.
+    key_map = {
+        "X": "Return", "O": "BackSpace", "start": "1",
+        "L1": "q", "R1": "e", "Square": "z", "Triangle": "x",
+    }
     key = key_map.get(button, button)
     try:
         env = {**os.environ, "DISPLAY": DISPLAY}
@@ -460,6 +465,14 @@ def _navigate_to_scenario(scenario: str = "earth"):
         "south_pacific": "South Pacific",
         "uk": "United Kingdom",
         "invasion_usa": "Invasion",
+        # Survival pack (Pak7) — genuine PACK_SCENARIO2 scenarios
+        "the_eye": "The Eye",
+        # Victory pack (Pak4) — PACK_VICTORY rules-only scenarios (random map)
+        "gold_rush": "Gold Rush",
+        "enlightenment": "Enlightenment",
+        "hyper_drive": "Hyper Drive",
+        "global_warming": "Global Warming",
+        "ice_age": "Ice Age",
     }
     target_name = scenario_names.get(scenario, scenario)
 
@@ -580,6 +593,47 @@ def _navigate_to_scenario(scenario: str = "earth"):
 
     # Capture initial spawn view
     _capture_state("spawn_view")
+
+    # City census: open the City Screen (L1=Q) and cycle through cities
+    # (R1=E). The city name renders large in this screen, so OCR is reliable
+    # and every city is visited regardless of unit orders. Runs FIRST, at
+    # spawn, before any turn advances can raise blocking popups. Circle exits.
+    print("  City census via City Screen (L1/R1)...")
+    # Dismiss spawn popups (era-up "Firaxis Post", "Economic Milestone", etc.)
+    # — but ONLY while a popup is actually visible: with no popup, O = End
+    # Turn, which raises the tech dialog and blocks the City Screen.
+    _POPUP_WORDS = ("exit", "firaxis", "reached", "milestone", "interesting",
+                    "booming")
+    for _i in range(4):
+        _text = _ocr_screen().lower()
+        if any(w in _text for w in _POPUP_WORDS):
+            print(f"    popup detected (attempt {_i}), dismissing with O")
+            _send_ps3_button("O")
+            time.sleep(2.0)
+        else:
+            break
+    _capture_state("census_popups_dismissed")
+    # Held keys (not 12ms taps) — RPCS3's pad polling misses short taps on
+    # the shoulder-button bindings.
+    _hold_key("q", 0.4)  # L1 = City Screen
+    time.sleep(3.0)
+    for _i in range(6):
+        _capture_state(f"census_{_i:02d}")
+        _hold_key("e", 0.4)  # R1 = next city
+        time.sleep(2.0)
+    _capture_state("census_end")
+    _send_ps3_button("O")  # exit City Screen
+    time.sleep(2.0)
+
+    # Unit/city cycle: Circle (O = "wait") pans the camera to each unit/city
+    # needing orders. Captures let us count starting cities/units and read the
+    # calendar year — used to verify scenario VARIATORs (STARTSIZE/STARTERA/…).
+    print("  Cycling units/cities with Circle (O)...")
+    for _i in range(12):
+        _capture_state(f"cycle_{_i:02d}")
+        _send_ps3_button("O")
+        time.sleep(2.0)
+    _capture_state("cycle_end")
 
     # Zoom ALL the way out to see entire map
     print("  Zooming out to maximum...")
@@ -773,7 +827,11 @@ if __name__ == "__main__":
         "--scenario",
         type=str,
         default="earth",
-        choices=["earth", "equal_opportunity", "south_pacific", "uk", "invasion_usa"],
+        choices=[
+            "earth", "equal_opportunity", "south_pacific", "uk", "invasion_usa",
+            "the_eye", "global_warming", "ice_age",
+            "gold_rush", "enlightenment", "hyper_drive",
+        ],
         help="DLC scenario to load",
     )
     args = parser.parse_args()

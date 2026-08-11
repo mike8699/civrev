@@ -76,7 +76,11 @@ def main():
         "-s",
         type=str,
         default="earth",
-        choices=["earth", "equal_opportunity", "south_pacific", "uk", "invasion_usa"],
+        choices=[
+            "earth", "equal_opportunity", "south_pacific", "uk", "invasion_usa",
+            "the_eye", "global_warming", "ice_age",
+            "gold_rush", "enlightenment", "hyper_drive",
+        ],
         help="DLC scenario to load",
     )
     args = parser.parse_args()
