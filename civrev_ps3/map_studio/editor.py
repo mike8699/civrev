@@ -3,11 +3,14 @@
 from pathlib import Path
 
 import build as build_mod
+import scenario_io
+import scenario_schema as S
 import theme
 from canvas import TOOL_HINTS, MapCanvas
 from model import DLC_SLOTS, GRID, TERRAIN_NAMES, MapModel
 from newmap import NewMapDialog
 from preview import SettingsDialog, TexturePreviewDialog
+from scenario_panel import ScenarioPanel
 from PyQt5.QtCore import QSize, Qt, QTimer
 from PyQt5.QtGui import QIcon, QKeySequence, QPixmap
 from PyQt5.QtWidgets import (
@@ -69,6 +72,8 @@ class EditorWindow(QMainWindow):
         self.model = MapModel()
         self.current_slot = 0
         self.source_label = ""
+        self._scenario_cache = {}     # {slot_index: {name: value}} in-session edits
+        self._prev_tool = "brush"     # tool to restore after startloc placement
         self.build_worker = None
         self.scene_worker = None
         self._scene_stale = True
@@ -112,6 +117,8 @@ class EditorWindow(QMainWindow):
         self.center_tabs.setDocumentMode(True)
         self.center_tabs.addTab(scroll, "Design")
         self.center_tabs.addTab(self._build_preview3d(), "In-Game Preview")
+        self.scenario_panel = ScenarioPanel(self.model)
+        self.center_tabs.addTab(self.scenario_panel, "Scenario Rules")
         self.center_tabs.currentChanged.connect(self._tab_changed)
         root.addWidget(self.center_tabs, 1)
 
@@ -282,6 +289,9 @@ class EditorWindow(QMainWindow):
                 "In-game preview — edits in Design update it live")
             if self._scene_stale:
                 self._refresh_scene()
+        elif idx == 2:
+            self.status_hint.setText(
+                "Scenario rules — settings write into dlcscenariodata on build")
         else:
             self.status_hint.setText(TOOL_HINTS.get(self.canvas.tool, ""))
 
@@ -530,6 +540,11 @@ class EditorWindow(QMainWindow):
         self.canvas.map_changed.connect(self._on_map_changed)
         self.canvas.terrain_picked.connect(self._on_terrain_picked)
         self.canvas.zoom_changed.connect(self._on_zoom_changed)
+        self.canvas.startloc_placed.connect(self._on_startloc_placed)
+        self.canvas.startloc_cancelled.connect(self._disarm_startloc)
+        self.scenario_panel.place_startloc.connect(self._arm_startloc)
+        self.scenario_panel.startlocs_changed.connect(self._on_startlocs_changed)
+        self.scenario_panel.changed.connect(self._on_scenario_changed)
 
     # ══════════════════════ Interaction ═════════════════════
 
@@ -580,6 +595,67 @@ class EditorWindow(QMainWindow):
 
     def _on_zoom_changed(self, ts):
         self.status_zoom.setText(f"{ts:.0f} px/tile")
+
+    # ── Scenario rules / STARTLOC placement ─────────────────
+
+    def _on_scenario_changed(self):
+        # Cache this slot's edits so they survive slot switches this session.
+        self._scenario_cache[self.current_slot] = self.scenario_panel.get_values()
+
+    def _on_startlocs_changed(self, markers):
+        self.canvas.startloc_markers = dict(markers)
+        self.canvas.update()
+
+    def _arm_startloc(self, name):
+        self._prev_tool = self.canvas.tool
+        self.canvas.startloc_active = name
+        self.canvas.tool = "startloc"
+        self.center_tabs.setCurrentIndex(0)          # Design tab
+        self.canvas.setFocus()
+        self.canvas.update()
+        self.toast.show_message(
+            f"Click a land tile to set the {S.STARTLOC_LABELS[name]} start "
+            "— Esc to cancel", msec=6000)
+
+    def _disarm_startloc(self):
+        if self.canvas.tool == "startloc":
+            self.canvas.tool = self._prev_tool
+            self.canvas.startloc_active = None
+            self.canvas.update()
+            self.status_hint.setText(TOOL_HINTS.get(self.canvas.tool, ""))
+
+    def _on_startloc_placed(self, row, col):
+        name = self.canvas.startloc_active
+        if not name:
+            return
+        if not self.model.is_land(row, col):
+            self.toast.show_message(
+                "Start tiles must be land — the game rejects water/ice. "
+                "Pick a land tile.")
+            return                                    # stay armed
+        self.scenario_panel.apply_startloc(name, row, col)
+        self.toast.show_message(
+            f"{S.STARTLOC_LABELS[name]} start set to ({col}, {row})")
+        self._disarm_startloc()
+
+    def _load_scenario_for_slot(self, idx):
+        """Load the slot's variators into the panel (cache first, else XML)."""
+        slot = DLC_SLOTS[idx]
+        meta = {}
+        if idx in self._scenario_cache:
+            values = self._scenario_cache[idx]
+        else:
+            try:
+                values = scenario_io.read_variators(
+                    self.settings.pak9_dir, slot["tag"])
+            except (OSError, FileNotFoundError, ValueError):
+                values = {}
+        try:
+            meta = scenario_io.entry_meta(self.settings.pak9_dir, slot["tag"])
+        except (OSError, FileNotFoundError, ValueError):
+            meta = {}
+        self._disarm_startloc()
+        self.scenario_panel.set_slot(slot["title"], meta, values)
 
     def _on_map_changed(self):
         self._update_stats()
@@ -711,6 +787,7 @@ class EditorWindow(QMainWindow):
             self.model.load_file(path)
             self.source_label = ""
             self.canvas.selected = None
+            self._load_scenario_for_slot(idx)
             self.canvas.update()
             self._on_map_changed()
             self.toast.show_message(f"Loaded {slot['title']} from Pak9")
@@ -810,6 +887,9 @@ class EditorWindow(QMainWindow):
             self.toast.show_message("A build is already running")
             return
         fails = [m for s, m in self.model.validate() if s == "fail"]
+        fails += [m for s, m in S.validate(
+            self.scenario_panel.get_values(), fixed_map=True, model=self.model)
+            if s == "fail"]
         if fails:
             resp = QMessageBox.warning(
                 self, "Map has problems",
@@ -829,7 +909,10 @@ class EditorWindow(QMainWindow):
             self.model.snapshot(), self.current_slot, self.settings,
             install=self.install_check.isChecked() and export_dir is None,
             smart_patch=self.smart_check.isChecked(),
-            export_dir=export_dir, parent=self)
+            export_dir=export_dir,
+            scenario_values=(None if export_dir is not None
+                             else self.scenario_panel.get_values()),
+            parent=self)
         self.build_worker.step_changed.connect(self.build_step.setText)
         self.build_worker.progress.connect(self.build_bar.setValue)
         self.build_worker.finished_ok.connect(self._build_done)
@@ -871,6 +954,8 @@ class EditorWindow(QMainWindow):
             QMessageBox.critical(self, "Restore failed", str(e))
             return
         self.model.dirty = False
+        # Drop cached scenario edits so the panel reflects on-disk rules again.
+        self._scenario_cache.pop(self.current_slot, None)
         self._load_slot(self.current_slot, confirm=False)
         self.toast.show_message(msg)
 
@@ -917,8 +1002,14 @@ class EditorWindow(QMainWindow):
             "<li><b>Preview</b> shows the textures a build will produce. "
             "<b>Smart patch</b> keeps original art wherever you didn't "
             "edit.</li>"
+            "<li><b>Scenario Rules</b> tab: set starting era, pre-built "
+            "cities, victory type, gold, barbarians and more. Use "
+            "<b>Place</b> next to a start tile, then click a land tile to fix "
+            "where the player/AI begin. Advanced starts need a <b>Start "
+            "year</b>.</li>"
             "<li><b>Build &amp; Install</b> (Ctrl+B) regenerates textures, "
-            "repacks Pak9, and installs to RPCS3.</li>"
+            "writes the scenario rules, repacks Pak9, and installs to "
+            "RPCS3.</li>"
             "</ol>"
             "<p>In-game: Single Player → Scenarios → your slot's name.</p>")
 

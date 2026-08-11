@@ -123,6 +123,63 @@ def main():
         else:
             check("height edits present", False, "no pixels changed at all")
 
+    # 4b. Scenario schema + XML round-trip + STARTLOC codec + gates
+    print("\n── Scenario rules ──")
+    import scenario_io
+    import scenario_schema as SS
+
+    check("schema has 35 variators, indices 0-34",
+          len(SS.VARIATORS) == 35
+          and [v.index for v in SS.VARIATORS] == list(range(35)))
+    check("every variator has a category in CATEGORIES",
+          all(v.category in SS.CATEGORIES for v in SS.VARIATORS))
+    # STARTLOC codec is an exact inverse and matches the verified probe
+    check("startloc codec round-trips + matches probe 3089=(12,17)",
+          SS.encode_startloc(12, 17) == 3089
+          and SS.decode_startloc(3089) == (12, 17)
+          and all(SS.decode_startloc(SS.encode_startloc(r, c)) == (r, c)
+                  for r in (0, 5, 31) for c in (0, 17, 31)))
+    # XML round-trip against a pristine copy (never touches the real Pak9)
+    import shutil
+    import tempfile
+    with tempfile.TemporaryDirectory() as td:
+        tmp = Path(td)
+        for name in ("dlcscenariodata5.xml",):
+            shutil.copy2(PAK9_ORIG / name, tmp / name)
+        before = (tmp / "dlcscenariodata5.xml").read_bytes()
+        want = {"DISPLAYCARD": 1539, "STARTYEAR": 1800, "STARTSIZE": 2,
+                "STARTLOCME": SS.encode_startloc(12, 17)}
+        scenario_io.write_variators(tmp, "The_UK", want)
+        check("scenario XML write+verify round-trips",
+              scenario_io.verify_written(tmp, "The_UK", want),
+              str(scenario_io.read_variators(tmp, "The_UK")))
+        check("write leaves OTHER entries untouched",
+              scenario_io.read_variators(tmp, "The_World") == {"DISPLAYCARD": 1552})
+        # File stays ISO-8859-1 / CRLF (no accidental re-encode of the rest)
+        after = (tmp / "dlcscenariodata5.xml").read_bytes()
+        check("write preserves CRLF line endings", b"\r\n" in after)
+        # UK is the last entry: everything before its tag must be byte-identical,
+        # and the UK region itself must have changed.
+        check("bytes before the UK entry are untouched",
+              before.split(b"SCENARIO_THE_UK")[0]
+              == after.split(b"SCENARIO_THE_UK")[0])
+        check("the UK entry region changed",
+              before.split(b"SCENARIO_THE_UK")[1]
+              != after.split(b"SCENARIO_THE_UK")[1])
+    # Gate validation fires correctly
+    g1 = SS.validate({"STARTSIZE": 2}, fixed_map=True)
+    check("gate: STARTSIZE without STARTYEAR fails on fixed map",
+          any(s == "fail" for s, _ in g1))
+    g2 = SS.validate({"STARTSIZE": 2, "STARTYEAR": 1800}, fixed_map=True)
+    check("gate: STARTSIZE with STARTYEAR is clean",
+          not any(s == "fail" for s, _ in g2))
+    g3 = SS.validate({"STARTSIZE": 1}, fixed_map=False)
+    check("gate: random-map STARTSIZE needs no STARTYEAR",
+          not any(s == "fail" for s, _ in g3))
+    g4 = SS.validate({"MUSTWINBY": 2, "NOSPACERACE": 1}, fixed_map=True)
+    check("gate: MUSTWINBY=Space + NOSPACERACE conflict fails",
+          any(s == "fail" for s, _ in g4))
+
     # 5. Full synth on a from-scratch map
     print("\n── Full synthesis (no originals) ──")
     from newmap import random_map

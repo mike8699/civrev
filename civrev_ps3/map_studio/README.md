@@ -2,10 +2,10 @@
 
 Desktop editor for Civilization Revolution (PS3) DLC maps. Edits the four
 Pak9 map slots (Earth, Equal Opportunity, South Pacific, The UK), regenerates
-the three per-map DDS textures, repacks `Pak9.FPK`, and installs to RPCS3 —
-one button.
+the three per-map DDS textures, edits the scenario rules, repacks `Pak9.FPK`,
+and installs to RPCS3 — one button.
 
-![tests](https://img.shields.io/badge/selftest-31%2F31-brightgreen) *(run
+![tests](https://img.shields.io/badge/selftest-43%2F43-brightgreen) *(run
 `selftest.py`)*
 
 ## Run
@@ -44,6 +44,25 @@ is what the game loads. Edits in the Design tab re-render in ~½ s
 (smart-patch + background thread). Drag orbits, wheel zooms, Shift+drag
 pans, double-click resets the camera. Requires OpenGL 4.1 (any desktop GPU;
 Mesa software rendering works).
+
+## Scenario Rules
+
+The **Scenario Rules** tab exposes all 35 DLC scenario VARIATORs, grouped
+(Starting conditions, Victory, Barbarians & difficulty, Economy & bonuses,
+Map generation, Advanced), and writes them into `dlcscenariodata5.xml` on
+build. Each row is marked ✓ (effect verified in-game) or • (inferred from the
+shipped scenarios); both are fully settable. Controls are typed per variator —
+dropdowns for enums (starting era, victory type), enable+number for levels and
+values (start year, gold), checkboxes for flags.
+
+**Start locations** (STARTLOCME + STARTLOC0–4) are placed by clicking the map:
+hit **Place** next to a civ, then click a land tile in the Design tab — the
+tile is drawn as a labelled pin (gold **P** = player, red **1–4** = AI) and
+packed as `row*256+col`. The panel validates live: advanced starts
+(STARTSIZE/STARTLOC) require a **Start year** on a fixed-map scenario,
+STARTLOC tiles must be land, and victory settings can't contradict. See
+`../SCENARIO_VARIATORS.md` for the full per-variator reference and which
+effects are verified.
 
 ## Features
 
@@ -105,10 +124,13 @@ real Pak9.
 |---|---|
 | `main.py` | entry point, app/theme setup |
 | `editor.py` | main window, panels, menus, build orchestration |
-| `canvas.py` | map canvas: tools, rendering, pan/zoom |
+| `canvas.py` | map canvas: tools, rendering, pan/zoom, STARTLOC pins |
 | `model.py` | tile grid, bit encoding, validation, map ops |
 | `texgen.py` | DDS generation: smart patch + full synth (numpy) |
 | `build.py` | background build/preview workers, FPK repack, install |
+| `scenario_schema.py` | all 35 VARIATORs: kinds, ranges, tooltips, gates |
+| `scenario_io.py` | read/write scenario VARIATORs in dlcscenariodata XML |
+| `scenario_panel.py` | Scenario Rules tab: grouped typed controls |
 | `newmap.py` | New Map wizard + random continent generator |
 | `preview.py` | texture preview + settings dialogs |
 | `widgets.py`, `theme.py` | UI pieces and the single-source palette |

@@ -17,6 +17,21 @@ TOOL_HINTS = {
     "spawn": "Click to toggle a multiplayer spawn marker",
     "eraser": "Paint ocean — drag to stroke",
     "picker": "Click a tile to pick its terrain",
+    "startloc": "Click a land tile to set the start location — Esc to cancel",
+}
+
+# Marker colours for civ start locations (STARTLOC*). Player is distinct.
+STARTLOC_COLORS = {
+    "STARTLOCME": "#ffd54a",   # gold — human player
+    "STARTLOC0": "#e8623c",
+    "STARTLOC1": "#e8623c",
+    "STARTLOC2": "#e8623c",
+    "STARTLOC3": "#e8623c",
+    "STARTLOC4": "#8892a6",    # spare
+}
+STARTLOC_GLYPH = {
+    "STARTLOCME": "P", "STARTLOC0": "1", "STARTLOC1": "2",
+    "STARTLOC2": "3", "STARTLOC3": "4", "STARTLOC4": "5",
 }
 
 
@@ -27,6 +42,8 @@ class MapCanvas(QWidget):
     map_changed = pyqtSignal()
     terrain_picked = pyqtSignal(int)
     zoom_changed = pyqtSignal(float)
+    startloc_placed = pyqtSignal(int, int)   # (row, col) while in startloc mode
+    startloc_cancelled = pyqtSignal()
 
     MIN_TILE = 10
     MAX_TILE = 72
@@ -45,6 +62,12 @@ class MapCanvas(QWidget):
         self.hovered = None          # (row, col)
         self.hover_edge = None       # (row, col, flag) for river tool
         self.selected = None
+
+        # Scenario start-location markers (STARTLOC*). Drawn as an overlay;
+        # source of truth lives in the scenario panel. `startloc_active` is the
+        # variator name being placed while the startloc tool is armed.
+        self.startloc_markers = {}   # {name: (row, col)}
+        self.startloc_active = None
         self.painting = False
         self.shape_start = None
         self._last_edge = None
@@ -217,7 +240,7 @@ class MapCanvas(QWidget):
         handler = {
             "line": self._press_shape, "rect": self._press_shape,
             "fill": self._press_fill, "river": self._press_river,
-            "spawn": self._press_spawn,
+            "spawn": self._press_spawn, "startloc": self._press_startloc,
         }.get(self.tool, self._press_brush)
         handler(tile, event)
 
@@ -251,6 +274,14 @@ class MapCanvas(QWidget):
         self.push_undo()
         self.model.set_spawn(*tile, not self.model.has_spawn(*tile))
         self._select_and_notify(tile)
+
+    def _press_startloc(self, tile, event):
+        # Placing a scenario start location — does NOT touch the map data.
+        # The editor validates (land only) and updates startloc_markers via the
+        # scenario panel, so we don't mutate markers here.
+        self.selected = tile
+        self.update()
+        self.startloc_placed.emit(*tile)
 
     def _press_brush(self, tile, event):
         self.push_undo()
@@ -324,6 +355,9 @@ class MapCanvas(QWidget):
             self._space_down = True
             self.setCursor(Qt.OpenHandCursor)
             return
+        if event.key() == Qt.Key_Escape and self.tool == "startloc":
+            self.startloc_cancelled.emit()
+            return
         super().keyPressEvent(event)
 
     def keyReleaseEvent(self, event):
@@ -355,6 +389,7 @@ class MapCanvas(QWidget):
                 p.drawRect(QRectF(cc * ts, rr * ts, ts, ts))
 
         p.setRenderHint(QPainter.Antialiasing, True)
+        self._paint_startlocs(p, ts)
         self._paint_hover(p, ts)
 
         # Selection
@@ -386,6 +421,35 @@ class MapCanvas(QWidget):
             for r in (2, 30):
                 y = r * ts
                 p.drawLine(QPointF(0, y), QPointF(total, y))
+
+    def _paint_startlocs(self, p, ts):
+        """Draw civ start-location pins (scenario overlay, not map data)."""
+        if not self.startloc_markers:
+            return
+        from PyQt5.QtGui import QFont
+        r_ = max(6.0, ts * 0.34)
+        font = QFont()
+        font.setPixelSize(int(max(8, r_ * 1.05)))
+        font.setBold(True)
+        for name, (row, col) in self.startloc_markers.items():
+            cx, cy = col * ts + ts / 2, row * ts + ts / 2
+            color = QColor(STARTLOC_COLORS.get(name, "#e8623c"))
+            # halo ring so it reads on any terrain
+            p.setPen(QPen(QColor(0, 0, 0, 150), max(1.0, ts * 0.05)))
+            p.setBrush(color)
+            p.drawEllipse(QPointF(cx, cy), r_, r_)
+            active = (name == self.startloc_active)
+            if active:
+                ring = QPen(QColor(255, 255, 255, 235))
+                ring.setWidthF(max(1.4, ts * 0.06))
+                p.setPen(ring)
+                p.setBrush(Qt.NoBrush)
+                p.drawEllipse(QPointF(cx, cy), r_ + 2.5, r_ + 2.5)
+            # glyph
+            p.setFont(font)
+            p.setPen(QColor(30, 22, 8))
+            p.drawText(QRectF(cx - r_, cy - r_, r_ * 2, r_ * 2),
+                       Qt.AlignCenter, STARTLOC_GLYPH.get(name, "?"))
 
     def _paint_hover(self, p, ts):
         if self.tool == "river" and self.hover_edge:

@@ -72,13 +72,15 @@ class BuildWorker(QThread):
 
     def __init__(self, map_snapshot: bytes, slot_index: int,
                  settings: Settings, install: bool, smart_patch: bool,
-                 export_dir: Path | None = None, parent=None):
+                 export_dir: Path | None = None,
+                 scenario_values: dict | None = None, parent=None):
         super().__init__(parent)
         self.map_snapshot = map_snapshot
         self.slot_index = slot_index
         self.install = install
         self.smart_patch = smart_patch
         self.export_dir = export_dir
+        self.scenario_values = scenario_values   # {name: int} or None
         # Copy settings values now — QSettings isn't thread-safe
         self.pak9_dir = settings.pak9_dir
         self.pak9_original_dir = settings.pak9_original_dir
@@ -138,6 +140,19 @@ class BuildWorker(QThread):
                     f"Exported {slot['title']} ({result['mode']}) to "
                     f"{self.export_dir} in {time.time() - t0:.1f}s")
                 return
+
+            # 2b. Write scenario rules into dlcscenariodata*.xml ─ 78%
+            if self.scenario_values is not None:
+                self._step("Writing scenario rules", 78)
+                import scenario_io
+                scenario_io.write_variators(
+                    self.pak9_dir, slot["tag"], self.scenario_values)
+                if not scenario_io.verify_written(
+                        self.pak9_dir, slot["tag"], self.scenario_values):
+                    self.failed.emit(
+                        "Scenario rules failed to write correctly to "
+                        "dlcscenariodata — aborting before repack.")
+                    return
 
             # 3. Repack FPK ─ 80..92%
             self._step("Repacking Pak9.FPK", 82)
