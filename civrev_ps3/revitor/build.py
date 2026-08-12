@@ -108,7 +108,7 @@ class BuildWorker(QThread):
 
             # 1. Texture generation ─ 0..70%
             self._step("Loading originals", 2)
-            refs = texgen.load_blend_refs()
+            refs = texgen.load_blend_refs(self.pak9_original_dir)
             target = None
             corpus = []
             if self.smart_patch:
@@ -209,7 +209,7 @@ class PreviewWorker(QThread):
             model = MapModel()
             model.data[:] = self.map_snapshot
 
-            refs = texgen.load_blend_refs()
+            refs = texgen.load_blend_refs(self.pak9_original_dir)
             target = None
             corpus = []
             if self.smart_patch:
@@ -267,7 +267,7 @@ class SceneWorker(QThread):
             model = MapModel()
             model.data[:] = self.map_snapshot
 
-            refs = texgen.load_blend_refs()
+            refs = texgen.load_blend_refs(self.pak9_original_dir)
             target = None
             corpus = []
             if self.smart_patch:

@@ -18,9 +18,9 @@ Two generation modes:
   (ocean/ice/land pattern), so coastlines get coastal art and interiors get
   interior art. Unchanged tiles keep their original art byte-for-byte.
 
-* FULL SYNTH: procedural fallback used when originals are unavailable —
-  per-terrain height profiles, flat lightmap colors, and authentic blend
-  block sets extracted from the Firaxis originals.
+* FULL SYNTH: procedural fallback — per-terrain height profiles, flat
+  lightmap colors, and blend block sets derived at runtime from the
+  user's own originals (nothing from the game ships with Revitor).
 """
 
 from __future__ import annotations
@@ -32,7 +32,6 @@ import numpy as np
 from model import GRID, ICE, MOUNTAINS, OCEAN, MapModel, file_to_display
 from PIL import Image
 
-ASSETS = Path(__file__).resolve().parent / "assets"
 
 H_SIZE = 512      # heights px
 L_SIZE = 4096     # lightmap px
@@ -232,23 +231,86 @@ def solid_dxt1_block(rgb: tuple) -> np.ndarray:
     )
 
 
-# ── Blend reference blocks (authentic Firaxis block sets) ───────────────
+# ── Blend reference blocks (derived from the USER'S originals) ──────────
+#
+# Copyright hygiene: Revitor ships NO data from the game. The per-terrain
+# blend reference cells are derived at runtime from the player's own
+# Pak9_original DDS files; when those are absent, a procedural flat-mask
+# fallback keeps full-synth builds functional (correct masks, less texture).
+
+_REF_CACHE: dict = {}
+REFS_MODE = "unloaded"       # "derived" | "fallback" (for smoke/diagnostics)
 
 
-def load_blend_refs() -> dict:
-    """terrain type -> list of (16,16,8) uint8 block cells."""
+def _derive_refs_from_corpus(corpus: list) -> dict:
+    """Pick one blends cell per terrain per original map.
+
+    Prefers an interior tile (all 4 neighbours the same terrain) so the cell
+    carries clean single-terrain blend art rather than a transition edge.
+    Deterministic scan order → stable output for a given Pak9_original.
+    """
+    refs: dict = {}
+    for s in corpus:
+        for t in range(8):
+            pick = None
+            for r in range(1, GRID - 1):
+                for c in range(1, GRID - 1):
+                    if s.terrain(r, c) != t:
+                        continue
+                    if all(s.terrain(r + dr, c + dc) == t
+                           for dr, dc in ((0, 1), (1, 0), (0, -1), (-1, 0))):
+                        pick = (r, c)
+                        break
+                if pick:
+                    break
+            if pick is None:                       # settle for any tile
+                for r in range(GRID):
+                    for c in range(GRID):
+                        if s.terrain(r, c) == t:
+                            pick = (r, c)
+                            break
+                    if pick:
+                        break
+            if pick is None:
+                continue
+            r, c = pick
+            cell = s.blend_blocks[r * B_BPT:(r + 1) * B_BPT,
+                                  c * B_BPT:(c + 1) * B_BPT].copy()
+            refs.setdefault(t, []).append(cell)
+    return refs
+
+
+def _fallback_refs() -> dict:
+    """Procedural cells: flat mask colors (R=forest, G/B=mountain overlay)."""
+    mask_colors = {4: (255, 0, 0), 6: (0, 127, 127)}
     refs = {}
-    ref_dir = ASSETS / "blend_refs"
     for t in range(8):
-        variants = []
-        for f in sorted(ref_dir.glob(f"terrain_{t}_*.bin")):
-            data = f.read_bytes()
-            if len(data) == B_BPT * B_BPT * 8:
-                variants.append(
-                    np.frombuffer(data, dtype=np.uint8).reshape(B_BPT, B_BPT, 8)
-                )
-        if variants:
-            refs[t] = variants
+        block = solid_dxt1_block(mask_colors.get(t, (0, 0, 0)))
+        refs[t] = [np.tile(block, (B_BPT, B_BPT, 1))]
+    return refs
+
+
+def load_blend_refs(pak9_original: Path | None = None) -> dict:
+    """terrain type -> list of (16,16,8) uint8 block cells.
+
+    Derived from the user's Pak9_original at runtime (cached per path);
+    procedural fallback when originals are unavailable.
+    """
+    global REFS_MODE
+    key = str(pak9_original) if pak9_original else ""
+    if key in _REF_CACHE:
+        refs, REFS_MODE = _REF_CACHE[key]
+        return refs
+    refs = {}
+    if pak9_original is not None:
+        refs = _derive_refs_from_corpus(load_corpus(Path(pak9_original)))
+    mode = "derived" if len(refs) == 8 else "fallback"
+    if len(refs) < 8:
+        fb = _fallback_refs()
+        for t in range(8):
+            refs.setdefault(t, fb[t])
+    _REF_CACHE[key] = (refs, mode)
+    REFS_MODE = mode
     return refs
 
 

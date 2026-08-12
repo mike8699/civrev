@@ -56,7 +56,10 @@ WATER_NORM = 0.335           # sea level in normalized height
 SKY = (0.235, 0.415, 0.78)   # the game's bright blue backdrop
 CURVE = 0.0032               # CivRev's rolling world-curvature
 
-LEVEL_DIR = Path(__file__).resolve().parent.parent / "Level"
+from settings import PROJECT_ROOT as _PROJECT_ROOT
+# The game's Level/ textures (canopies, rock detail) are OPTIONAL and
+# loaded at runtime from the user's own extracted files — never bundled.
+LEVEL_DIR = _PROJECT_ROOT / "Level"
 
 
 @dataclass

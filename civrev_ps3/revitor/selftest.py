@@ -41,7 +41,7 @@ def check(name, ok, detail=""):
 def main():
     print(f"Originals: {PAK9_ORIG}")
     corpus = texgen.load_corpus(PAK9_ORIG)
-    refs = texgen.load_blend_refs()
+    refs = texgen.load_blend_refs(PAK9_ORIG)
     check("load originals corpus", len(corpus) == 4,
           f"{len(corpus)}/4 maps")
     check("load blend refs", len(refs) == 8, f"{len(refs)}/8 terrain types")

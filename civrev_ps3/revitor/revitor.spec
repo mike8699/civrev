@@ -19,9 +19,10 @@ a = Analysis(
     [str(SPEC_DIR / "main.py")],
     pathex=[str(SPEC_DIR), str(CIVREV)],
     binaries=[],
-    datas=[
-        (str(SPEC_DIR / "assets"), "assets"),
-    ],
+    # No bundled data: all game-derived content (blend refs, donor
+    # corpus, Level textures) is read at runtime from the USER'S own
+    # game files. Never add game assets here.
+    datas=[],
     hiddenimports=[
         "fpk",                    # imported lazily inside build.py's worker
     ],

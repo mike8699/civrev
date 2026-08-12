@@ -74,8 +74,9 @@ def main():
             app.processEvents()
             import texgen
 
-            refs = texgen.load_blend_refs()
+            refs = texgen.load_blend_refs(window.settings.pak9_original_dir)
             assert len(refs) == 8, f"blend refs missing: {len(refs)}/8"
+            assert texgen.REFS_MODE in ("derived", "fallback")
             import fpk  # noqa: F401  (FPK repacker importable when frozen)
 
             assert len(window.scenario_panel.rows) == 35, \

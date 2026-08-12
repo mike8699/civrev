@@ -18,10 +18,19 @@ cd civrev_ps3/revitor
 ../../.venv/bin/python main.py     # repo venv has PyQt5 + numpy + PIL
 ```
 
+## No game data ships with Revitor
+
+The repo and the bundled binary contain **no content from the game**.
+Everything Firaxis-made — the donor texture corpus, the blend reference
+cells, the optional `Level/` preview textures — is read **at runtime from
+your own copy** (`Pak9_original/`, `Level/`). Without them the app still
+runs: builds fall back to fully procedural textures and the 3D preview
+uses procedural sprites.
+
 ## Standalone binary
 
-`revitor.spec` bundles the app (PyQt5, numpy, Pillow, the blend-ref assets,
-and the FPK repacker) into one executable:
+`revitor.spec` bundles the app (PyQt5, numpy, Pillow, and the FPK repacker
+— no game data) into one executable:
 
 ```bash
 cd civrev_ps3/revitor
@@ -160,4 +169,3 @@ real Pak9.
 | `newmap.py` | New Map wizard + random continent generator |
 | `preview.py` | texture preview + settings dialogs |
 | `widgets.py`, `theme.py` | UI pieces and the single-source palette |
-| `assets/blend_refs/` | authentic DXT1 blend cells from the Firaxis originals |
