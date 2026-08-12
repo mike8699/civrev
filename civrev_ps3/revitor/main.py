@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CivRev Map Studio — desktop editor for Civilization Revolution DLC maps.
+"""Revitor — the CivRev map & scenario editor (civREV + edITOR).
 
 Run with the repo venv:  ../../.venv/bin/python main.py
 """
@@ -27,7 +27,7 @@ def main():
     QSurfaceFormat.setDefaultFormat(default_surface_format())
 
     app = QApplication(sys.argv)
-    app.setApplicationName("CivRev Map Studio")
+    app.setApplicationName("Revitor")
     app.setOrganizationName("civrev")
     app.setStyleSheet(theme.APP_STYLESHEET)
 

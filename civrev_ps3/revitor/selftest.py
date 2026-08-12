@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Self-test for Map Studio's data pipeline (no GUI required).
+"""Self-test for Revitor's data pipeline (no GUI required).
 
 Checks, against the pristine originals in Pak9_original:
   1. .map round-trip is byte-identical

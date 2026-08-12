@@ -83,7 +83,7 @@ class EditorWindow(QMainWindow):
         self._scene_timer.setInterval(350)
         self._scene_timer.timeout.connect(self._refresh_scene)
 
-        self.setWindowTitle("CivRev Map Studio")
+        self.setWindowTitle("Revitor")
         self.setMinimumSize(1150, 720)
         self.resize(1360, 860)
 
@@ -748,7 +748,7 @@ class EditorWindow(QMainWindow):
         star = " •" if self.model.dirty else ""
         src = f" — {self.source_label}" if self.source_label else ""
         self.setWindowTitle(
-            f"CivRev Map Studio — {slot['title']}{src}{star}")
+            f"Revitor — {slot['title']}{src}{star}")
 
     # ══════════════════════ File actions ════════════════════
 
@@ -990,7 +990,7 @@ class EditorWindow(QMainWindow):
     def show_quickstart(self):
         QMessageBox.information(
             self, "Quickstart",
-            "<b>CivRev Map Studio</b> edits the four PS3 DLC map slots."
+            "<b>Revitor</b> edits the four PS3 DLC map slots."
             "<ol>"
             "<li>Pick a <b>build target</b> slot (right panel) — your map "
             "replaces that DLC map in-game.</li>"
@@ -1016,8 +1016,8 @@ class EditorWindow(QMainWindow):
     def show_about(self):
         QMessageBox.about(
             self, "About",
-            "<b>CivRev Map Studio</b><br>"
-            "Map editor for Civilization Revolution (PS3) DLC maps.<br><br>"
+            "<b>Revitor</b> — civREV edITOR<br>"
+            "Map &amp; scenario editor for Civilization Revolution (PS3).<br><br>"
             "Formats verified against the game binary — see "
             "MAP_EDITOR_APPROACH.md in the repo root.")
 

@@ -26,7 +26,7 @@ def _default_rpcs3_usrdir() -> Path:
 
 class Settings:
     def __init__(self):
-        self._qs = QSettings("civrev", "MapStudio")
+        self._qs = QSettings("civrev", "Revitor")
 
     def _path(self, key: str, default: Path) -> Path:
         v = self._qs.value(key, "")

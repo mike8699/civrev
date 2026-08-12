@@ -1,6 +1,9 @@
-# CivRev Map Studio
+# Revitor
 
-Desktop editor for Civilization Revolution (PS3) DLC maps. Edits the four
+**Revitor** (civREV + edITOR) — the map & scenario editor for
+Civilization Revolution (PS3).
+
+Edits the four
 Pak9 map slots (Earth, Equal Opportunity, South Pacific, The UK), regenerates
 the three per-map DDS textures, edits the scenario rules, repacks `Pak9.FPK`,
 and installs to RPCS3 — one button.
@@ -11,14 +14,14 @@ and installs to RPCS3 — one button.
 ## Run
 
 ```bash
-cd civrev_ps3/map_studio
+cd civrev_ps3/revitor
 ../../.venv/bin/python main.py     # repo venv has PyQt5 + numpy + PIL
 ```
 
 ## Why this replaces map_editor / map_editor_2
 
-The old editors synthesized all three textures from scratch (gaussian bumps,
-flat colors, one reference block per terrain). Map Studio's **smart patch**
+The old prototype editors synthesized all three textures from scratch (gaussian bumps,
+flat colors, one reference block per terrain). Revitor's **smart patch**
 mode instead starts from the slot's pristine textures and replaces only the
 cells of tiles you actually edited, harvesting replacement art from a donor
 corpus built from all four original DLC maps — the donor is a same-terrain

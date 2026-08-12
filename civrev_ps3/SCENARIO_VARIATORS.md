@@ -2,7 +2,7 @@
 
 Reverse-engineered from the v1.30 EBOOT + runtime probes (RPCS3), 2026-08-10.
 
-## TL;DR support matrix (for Map Studio)
+## TL;DR support matrix (for Revitor)
 
 Status: **V**=runtime-verified, **H**=strong hypothesis (shipped-pack prose),
 **?**=unknown. "Value" = how the editor should expose it. Full detail below.
@@ -178,7 +178,7 @@ Enlightenment (PACK_VICTORY, MAP=NONE random) + `STARTSIZE=1`, no STARTYEAR
 - **Fixed-map scenarios (bundled MAP, PACK_SCENARIO2 or coerced MPMAPS2):
   STARTSIZE/STARTLOC require STARTYEAR** to trigger the scripted-start
   override.
-Map Studio makes fixed-map scenarios → its rule stands: *STARTSIZE/STARTLOC
+Revitor makes fixed-map scenarios → its rule stands: *STARTSIZE/STARTLOC
 ⇒ also set STARTYEAR*.
 
 ## Genuine SP scenario baseline — Global Warming (Pak7), VERIFIED 2026-08-10
@@ -250,13 +250,13 @@ Conclusions (all verified on the genuine SP map):
 - **`STARTLOCME`/`STARTLOC0-4`** (`row*256+col`): seeds the civ's whole
   starting cluster region (capital + extra cities). Works with size1/size2
   when STARTYEAR is set. Must be a land tile.
-- **Works on ANY map** — including MP maps coerced to PACK_SCENARIO2 → Map
-  Studio can offer advanced starts on custom maps. Editor rule of thumb:
+- **Works on ANY map** — including MP maps coerced to PACK_SCENARIO2 →
+  Revitor can offer advanced starts on custom maps. Editor rule of thumb:
   *setting STARTSIZE or STARTLOC requires setting STARTYEAR*.
 - **Pack type does NOT gate advanced starts either**: pristine
   `PACK_MPMAPS2`/`bMultiplayer=1` UK entry + STARTYEAR+STARTSIZE=2 → cities
   (Moscow+Odessa, Warriors, 1800 AD) when played via SP "Play Scenario".
-  → Map Studio needs NO entry-type conversion for advanced starts.
+  → Revitor needs NO entry-type conversion for advanced starts.
 - **STARTLOC on MPMAPS2 also works**: UK/MPMAPS2 + year + size2 +
   LOCME=3089 → cluster spawned in the snowy north (Moscow, Smolensk,
   St. Petersburg); no-LOC control → steppe region (Moscow, Rostov, Yakutsk).

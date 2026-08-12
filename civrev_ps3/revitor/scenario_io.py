@@ -9,7 +9,7 @@ A scenario map slot is matched to its XML entry by the ``<MAP>`` value, which
 equals the slot's ``tag`` (e.g. ``The_UK``).
 
 This mirrors the standalone rpcs3_automation/set_variators.py, kept separate so
-Map Studio has no dependency on the automation harness.
+Revitor has no dependency on the automation harness.
 """
 
 from __future__ import annotations

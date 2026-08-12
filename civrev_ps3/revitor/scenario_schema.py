@@ -5,7 +5,7 @@ Every DLC scenario entry (in dlcscenariodata{N}.xml) can carry a list of
 parses them in FUN_0015c9b0 and stores each as a signed 16-bit short at
 ``scenario_struct + index*2``.
 
-This module describes all 35 variators so the editor can render a correct,
+This module describes all 35 variators so Revitor can render a correct,
 typed control for each and validate combinations. Effects were established by
 runtime probes on RPCS3 (see ../SCENARIO_VARIATORS.md); fields carry a
 ``status`` of ``"verified"`` (observed in-game) or ``"inferred"`` (from the
