@@ -1,11 +1,20 @@
 """Paths and preferences, persisted via QSettings."""
 
+import sys
 from pathlib import Path
 
 from PyQt5.QtCore import QSettings
 
-STUDIO_DIR = Path(__file__).resolve().parent
-PROJECT_ROOT = STUDIO_DIR.parent          # civrev_ps3/
+if getattr(sys, "frozen", False):
+    # PyInstaller bundle: read-only resources (assets/, bundled modules) are
+    # extracted to _MEIPASS; user data (Pak9/, Pak9_original/) defaults to the
+    # directory the executable lives in. All three paths remain configurable
+    # in the Settings dialog.
+    STUDIO_DIR = Path(getattr(sys, "_MEIPASS"))
+    PROJECT_ROOT = Path(sys.executable).resolve().parent
+else:
+    STUDIO_DIR = Path(__file__).resolve().parent
+    PROJECT_ROOT = STUDIO_DIR.parent      # civrev_ps3/
 ASSETS_DIR = STUDIO_DIR / "assets"
 
 GAME_ID = "BLUS30130"

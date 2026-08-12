@@ -4,6 +4,7 @@
 Run with the repo venv:  ../../.venv/bin/python main.py
 """
 
+import os
 import sys
 from pathlib import Path
 
@@ -49,6 +50,54 @@ def main():
 
     window = EditorWindow()
     window.show()
+
+    smoke = os.environ.get("REVITOR_SMOKE")
+    if smoke:
+        # CI smoke test: prove the (possibly frozen) app boots and its bundled
+        # resources resolve, then exit without entering the event loop.
+        # Run with QT_QPA_PLATFORM=offscreen on headless machines.
+        # REVITOR_SMOKE=deep additionally performs a REAL build of the current
+        # slot (requires Pak9/ + Pak9_original/; writes into them exactly like
+        # pressing Build).
+        #
+        # Results also go to the file named by REVITOR_SMOKE_OUT, and exits
+        # use os._exit: windowed (no-console) builds have no stdout and must
+        # never reach the GUI unhandled-exception dialog, which would hang CI.
+        def _report(msg: str, code: int):
+            print(msg, flush=True)
+            out = os.environ.get("REVITOR_SMOKE_OUT")
+            if out:
+                Path(out).write_text(msg + "\n")
+            os._exit(code)
+
+        try:
+            app.processEvents()
+            import texgen
+
+            refs = texgen.load_blend_refs()
+            assert len(refs) == 8, f"blend refs missing: {len(refs)}/8"
+            import fpk  # noqa: F401  (FPK repacker importable when frozen)
+
+            assert len(window.scenario_panel.rows) == 35, \
+                "scenario schema short"
+            built = ""
+            if smoke == "deep":
+                import build as build_mod
+
+                oks, errs = [], []
+                worker = build_mod.BuildWorker(
+                    window.model.snapshot(), window.current_slot,
+                    window.settings, install=False, smart_patch=True,
+                    scenario_values=window.scenario_panel.get_values())
+                worker.finished_ok.connect(oks.append)
+                worker.failed.connect(errs.append)
+                worker.run()
+                assert oks and not errs, f"deep build failed: {errs}"
+                built = f"\nREVITOR_SMOKE_BUILD_OK: {oks[0]}"
+        except Exception as e:                    # -> file + nonzero exit
+            _report(f"REVITOR_SMOKE_FAIL: {type(e).__name__}: {e}", 1)
+        _report(f"REVITOR_SMOKE_OK{built}", 0)
+
     sys.exit(app.exec_())
 
 

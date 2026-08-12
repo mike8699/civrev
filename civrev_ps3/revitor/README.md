@@ -18,6 +18,29 @@ cd civrev_ps3/revitor
 ../../.venv/bin/python main.py     # repo venv has PyQt5 + numpy + PIL
 ```
 
+## Standalone binary
+
+`revitor.spec` bundles the app (PyQt5, numpy, Pillow, the blend-ref assets,
+and the FPK repacker) into one executable:
+
+```bash
+cd civrev_ps3/revitor
+pip install pyinstaller
+pyinstaller revitor.spec           # -> dist/revitor  (revitor.exe on Windows)
+```
+
+The bundled app looks for `Pak9/` and `Pak9_original/` **next to the
+executable** by default; point it anywhere via File → Settings. CI builds
+Linux/Windows/macOS binaries on every push touching `revitor/`
+(`.github/workflows/revitor.yml`) and uploads them as run artifacts named
+`revitor-Linux` / `revitor-Windows` / `revitor-macOS`.
+
+Smoke-test hooks (used by CI, handy locally):
+`REVITOR_SMOKE=1 QT_QPA_PLATFORM=offscreen ./dist/revitor` boots the app,
+verifies bundled resources, and exits; `REVITOR_SMOKE=deep` additionally runs
+a real build (needs the Pak9 folders; writes into them exactly like pressing
+Build). Results also land in the file named by `REVITOR_SMOKE_OUT`.
+
 ## Why this replaces map_editor / map_editor_2
 
 The old prototype editors synthesized all three textures from scratch (gaussian bumps,

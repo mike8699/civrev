@@ -1,0 +1,62 @@
+name: revitor
+
+on:
+  push:
+    paths:
+      - "civrev_ps3/revitor/**"
+      - "civrev_ps3/fpk.py"
+      - ".github/workflows/revitor.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: build (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Qt runtime libraries (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libegl1 libgl1 libxkbcommon0 \
+            libfontconfig1 libdbus-1-3
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install PyQt5 numpy pillow pyinstaller
+
+      - name: Build single-file executable
+        working-directory: civrev_ps3/revitor
+        run: pyinstaller revitor.spec -y
+
+      - name: Smoke-test the frozen binary
+        working-directory: civrev_ps3/revitor
+        shell: bash
+        env:
+          REVITOR_SMOKE: "1"
+          REVITOR_SMOKE_OUT: smoke.txt
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          BIN=dist/revitor
+          [ "${{ runner.os }}" = "Windows" ] && BIN=dist/revitor.exe
+          "$BIN"
+          cat smoke.txt
+          grep -q REVITOR_SMOKE_OK smoke.txt
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: revitor-${{ runner.os }}
+          path: civrev_ps3/revitor/dist/revitor*
+          if-no-files-found: error
